@@ -1,0 +1,19 @@
+.game-profile {
+    position: fixed;
+    z-index: 9999;
+    top: 1cqmax;
+    left: 1cqmax;
+}
+
+.game-menu {
+    position: fixed;
+    z-index: 9999;
+
+    top: 1cqmax;
+    right: 1cqmax;
+}
+
+.game-menu:hover {
+    cursor: pointer;
+    color: black;
+}

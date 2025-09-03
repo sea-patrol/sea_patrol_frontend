@@ -1,0 +1,30 @@
+.profile {
+    display: flex;
+    border-radius: 10px;
+    border: 1px black solid;
+    width: 200px;
+    height: 100px;
+}
+
+.profile .avatar {
+    border: 1px black solid;
+    border-radius: 10px;
+    width: 70px;
+    height: 70px;
+    margin-top: 5px;
+    margin-left: 5px;
+    overflow: hidden;
+}
+
+.profile .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* overflow-clip-margin: unset; */
+    overflow: visible;
+}
+
+.profile .name {
+    margin-left: 5px;
+    font-weight: bold;
+}
