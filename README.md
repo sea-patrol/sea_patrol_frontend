@@ -2,8 +2,10 @@
 
 После скачивания необходимо в папке sea_patrol_frontend выполнить
 npm install
+
 Для запуска
 npm run dev
+
 Для сборки
 npm run build
 
