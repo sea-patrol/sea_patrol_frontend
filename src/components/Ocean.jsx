@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { useRef, useMemo } from 'react'
 import { extend, useThree, useLoader, useFrame } from '@react-three/fiber'
 import { Water } from 'three-stdlib'
-import waterNormalsTexture from '../assets/waternormals.jpg' // Импортируем текстуру
+import waterNormalsTexture from '../assets/waternormals.jpg'
 
 extend({ Water })
 

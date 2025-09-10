@@ -1,0 +1,43 @@
+import { Canvas } from '@react-three/fiber';
+import { RigidBody, Physics, CuboidCollider } from '@react-three/rapier'
+import { OrbitControls, Sky } from '@react-three/drei';
+import Ocean from './Ocean';
+import SailShip from './SailShip';
+import { Leva, useControls } from 'leva'
+import { Perf } from 'r3f-perf'
+
+function GameMainScene() {
+  const { sunX, sunY, sunZ, turbidity } = useControls('Солнце', {
+    sunX: { value: 500, min: -1500, max: 1500, step: 10 },
+    sunY: { value: 150, min: -1000, max: 1000, step: 10 },
+    sunZ: { value: -1000, min: -1000, max: 1000, step: 10 },
+    turbidity: { value: 0.1, min: 0, max: 20, step: 0.1 }
+  });
+  const { perfVisible } = useControls('Monitoring', {
+    perfVisible: true
+  })
+
+  return (
+    <>
+      <Leva />
+      <Canvas camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 20000 }}>
+        { perfVisible && <Perf position="top-left" /> }
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]} />
+        <Physics debug>
+          <RigidBody type="fixed">
+          <Ocean/>
+          </RigidBody>
+          <Sky scale={1000} sunPosition={[sunX, sunY, sunZ]} turbidity={turbidity} />
+          <RigidBody colliders = {false} position={ [ 0, 1, 0 ] }>
+            <SailShip position={ [ 0, -0.2, 0 ] } />
+            <CuboidCollider args={ [ 2, 0.5, 5.5 ] } />
+          </RigidBody> 
+        </Physics>
+        <OrbitControls />
+      </Canvas>
+    </>
+  );
+}
+
+export default GameMainScene;

@@ -1,5 +1,5 @@
 import ProfileBlock from '../components/ProfileBlock';
-import ThreeScene from '../components/ThreeScene';
+import GameMainScene from '../components/GameMainScene';
 import '../styles/GamePage.css'
 
 function GamePage() {
@@ -9,7 +9,7 @@ function GamePage() {
         <ProfileBlock />
       </div>
       <div className='game-menu'>Меню</div>
-      <ThreeScene />
+      <GameMainScene />
     </div>
   );
 }

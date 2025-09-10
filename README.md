@@ -1,4 +1,4 @@
-Используется стек React + TypeScript + Vite
+Используется стек React + JS + Vite + Three.js + R3F + R3R
 
 После скачивания необходимо в папке sea_patrol_frontend выполнить
 npm install
@@ -17,13 +17,22 @@ npm create vite@latest sea_patrol_frontend -- --template react-ts
 Для реализации навигации между страницами - React Router:
 
 npm install react-router-dom
-npm install @types/react-router-dom  # для TypeScript
-
-
 
 ### Графика
 
 Для 3д графики были устоновлены зависимости React Three Fiber (https://r3f.docs.pmnd.rs/getting-started/introduction)
 npm install three @react-three/fiber @react-three/drei
 
+### Debug UI
+https://github.com/pmndrs/leva
+npm install leva
+
+### Monitoring
+https://github.com/utsuboco/r3f-perf
+npm install r3f-perf
+
+
+### Физика
+https://rapier.rs/
+npm install @react-three/rapier
 
