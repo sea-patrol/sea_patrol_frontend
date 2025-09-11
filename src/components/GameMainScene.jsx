@@ -2,21 +2,26 @@ import { Canvas } from '@react-three/fiber';
 import { RigidBody, Physics, CuboidCollider } from '@react-three/rapier'
 import { OrbitControls, Sky } from '@react-three/drei';
 import Ocean from './Ocean';
-import SailShip from './SailShip';
+import MainSailShip from './MainSailShip';
 import { Leva, useControls } from 'leva'
 import { Perf } from 'r3f-perf'
 import { KeyboardControls } from '@react-three/drei'
 
 function GameMainScene() {
+  const { perfVisible } = useControls('Monitoring', {
+    perfVisible: true
+  })
+
+  const {physicsDebug} = useControls('PhysicsDebug', {
+    physicsDebug: false
+  })
+
   const { sunX, sunY, sunZ, turbidity } = useControls('Солнце', {
     sunX: { value: 500, min: -1500, max: 1500, step: 10 },
     sunY: { value: 150, min: -1000, max: 1000, step: 10 },
     sunZ: { value: -1000, min: -1000, max: 1000, step: 10 },
     turbidity: { value: 0.1, min: 0, max: 20, step: 0.1 }
   });
-  const { perfVisible } = useControls('Monitoring', {
-    perfVisible: true
-  })
 
   return (
     <>
@@ -34,9 +39,9 @@ function GameMainScene() {
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]} />
         <Sky scale={1000} sunPosition={[sunX, sunY, sunZ]} turbidity={turbidity} />
-        <Physics debug>
+        <Physics debug = {physicsDebug}>
           <Ocean/>
-          <SailShip />
+          <MainSailShip />
         </Physics>
         <OrbitControls />
       </Canvas>
