@@ -3,6 +3,7 @@ import { useRef, useMemo } from 'react'
 import { extend, useThree, useLoader, useFrame } from '@react-three/fiber'
 import { Water } from 'three-stdlib'
 import waterNormalsTexture from '../assets/waternormals.jpg'
+import { CuboidCollider, RigidBody } from '@react-three/rapier'
 
 extend({ Water })
 
@@ -27,7 +28,23 @@ function Ocean() {
     [waterNormals]
   )
   useFrame((state, delta) => (ref.current.material.uniforms.time.value += delta))
-  return <water ref={ref} args={[geom, config]} rotation-x={-Math.PI / 2} />
+  return (
+    <>
+    <water ref={ref} args={[geom, config]} rotation-x={-Math.PI / 2} />
+    <Ground />
+    </>
+  )
+}
+
+function Ground () { 
+  return (
+    <RigidBody type="fixed" position={[0, -2, 0]}>
+      <mesh>
+        <boxGeometry args={[10000, 0.1, 10000]} />
+        <meshStandardMaterial color="#f4e4a6" />
+      </mesh>
+    </RigidBody>
+  )
 }
 
 export default Ocean;

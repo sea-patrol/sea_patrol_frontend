@@ -24,15 +24,10 @@ function GameMainScene() {
         { perfVisible && <Perf position="top-left" /> }
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]} />
+        <Sky scale={1000} sunPosition={[sunX, sunY, sunZ]} turbidity={turbidity} />
         <Physics debug>
-          <RigidBody type="fixed">
           <Ocean/>
-          </RigidBody>
-          <Sky scale={1000} sunPosition={[sunX, sunY, sunZ]} turbidity={turbidity} />
-          <RigidBody colliders = {false} position={ [ 0, 1, 0 ] }>
-            <SailShip position={ [ 0, -0.2, 0 ] } />
-            <CuboidCollider args={ [ 2, 0.5, 5.5 ] } />
-          </RigidBody> 
+          <SailShip />
         </Physics>
         <OrbitControls />
       </Canvas>
