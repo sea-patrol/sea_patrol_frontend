@@ -5,6 +5,7 @@ import Ocean from './Ocean';
 import SailShip from './SailShip';
 import { Leva, useControls } from 'leva'
 import { Perf } from 'r3f-perf'
+import { KeyboardControls } from '@react-three/drei'
 
 function GameMainScene() {
   const { sunX, sunY, sunZ, turbidity } = useControls('Солнце', {
@@ -20,6 +21,14 @@ function GameMainScene() {
   return (
     <>
       <Leva />
+      <KeyboardControls
+          map={ [
+              { name: 'forward', keys: [ 'ArrowUp', 'KeyW' ] },
+              { name: 'backward', keys: [ 'ArrowDown', 'KeyS' ] },
+              { name: 'leftward', keys: [ 'ArrowLeft', 'KeyA' ] },
+              { name: 'rightward', keys: [ 'ArrowRight', 'KeyD' ] }
+          ] }
+      >
       <Canvas camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 20000 }}>
         { perfVisible && <Perf position="top-left" /> }
         <ambientLight intensity={0.5} />
@@ -31,6 +40,7 @@ function GameMainScene() {
         </Physics>
         <OrbitControls />
       </Canvas>
+      </KeyboardControls>
     </>
   );
 }

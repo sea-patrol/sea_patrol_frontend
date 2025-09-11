@@ -38,7 +38,7 @@ function Ocean() {
 
 function Ground () { 
   return (
-    <RigidBody type="fixed" position={[0, -2, 0]}>
+    <RigidBody type="fixed" position={[0, -2, 0]} restitution={ 0.2 } friction={ 0.5 }>
       <mesh>
         <boxGeometry args={[10000, 0.1, 10000]} />
         <meshStandardMaterial color="#f4e4a6" />
