@@ -43,7 +43,7 @@ function GameMainScene() {
           <Ocean/>
           <MainSailShip />
         </Physics>
-        <OrbitControls />
+        {/* <OrbitControls /> */}
       </Canvas>
       </KeyboardControls>
     </>
