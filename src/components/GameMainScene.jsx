@@ -1,11 +1,12 @@
 import { Canvas } from '@react-three/fiber';
-import { RigidBody, Physics, CuboidCollider } from '@react-three/rapier'
-import { OrbitControls, Sky } from '@react-three/drei';
+import { Physics } from '@react-three/rapier'
+import { Sky } from '@react-three/drei';
 import Ocean from './Ocean';
 import MainSailShip from './MainSailShip';
 import { Leva, useControls } from 'leva'
 import { Perf } from 'r3f-perf'
 import { KeyboardControls } from '@react-three/drei'
+import Bouy from './Buoy';
 
 function GameMainScene() {
   const { perfVisible } = useControls('Monitoring', {
@@ -42,8 +43,8 @@ function GameMainScene() {
         <Physics debug = {physicsDebug}>
           <Ocean/>
           <MainSailShip />
+          <Bouy position={[0, 0 , 0]} />
         </Physics>
-        {/* <OrbitControls /> */}
       </Canvas>
       </KeyboardControls>
     </>
