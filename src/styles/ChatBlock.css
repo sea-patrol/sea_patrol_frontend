@@ -1,0 +1,19 @@
+.chat {
+    display: flex;
+    flex-direction: column;
+    opacity: 0.5;
+    height: 100%;
+    width: 100%;
+}
+
+.chat .board {
+    height: 90%;
+    background-color: aliceblue;
+}
+
+.chat input {
+    border: none;
+    outline: none;
+    background-color: lightblue;
+    height: 10%;
+}
