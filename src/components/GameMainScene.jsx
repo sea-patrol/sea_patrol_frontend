@@ -6,7 +6,7 @@ import MainSailShip from './MainSailShip';
 import { Leva, useControls } from 'leva'
 import { Perf } from 'r3f-perf'
 import { KeyboardControls } from '@react-three/drei'
-import Bouy from './Buoy';
+import { Bouys } from './Buoys';
 
 function GameMainScene() {
   const { perfVisible } = useControls('Monitoring', {
@@ -43,7 +43,7 @@ function GameMainScene() {
         <Physics debug = {physicsDebug}>
           <Ocean/>
           <MainSailShip />
-          <Bouy position={[0, 0 , 0]} />
+          <Bouys position={[0, 0 , 0]} />
         </Physics>
       </Canvas>
       </KeyboardControls>
