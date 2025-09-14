@@ -1,6 +1,6 @@
 import ChatBlock from '../components/ChatBlock';
 import ProfileBlock from '../components/ProfileBlock';
-import ThreeScene from '../components/ThreeScene';
+import GameMainScene from '../components/GameMainScene';
 import '../styles/GamePage.css'
 
 function GamePage() {
@@ -9,7 +9,7 @@ function GamePage() {
       <div className='chat-block'>
         <ChatBlock />
       </div>
-      <ThreeScene />
+      <GameMainScene />
     </div>
   );
 }
