@@ -17,3 +17,14 @@
     cursor: pointer;
     color: black;
 }
+
+.chat-block {
+    position: fixed;
+    z-index: 9999;
+
+    bottom: 1%;
+    left: 1%;
+
+    width: 25vw;
+    height: 30vh;
+}

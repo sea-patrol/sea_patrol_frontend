@@ -1,3 +1,4 @@
+import ChatBlock from '../components/ChatBlock';
 import ProfileBlock from '../components/ProfileBlock';
 import GameMainScene from '../components/GameMainScene';
 import '../styles/GamePage.css'
@@ -5,10 +6,9 @@ import '../styles/GamePage.css'
 function GamePage() {
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
-      <div className='game-profile'>
-        <ProfileBlock />
+      <div className='chat-block'>
+        <ChatBlock />
       </div>
-      <div className='game-menu'>Меню</div>
       <GameMainScene />
     </div>
   );
