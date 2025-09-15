@@ -6,11 +6,11 @@ import { useRef, useState, useEffect } from 'react'
 import * as THREE from 'three'
 
 export default function MainSailShip() {
-  const { nodes, materials } = useGLTF('./sailship.glb')
+  const { nodes, materials } = useGLTF('./sail_ship.glb')
   const { gl } = useThree()
 
-  const force = 10
-  const turnForceValue = 5
+  const force = 30
+  const turnForceValue = 20
 
   const [ smoothedCameraPosition ] = useState(() => new THREE.Vector3(20, 50, 50))
   const [ smoothedCameraTarget ] = useState(() => new THREE.Vector3())
@@ -154,67 +154,159 @@ export default function MainSailShip() {
         colliders={false} 
         position={[0, 0, 0]} 
         restitution={0.2} 
-        friction={0.1}
+        friction={0}
         mass={1}
         linearDamping={0.5}
         angularDamping={0.9}
       >
-        <group position={ [ 0, -0.2, 0 ] } dispose={null}>
-          <mesh
-            name="Hull"
-            castShadow
-            receiveShadow
-            geometry={nodes.Hull.geometry}
-            material={materials.Ship}
-            userData={{ name: 'Hull' }}
-          />
-          <mesh
-            name="Capitan_cabin"
-            castShadow
-            receiveShadow
-            geometry={nodes.Capitan_cabin.geometry}
-            material={materials.Ship}
-            userData={{ name: 'Capitan_cabin' }}
-          />
-          <mesh
-            name="Main_mast"
-            castShadow
-            receiveShadow
-            geometry={nodes.Main_mast.geometry}
-            material={materials.Ship}
-            userData={{ name: 'Main_mast' }}
-          />
-          <mesh
-            name="Bow_sprit"
-            castShadow
-            receiveShadow
-            geometry={nodes.Bow_sprit.geometry}
-            material={materials.Ship}
-            rotation={[1.281, 0, 0]}
-            userData={{ name: 'Bow_sprit' }}
-          />
-          <mesh
-            name="Main_boom"
-            castShadow
-            receiveShadow
-            geometry={nodes.Main_boom.geometry}
-            material={materials.Ship}
-            rotation={[Math.PI / 2, 0, 0.26]}
-            userData={{ name: 'Main_boom' }}
-          />
-          <mesh
-            name="Main_sail"
-            castShadow
-            receiveShadow
-            geometry={nodes.Main_sail.geometry}
-            material={materials['Material.001']}
-            rotation={[Math.PI / 2, 0, 0.26]}
-            userData={{ name: 'Main_sail' }}
-          />
+        <group position={[0, -2.5, 0]} dispose={null}>
+          <group name="Sketchfab_model" rotation={[-Math.PI / 2, 0, Math.PI]}>
+            <mesh
+              name="Materia��-material"
+              geometry={nodes['Materia��-material'].geometry}
+              material={materials.Materia}
+            />
+            <mesh
+              name="Materia��_001-material"
+              geometry={nodes['Materia��_001-material'].geometry}
+              material={materials['Materia.001']}
+            />
+            <mesh
+              name="Materia��_004-material"
+              geometry={nodes['Materia��_004-material'].geometry}
+              material={materials['Materia.004']}
+            />
+            <mesh
+              name="Materia��_003-material"
+              geometry={nodes['Materia��_003-material'].geometry}
+              material={materials['Materia.003']}
+            />
+            <lineSegments
+              name="Object_15"
+              geometry={nodes.Object_15.geometry}
+              material={materials.material_0}
+            />
+            <mesh
+              name="Materia��-material_1"
+              geometry={nodes['Materia��-material_1'].geometry}
+              material={materials.Materia}
+            />
+            <mesh
+              name="Materia��_003-material_1"
+              geometry={nodes['Materia��_003-material_1'].geometry}
+              material={materials['Materia.003']}
+            />
+            <mesh
+              name="Materia��_003-material_2"
+              geometry={nodes['Materia��_003-material_2'].geometry}
+              material={materials['Materia.003']}
+              scale={[-1, 1, 1]}
+            />
+            <mesh
+              name="Materia��_003-material_3"
+              geometry={nodes['Materia��_003-material_3'].geometry}
+              material={materials['Materia.003']}
+            />
+            <lineSegments
+              name="Object_24"
+              geometry={nodes.Object_24.geometry}
+              material={materials.material_0}
+            />
+            <mesh
+              name="Materia��_007-material"
+              geometry={nodes['Materia��_007-material'].geometry}
+              material={materials['Materia.007']}
+            />
+            <mesh
+              name="Materia��-material_2"
+              geometry={nodes['Materia��-material_2'].geometry}
+              material={materials.Materia}
+            />
+            <mesh
+              name="Materia��_003-material_4"
+              geometry={nodes['Materia��_003-material_4'].geometry}
+              material={materials['Materia.003']}
+            />
+            <mesh
+              name="Materia��_004-material_1"
+              geometry={nodes['Materia��_004-material_1'].geometry}
+              material={materials['Materia.004']}
+            />
+            <mesh
+              name="Materia��_006-material"
+              geometry={nodes['Materia��_006-material'].geometry}
+              material={materials['Materia.006']}
+            />
+            <mesh
+              name="Materia��_003-material_5"
+              geometry={nodes['Materia��_003-material_5'].geometry}
+              material={materials['Materia.003']}
+            />
+            <mesh
+              name="Materia��_003-material_6"
+              geometry={nodes['Materia��_003-material_6'].geometry}
+              material={materials['Materia.003']}
+            />
+            <mesh
+              name="Materia��_005-material"
+              geometry={nodes['Materia��_005-material'].geometry}
+              material={materials['Materia.005']}
+            />
+            <mesh
+              name="Materia��_004-material_2"
+              geometry={nodes['Materia��_004-material_2'].geometry}
+              material={materials['Materia.004']}
+            />
+            <mesh
+              name="Materia��_002-material"
+              geometry={nodes['Materia��_002-material'].geometry}
+              material={materials['Materia.002']}
+            />
+            <mesh
+              name="Object_45"
+              geometry={nodes.Object_45.geometry}
+              material={materials.material_0}
+            />
+            <mesh
+              name="Object_47"
+              geometry={nodes.Object_47.geometry}
+              material={materials.material_0}
+            />
+            <mesh
+              name="Object_49"
+              geometry={nodes.Object_49.geometry}
+              material={materials.material_0}
+            />
+            <mesh
+              name="Object_51"
+              geometry={nodes.Object_51.geometry}
+              material={materials.material_0}
+            />
+            <mesh
+              name="Materia��_004-material_3"
+              geometry={nodes['Materia��_004-material_3'].geometry}
+              material={materials['Materia.004']}
+            />
+            <lineSegments
+              name="Object_55"
+              geometry={nodes.Object_55.geometry}
+              material={materials.material_0}
+            />
+            <mesh
+              name="Materia��_003-material_7"
+              geometry={nodes['Materia��_003-material_7'].geometry}
+              material={materials['Materia.003']}
+            />
+            <mesh
+              name="Materia��_003-material_8"
+              geometry={nodes['Materia��_003-material_8'].geometry}
+              material={materials['Materia.003']}
+            />
+          </group>
         </group>
-        <CuboidCollider args={ [ 2, 2.5, 5.5 ] } />
+        <CuboidCollider args={ [ 2.5, 2, 12 ] } />
       </RigidBody> 
   )
 }
 
-useGLTF.preload('./sailship.glb')
+useGLTF.preload('./sail_ship.glb')
