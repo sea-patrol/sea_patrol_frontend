@@ -6,7 +6,7 @@ function ChatBlock() {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [isConnected, setIsConnected] = useState(false);
-    const { token, user } = useAuth();
+    const { token, user, loading } = useAuth();
     const wsRef = useRef(null);
     const messagesEndRef = useRef(null);
     const WS_URL = 'ws://localhost:8080/ws/chat';
@@ -20,9 +20,9 @@ function ChatBlock() {
         scrollToBottom();
     }, [messages]);
 
-    // Initialize SSE connection when component mounts and user is authenticated
+    // Initialize websocket connection when component mounts and user is authenticated
     useEffect(() => {
-        if (token && user) {
+        if (!loading && token && user) {
             connectWebSocket();
         }
 
@@ -32,7 +32,7 @@ function ChatBlock() {
                 wsRef.current.close();
             }
         };
-    }, []);
+    }, [loading, token, user]);
 
     const connectWebSocket = () => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -107,6 +107,16 @@ function ChatBlock() {
     };
 
     // Don't render chat if user is not authenticated
+    if (loading) {
+        return (
+            <div className="chat">
+                <div className='board'>
+                    <div className="auth-message">Loading...</div>
+                </div>
+            </div>
+        );
+    }
+
     if (!token || !user) {
         return (
             <div className="chat">
@@ -133,7 +143,7 @@ function ChatBlock() {
                                 <div className="message-header">
                                     <span className="username">{message.username}</span>
                                 </div>
-                                <div className="message-content">{message.message}</div>
+                                <div className="message-content">{message.content}</div>
                             </div>
                         ))
                     )}
