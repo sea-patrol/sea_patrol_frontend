@@ -7,9 +7,9 @@ function ChatBlock() {
     const [newMessage, setNewMessage] = useState('');
     const [isConnected, setIsConnected] = useState(false);
     const { token, user } = useAuth();
-    const eventSourceRef = useRef(null);
+    const wsRef = useRef(null);
     const messagesEndRef = useRef(null);
-    const API_BASE_URL = 'http://localhost:8080/api/v1/chat';
+    const WS_URL = 'ws://localhost:8080/ws/chat';
 
     // Auto-scroll to bottom when new messages arrive
     const scrollToBottom = () => {
@@ -23,40 +23,39 @@ function ChatBlock() {
     // Initialize SSE connection when component mounts and user is authenticated
     useEffect(() => {
         if (token && user) {
-            connectToEventStream();
+            connectWebSocket();
         }
 
         // Cleanup on unmount
         return () => {
-            if (eventSourceRef.current) {
-                eventSourceRef.current.close();
+            if (wsRef.current) {
+                wsRef.current.close();
             }
         };
-    }, [token, user]);
+    }, []);
 
-    const connectToEventStream = () => {
-        if (eventSourceRef.current) {
-            eventSourceRef.current.close();
+    const connectWebSocket = () => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            return; // Don't create new connection if already connected
+        }
+        
+        if (wsRef.current) {
+            wsRef.current.close();
         }
 
-        const eventSource = new EventSource(`${API_BASE_URL}/messages/stream`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-        eventSourceRef.current = eventSource;
+        const ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`);
+        wsRef.current = ws;
 
-        eventSource.onopen = () => {
+        ws.onopen = () => {
             setIsConnected(true);
-            console.log('Connected to chat stream');
+            console.log('Connected to chat WebSocket');
         };
 
-        eventSource.onmessage = (event) => {
+        ws.onmessage = (event) => {
             try {
                 const messageData = JSON.parse(event.data);
                 setMessages(prevMessages => {
                     const newMessages = [...prevMessages, messageData];
-                    // Keep only the last 30 messages
                     return newMessages.slice(-30);
                 });
             } catch (error) {
@@ -64,42 +63,37 @@ function ChatBlock() {
             }
         };
 
-        eventSource.onerror = (error) => {
-            console.error('EventSource failed:', error);
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
             setIsConnected(false);
-            // Attempt to reconnect after 3 seconds
+        };
+
+        ws.onclose = () => {
+            console.log('WebSocket connection closed');
+            setIsConnected(false);
             setTimeout(() => {
                 if (token && user) {
-                    connectToEventStream();
+                    connectWebSocket();
                 }
             }, 3000);
         };
     };
 
-    const sendMessage = async () => {
-        if (!newMessage.trim() || !token) {
-            return;
-        }
+    const sendMessage = () => {
+    if (!newMessage.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        return;
+    }
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/send`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(newMessage.trim())
-            });
-
-            if (response.ok) {
-                setNewMessage('');
-            } else {
-                console.error('Failed to send message:', response.statusText);
-            }
-        } catch (error) {
-            console.error('Error sending message:', error);
-        }
-    };
+    try {
+        const messageData = {
+            content: newMessage.trim()
+        };
+        wsRef.current.send(JSON.stringify(messageData));
+        setNewMessage('');
+    } catch (error) {
+        console.error('Error sending message:', error);
+    }
+};
 
     const handleKeyPress = (e) => {
         if (e.key === 'Enter') {
