@@ -18,35 +18,8 @@ export const AuthProvider = ({ children }) => {
   const API_BASE_URL = 'http://localhost:8080/api/v1/auth'; // Update this to your backend URL
 
   useEffect(() => {
-    if (token) {
-      fetchUserInfo();
-    } else {
-      setLoading(false);
-    }
+    setLoading(false);
   }, [token]);
-
-  const fetchUserInfo = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/info`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-      } else {
-        logout();
-      }
-    } catch (error) {
-      console.error('Error fetching user info:', error);
-      logout();
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const login = async (username, password) => {
     try {
@@ -61,6 +34,10 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         const authData = await response.json();
         setToken(authData.token);
+        setUser({
+          id: authData.userId,
+          username: authData.username
+        });
         localStorage.setItem('token', authData.token);
         return { success: true };
       } else {
