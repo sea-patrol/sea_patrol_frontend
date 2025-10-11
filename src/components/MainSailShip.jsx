@@ -1,5 +1,4 @@
 import { useGLTF } from '@react-three/drei'
-import { CuboidCollider, RigidBody } from '@react-three/rapier'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useKeyboardControls } from '@react-three/drei'
 import { useRef, useState, useEffect } from 'react'
@@ -9,8 +8,8 @@ export default function MainSailShip() {
   const { nodes, materials } = useGLTF('./sail_ship.glb')
   const { gl } = useThree()
 
-  const force = 30
-  const turnForceValue = 20
+  const moveSpeed = 0.5
+  const turnSpeed = 0.05
 
   const [ smoothedCameraPosition ] = useState(() => new THREE.Vector3(20, 50, 50))
   const [ smoothedCameraTarget ] = useState(() => new THREE.Vector3())
@@ -23,7 +22,6 @@ export default function MainSailShip() {
   const [isMouseDown, setIsMouseDown] = useState(false)
   const [lastMouseX, setLastMouseX] = useState(0)
   const [lastMouseY, setLastMouseY] = useState(0)
-
 
   const [ subscribeKeys, getKeys ] = useKeyboardControls()
 
@@ -96,11 +94,26 @@ export default function MainSailShip() {
       
       if (!shipRef.current) return
       
+      // Handle ship movement
+      if (forward) {
+        shipRef.current.position.x += Math.sin(shipRef.current.rotation.y) * moveSpeed
+        shipRef.current.position.z += Math.cos(shipRef.current.rotation.y) * moveSpeed
+      }
+      if (backward) {
+        shipRef.current.position.x -= Math.sin(shipRef.current.rotation.y) * moveSpeed
+        shipRef.current.position.z -= Math.cos(shipRef.current.rotation.y) * moveSpeed
+      }
+      if (leftward) {
+        shipRef.current.rotation.y += turnSpeed
+      }
+      if (rightward) {
+        shipRef.current.rotation.y -= turnSpeed
+      }
+      
       // Get ship's current rotation
-      const rotation = shipRef.current.rotation()
-      const quaternion = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
-      // Get ship's cuurent position
-      const position = shipRef.current.translation()
+      const rotation = shipRef.current.rotation
+      // Get ship's current position
+      const position = shipRef.current.position
       // Calculate camera position using spherical coordinates
       const cameraPosition = new THREE.Vector3()
       cameraPosition.x = position.x + cameraDistance * Math.sin(cameraAngleY) * Math.cos(cameraAngleX)
@@ -118,47 +131,10 @@ export default function MainSailShip() {
 
       state.camera.position.copy(smoothedCameraPosition)
       state.camera.lookAt(smoothedCameraTarget)
-      
-      // Create forward direction vector (local Z-axis)
-      const forwardDirection = new THREE.Vector3(0, 0, 1)
-      forwardDirection.applyQuaternion(quaternion)
-      const turnForce = forwardDirection.clone().multiplyScalar(turnForceValue)
-      
-      if (forward)
-      {
-          const forwardForce = forwardDirection.clone().multiplyScalar(force)
-          shipRef.current.applyImpulse(forwardForce, true)
-      }
-      if (backward)
-      {
-          const backwardForce = forwardDirection.clone().multiplyScalar(-force)
-          shipRef.current.applyImpulse(backwardForce, true)
-      }
-      if (leftward)
-      {   
-          shipRef.current.applyImpulse(turnForce, true)
-          shipRef.current.applyTorqueImpulse({ x: 0, y: force, z: 0 }, true)
-      }
-
-      if (rightward)
-      {
-          shipRef.current.applyImpulse(turnForce, true)
-          shipRef.current.applyTorqueImpulse({ x: 0, y: -force, z: 0 }, true)
-      }
   })
 
   return (
-      <RigidBody 
-        ref={shipRef} 
-        type="dynamic" 
-        colliders={false} 
-        position={[0, 0, 0]} 
-        restitution={0.2} 
-        friction={0}
-        mass={1}
-        linearDamping={0.5}
-        angularDamping={0.9}
-      >
+      <group ref={shipRef} position={[0, 0, 0]}>
         <group position={[0, -2.5, 0]} dispose={null}>
           <group name="Sketchfab_model" rotation={[-Math.PI / 2, 0, Math.PI]}>
             <mesh
@@ -304,8 +280,7 @@ export default function MainSailShip() {
             />
           </group>
         </group>
-        <CuboidCollider args={ [ 2.5, 2, 12 ] } />
-      </RigidBody> 
+      </group>
   )
 }
 

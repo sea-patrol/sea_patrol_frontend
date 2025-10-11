@@ -1,5 +1,4 @@
 import { Canvas } from '@react-three/fiber';
-import { Physics } from '@react-three/rapier'
 import { Sky } from '@react-three/drei';
 import Ocean from './Ocean';
 import MainSailShip from './MainSailShip';
@@ -40,11 +39,9 @@ function GameMainScene() {
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]} />
         <Sky scale={1000} sunPosition={[sunX, sunY, sunZ]} turbidity={turbidity} />
-        <Physics debug = {physicsDebug}>
-          <Ocean/>
-          <MainSailShip />
-          <Bouys position={[0, 0 , 0]} />
-        </Physics>
+        <Ocean/>
+        <MainSailShip />
+        <Bouys position={[0, 0 , 0]} />
       </Canvas>
       </KeyboardControls>
     </>
