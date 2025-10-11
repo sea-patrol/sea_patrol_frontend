@@ -3,7 +3,6 @@ import { useRef, useMemo } from 'react'
 import { extend, useThree, useLoader, useFrame } from '@react-three/fiber'
 import { Water } from 'three-stdlib'
 import waterNormalsTexture from '../assets/waternormals.jpg'
-import { CuboidCollider, RigidBody } from '@react-three/rapier'
 
 extend({ Water })
 
@@ -38,12 +37,10 @@ function Ocean() {
 
 function Ground () { 
   return (
-    <RigidBody type="fixed" position={[0, -2, 0]} restitution={ 0.2 } friction={ 0.5 }>
-      <mesh>
-        <boxGeometry args={[10000, 0.1, 10000]} />
-        <meshStandardMaterial color="#f4e4a6" />
-      </mesh>
-    </RigidBody>
+    <mesh position={[0, -2, 0]}>
+      <boxGeometry args={[10000, 0.1, 10000]} />
+      <meshStandardMaterial color="#f4e4a6" />
+    </mesh>
   )
 }
 
