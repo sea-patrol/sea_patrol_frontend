@@ -2,6 +2,7 @@ import ChatBlock from '../components/ChatBlock';
 import ProfileBlock from '../components/ProfileBlock';
 import GameMainScene from '../components/GameMainScene';
 import { useAuth } from '../contexts/AuthContext';
+import { WebSocketProvider } from '../contexts/WebSocketContext';
 import '../styles/GamePage.css'
 
 function GamePage() {
@@ -12,10 +13,12 @@ function GamePage() {
       <div className='username-display'>
         {user?.username || 'Player'}
       </div>
-      <div className='chat-block'>
-        <ChatBlock />
-      </div>
-      <GameMainScene />
+      <WebSocketProvider>
+        <div className='chat-block'>
+          <ChatBlock />
+        </div>
+        <GameMainScene />
+      </WebSocketProvider>
     </div>
   );
 }
