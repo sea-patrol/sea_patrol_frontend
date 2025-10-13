@@ -9,7 +9,7 @@ function ChatBlock() {
     const { token, user, loading } = useAuth();
     const wsRef = useRef(null);
     const messagesEndRef = useRef(null);
-    const WS_URL = 'ws://localhost:8080/ws/chat';
+    const WS_URL = 'ws://localhost:8080/ws/game';
 
     // Auto-scroll to bottom when new messages arrive
     const scrollToBottom = () => {
@@ -54,10 +54,14 @@ function ChatBlock() {
         ws.onmessage = (event) => {
             try {
                 const messageData = JSON.parse(event.data);
-                setMessages(prevMessages => {
-                    const newMessages = [...prevMessages, messageData];
-                    return newMessages.slice(-30);
-                });
+                const type = messageData.type;
+                const payload = messageData.payload;
+                if (type === "chat/message") {
+                     setMessages(prevMessages => {
+                        const newMessages = [...prevMessages, payload];
+                        return newMessages.slice(-30);
+                    });
+                }
             } catch (error) {
                 console.error('Error parsing message:', error);
             }
@@ -85,9 +89,11 @@ function ChatBlock() {
     }
 
     try {
-        const messageData = {
-            content: newMessage.trim()
-        };
+        const messageData = ["chat/message", {
+            to: "global",
+            text: newMessage.trim()
+        }]
+
         wsRef.current.send(JSON.stringify(messageData));
         setNewMessage('');
     } catch (error) {
@@ -139,11 +145,11 @@ function ChatBlock() {
                         <div className="no-messages">No messages yet. Start the conversation!</div>
                     ) : (
                         messages.map((message, index) => (
-                            <div key={index} className={`message ${message.username === user.username ? 'own-message' : 'other-message'}`}>
+                            <div key={index} className={`message ${message.from === user.username ? 'own-message' : 'other-message'}`}>
                                 <div className="message-header">
-                                    <span className="username">{message.username}</span>
+                                    <span className="username">{message.from}</span>
                                 </div>
-                                <div className="message-content">{message.content}</div>
+                                <div className="message-content">{message.text}</div>
                             </div>
                         ))
                     )}
