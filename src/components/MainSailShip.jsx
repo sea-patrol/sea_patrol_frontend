@@ -2,10 +2,11 @@ import { useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useKeyboardControls } from '@react-three/drei'
 import { useRef, useState, useEffect } from 'react'
+import { modelUrls } from '../utils/models';
 import * as THREE from 'three'
 
 export default function MainSailShip() {
-  const { nodes, materials } = useGLTF('./sail_ship.glb')
+  const { nodes, materials } = useGLTF(modelUrls.sail_ship)
   const { gl } = useThree()
 
   const moveSpeed = 0.5
@@ -283,5 +284,3 @@ export default function MainSailShip() {
       </group>
   )
 }
-
-useGLTF.preload('./sail_ship.glb')

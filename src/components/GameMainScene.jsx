@@ -1,4 +1,6 @@
+import { Suspense, useEffect} from 'react';
 import { Canvas } from '@react-three/fiber';
+import { LoadingScreen } from '../components/LoadingScreen';
 import { Sky } from '@react-three/drei';
 import Ocean from './Ocean';
 import MainSailShip from './MainSailShip';
@@ -6,8 +8,18 @@ import { Leva, useControls } from 'leva'
 import { Perf } from 'r3f-perf'
 import { KeyboardControls } from '@react-three/drei'
 import { Bouys } from './Buoys';
+import { preloadAllModels } from '../utils/models';
 
 function GameMainScene() {
+
+   useEffect(() => {
+      console.log("GameMainScene useEffect called")
+
+      preloadAllModels().then(() => {
+       console.log("preloadAllModels.then called")
+      });
+    }, []);
+
   const { perfVisible } = useControls('Monitoring', {
     perfVisible: true
   })
@@ -34,15 +46,17 @@ function GameMainScene() {
               { name: 'rightward', keys: [ 'ArrowRight', 'KeyD' ] }
           ] }
       >
-      <Canvas camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 20000 }}>
-        { perfVisible && <Perf position="top-left" /> }
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]} />
-        <Sky scale={1000} sunPosition={[sunX, sunY, sunZ]} turbidity={turbidity} />
-        <Ocean/>
-        <MainSailShip />
-        <Bouys position={[0, 0 , 0]} />
-      </Canvas>
+        <Canvas camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 20000 }}>
+          {perfVisible && <Perf position="top-left" />}
+          <Suspense fallback={LoadingScreen} >
+            <ambientLight intensity={0.5} />
+            <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]} />
+            <Sky scale={1000} sunPosition={[sunX, sunY, sunZ]} turbidity={turbidity} />
+            <Ocean />
+            <MainSailShip />
+            <Bouys position={[0, 0, 0]} />
+          </Suspense>
+        </Canvas>
       </KeyboardControls>
     </>
   );
