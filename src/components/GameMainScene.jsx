@@ -3,7 +3,8 @@ import { Canvas } from '@react-three/fiber';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { Sky } from '@react-three/drei';
 import Ocean from './Ocean';
-import MainSailShip from './MainSailShip';
+import PlayerSailShip from './PlayerSailShip';
+import NpcSailShip from './NpcSailShip';
 import { Leva, useControls } from 'leva'
 import { Perf } from 'r3f-perf'
 import { KeyboardControls } from '@react-three/drei'
@@ -53,7 +54,8 @@ function GameMainScene() {
             <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]} />
             <Sky scale={1000} sunPosition={[sunX, sunY, sunZ]} turbidity={turbidity} />
             <Ocean />
-            <MainSailShip />
+            <PlayerSailShip />
+            <NpcSailShip key={1} position={[50, 0, 50]} rotation={[0, Math.PI / 4, 0]}/>
             <Bouys position={[0, 0, 0]} />
           </Suspense>
         </Canvas>
