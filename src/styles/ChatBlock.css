@@ -43,7 +43,7 @@
     padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 2px;
 }
 
 .no-messages {
@@ -61,36 +61,20 @@
 }
 
 .message {
-    max-width: 80%;
-    padding: 8px 12px;
-    border-radius: 8px;
+    max-width: 100%;
+    padding: 1px 0;
     word-wrap: break-word;
-}
-
-.message.own-message {
-    align-self: flex-end;
-    background-color: #2196f3;
-    color: white;
-}
-
-.message.other-message {
-    align-self: flex-start;
-    background-color: #f5f5f5;
-    border: 1px solid #e0e0e0;
+    align-self: flex-start !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    line-height: 1.2;
 }
 
 .message-header {
-    font-size: 11px;
-    margin-bottom: 4px;
-    opacity: 0.8;
-}
-
-.message.own-message .message-header {
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.message.other-message .message-header {
-    color: #666;
+    display: inline;
+    font-size: 14px;
+    margin-right: 6px;
 }
 
 .username {
@@ -98,8 +82,9 @@
 }
 
 .message-content {
+    display: inline;
     font-size: 14px;
-    line-height: 1.4;
+    line-height: 1.2;
 }
 
 .input-container {
