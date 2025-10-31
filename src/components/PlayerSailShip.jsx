@@ -2,10 +2,11 @@ import { useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useKeyboardControls } from '@react-three/drei'
 import { useRef, useState, useEffect } from 'react'
-import { modelUrls } from '../utils/models';
+import { modelUrls } from '../utils/models'
 import * as THREE from 'three'
+import { useWebSocket } from '../contexts/WebSocketContext'
 
-export default function MainSailShip() {
+export default function PlayerSailShip() {
   const { nodes, materials } = useGLTF(modelUrls.sail_ship)
   const { gl } = useThree()
 
@@ -26,10 +27,40 @@ export default function MainSailShip() {
 
   const [ subscribeKeys, getKeys ] = useKeyboardControls()
 
+  const { sendMessage, isConnected, subscribe } = useWebSocket();
+
   const shipRef = useRef()
+
+  useEffect(() => {
+    // Подписываемся на изменения клавиш
+    const unsubscribe = subscribeKeys((state) => {
+      if (state.forward) {
+        console.log('Forward key pressed');
+        // Вызовите здесь вашу логику для движения вперед
+      }
+      if (state.backward) {
+        console.log('Backward key pressed');
+        // Вызовите здесь вашу логику для движения назад
+      }
+      if (state.leftward) {
+        console.log('Leftward key pressed');
+        // Вызовите здесь вашу логику для движения влево
+      }
+      if (state.rightward) {
+        console.log('Rightward key pressed');
+        // Вызовите здесь вашу логику для движения вправо
+      }
+    });
+
+    // Отписываемся при размонтировании компонента
+    return () => {
+      unsubscribe();
+    };
+  }, [subscribeKeys]);
 
   // Mouse event handlers
   useEffect(() => {
+    console.log('Mouse event handlers useEffect setting')
     const handleMouseDown = (event) => {
       if (event.button === 0) { // Left mouse button
         setIsMouseDown(true)

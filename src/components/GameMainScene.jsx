@@ -10,16 +10,37 @@ import { Perf } from 'r3f-perf'
 import { KeyboardControls } from '@react-three/drei'
 import { Bouys } from './Buoys';
 import { preloadAllModels } from '../utils/models';
+import { useWebSocket } from '../contexts/WebSocketContext';
+import { useAuth } from '../contexts/AuthContext';
+import * as messageType from '../const/messageType';
 
 function GameMainScene() {
 
-   useEffect(() => {
-      console.log("GameMainScene useEffect called")
+  const { user } = useAuth();
+  const { sendMessage, isConnected, subscribe } = useWebSocket();
 
-      preloadAllModels().then(() => {
-       console.log("preloadAllModels.then called")
-      });
-    }, []);
+  useEffect(() => {
+    console.log("GameMainScene useEffect called")
+
+    preloadAllModels().then(() => {
+     console.log("preloadAllModels.then called")
+    });
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe1 = subscribe(messageType.INIT_GAME_STATE, (payload) => {
+      console.log(payload)
+    });
+
+    const unsubscribe2 = subscribe(messageType.UPDATE_GAME_STATE, (payload) => {
+      console.log(payload)
+    });
+
+    return () => {
+      unsubscribe1();
+      unsubscribe2();
+    };
+  }, [subscribe]);
 
   const { perfVisible } = useControls('Monitoring', {
     perfVisible: true
