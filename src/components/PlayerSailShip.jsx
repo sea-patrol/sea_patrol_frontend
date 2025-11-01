@@ -1,10 +1,7 @@
 import { useGLTF } from '@react-three/drei'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { useKeyboardControls } from '@react-three/drei'
-import { useRef, useState, useEffect } from 'react'
 import { modelUrls } from '../utils/models'
-import * as THREE from 'three'
-import { useWebSocket } from '../contexts/WebSocketContext'
 
 export default function PlayerSailShip({ shipRef }) {
   const { nodes, materials } = useGLTF(modelUrls.sail_ship)
@@ -14,54 +11,25 @@ export default function PlayerSailShip({ shipRef }) {
 
   const [ subscribeKeys, getKeys ] = useKeyboardControls()
 
-  const { sendMessage, isConnected, subscribe } = useWebSocket();
-
-  useEffect(() => {
-    // Подписываемся на изменения клавиш
-    const unsubscribe = subscribeKeys((state) => {
-      if (state.forward) {
-        console.log('Forward key pressed');
-        // Вызовите здесь вашу логику для движения вперед
-      }
-      if (state.backward) {
-        console.log('Backward key pressed');
-        // Вызовите здесь вашу логику для движения назад
-      }
-      if (state.leftward) {
-        console.log('Leftward key pressed');
-        // Вызовите здесь вашу логику для движения влево
-      }
-      if (state.rightward) {
-        console.log('Rightward key pressed');
-        // Вызовите здесь вашу логику для движения вправо
-      }
-    });
-
-    // Отписываемся при размонтировании компонента
-    return () => {
-      unsubscribe();
-    };
-  }, [subscribeKeys]);
-
   useFrame((state, delta) =>
   {
-      const { forward, backward, leftward, rightward } = getKeys()
+      const { up, down, left, right } = getKeys()
       
       if (!shipRef.current) return
       
       // Handle ship movement
-      if (forward) {
+      if (up) {
         shipRef.current.position.x += Math.sin(shipRef.current.rotation.y) * moveSpeed
         shipRef.current.position.z += Math.cos(shipRef.current.rotation.y) * moveSpeed
       }
-      if (backward) {
+      if (down) {
         shipRef.current.position.x -= Math.sin(shipRef.current.rotation.y) * moveSpeed
         shipRef.current.position.z -= Math.cos(shipRef.current.rotation.y) * moveSpeed
       }
-      if (leftward) {
+      if (left) {
         shipRef.current.rotation.y += turnSpeed
       }
-      if (rightward) {
+      if (right) {
         shipRef.current.rotation.y -= turnSpeed
       }
   })

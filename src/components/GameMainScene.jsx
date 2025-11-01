@@ -13,6 +13,7 @@ import { Bouys } from './Buoys';
 import { preloadAllModels } from '../utils/models';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { useAuth } from '../contexts/AuthContext';
+import KeyPress from './KeyPress';
 import * as messageType from '../const/messageType';
 
 function GameMainScene() {
@@ -65,13 +66,14 @@ function GameMainScene() {
       <Leva />
       <KeyboardControls
           map={ [
-              { name: 'forward', keys: [ 'ArrowUp', 'KeyW' ] },
-              { name: 'backward', keys: [ 'ArrowDown', 'KeyS' ] },
-              { name: 'leftward', keys: [ 'ArrowLeft', 'KeyA' ] },
-              { name: 'rightward', keys: [ 'ArrowRight', 'KeyD' ] }
+              { name: 'up', keys: [ 'ArrowUp', 'KeyW' ] },
+              { name: 'down', keys: [ 'ArrowDown', 'KeyS' ] },
+              { name: 'left', keys: [ 'ArrowLeft', 'KeyA' ] },
+              { name: 'right', keys: [ 'ArrowRight', 'KeyD' ] }
           ] }
       >
-        <Canvas camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 20000 }}>
+        <KeyPress />
+        <Canvas camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 1000 }}>
           {perfVisible && <Perf position="top-left" />}
           <Suspense fallback={LoadingScreen} >
             <ambientLight intensity={0.5} />
