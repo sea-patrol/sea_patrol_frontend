@@ -1,9 +1,10 @@
-import { Suspense, useEffect} from 'react';
+import { Suspense, useEffect, useRef} from 'react';
 import { Canvas } from '@react-three/fiber';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { Sky } from '@react-three/drei';
 import Ocean from './Ocean';
 import PlayerSailShip from './PlayerSailShip';
+import CameraFollower from './CameraFollower';
 import NpcSailShip from './NpcSailShip';
 import { Leva, useControls } from 'leva'
 import { Perf } from 'r3f-perf'
@@ -18,6 +19,8 @@ function GameMainScene() {
 
   const { user } = useAuth();
   const { sendMessage, isConnected, subscribe } = useWebSocket();
+
+  const shipRef = useRef(null);
 
   useEffect(() => {
     console.log("GameMainScene useEffect called")
@@ -75,7 +78,8 @@ function GameMainScene() {
             <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]} />
             <Sky scale={1000} sunPosition={[sunX, sunY, sunZ]} turbidity={turbidity} />
             <Ocean />
-            <PlayerSailShip />
+            <PlayerSailShip shipRef={shipRef} />
+            <CameraFollower targetRef={shipRef} />
             <NpcSailShip key={1} position={[50, 0, 50]} rotation={[0, Math.PI / 4, 0]}/>
             <Bouys position={[0, 0, 0]} />
           </Suspense>
