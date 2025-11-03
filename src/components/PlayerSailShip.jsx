@@ -1,43 +1,92 @@
+import { useRef, useState, useEffect } from 'react';
 import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useKeyboardControls } from '@react-three/drei'
 import { modelUrls } from '../utils/models'
+import { useGameState } from '../contexts/GameStateContext';
 
-export default function PlayerSailShip({ shipRef }) {
+export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
   const { nodes, materials } = useGLTF(modelUrls.sail_ship)
 
-  const moveSpeed = 0.5
-  const turnSpeed = 0.05
+  const localShipRef = useRef();
+  const shipRefToUse = shipRef || localShipRef;
 
-  const [ subscribeKeys, getKeys ] = useKeyboardControls()
+  // Глобальное состояние игры
+  const gameState = useGameState();
 
-  useFrame((state, delta) =>
-  {
-      const { up, down, left, right } = getKeys()
-      
-      if (!shipRef.current) return
-      
-      // Handle ship movement
-      if (up) {
-        shipRef.current.position.x += Math.sin(shipRef.current.rotation.y) * moveSpeed
-        shipRef.current.position.z += Math.cos(shipRef.current.rotation.y) * moveSpeed
-      }
-      if (down) {
-        shipRef.current.position.x -= Math.sin(shipRef.current.rotation.y) * moveSpeed
-        shipRef.current.position.z -= Math.cos(shipRef.current.rotation.y) * moveSpeed
-      }
-      if (left) {
-        shipRef.current.rotation.y += turnSpeed
-      }
-      if (right) {
-        shipRef.current.rotation.y -= turnSpeed
-      }
-  })
+  // Текущее состояние корабля
+  const currentRef = useRef({
+    x: 0,
+    z: 0,
+    angle: 0,
+  });
+
+  // Целевое состояние корабля
+  const targetRef = useRef({
+    x: 0,
+    z: 0,
+    angle: 0,
+    delta: 0.1, // Delta сервера
+  });
+
+  useEffect(() => {
+    // Инициализация начального состояния
+    const initialPlayerState = gameState.current?.playerStates[name];
+    if (initialPlayerState) {
+      currentRef.current = {
+        x: initialPlayerState.x,
+        z: initialPlayerState.z,
+        angle: initialPlayerState.angle,
+      };
+
+      targetRef.current = {
+        x: initialPlayerState.targetX,
+        z: initialPlayerState.targetZ,
+        angle: initialPlayerState.targetAngle,
+        delta: initialPlayerState.delta || 0.1,
+      };
+    }
+  }, [name]);
+
+  useFrame((state, delta) => {
+    if (!shipRefToUse.current) return;
+
+    // Получаем актуальное целевое состояние из gameState
+    const playerState = gameState.current?.playerStates[name];
+    if (!playerState) return;
+
+    // Обновляем целевое состояние
+    targetRef.current = {
+      x: playerState.targetX,
+      z: playerState.targetZ,
+      angle: playerState.targetAngle,
+      delta: playerState.delta || 0.1,
+    };
+
+    // Плавное обновление позиции
+    const smoothFactor = 5; // Коэффициент плавности
+    const serverDelta = targetRef.current.delta;
+
+    const newX = currentRef.current.x + (targetRef.current.x - currentRef.current.x) * delta;
+    const newZ = currentRef.current.z + (targetRef.current.z - currentRef.current.z) * delta;
+
+    currentRef.current.x = newX;
+    currentRef.current.z = newZ;
+
+    // Плавное обновление угла
+    const angleDiff = (targetRef.current.angle - currentRef.current.angle + Math.PI) % (Math.PI * 2) - Math.PI;
+    const newAngle = currentRef.current.angle + angleDiff * delta * smoothFactor / serverDelta;
+
+    currentRef.current.angle = newAngle;
+
+    // Обновляем позицию и угол корабля
+    shipRefToUse.current.position.set(newX, 0, newZ);
+    shipRefToUse.current.rotation.y = newAngle;
+  });
 
   return (
-      <group ref={shipRef} position={[0, 0, 0]}>
+      <group ref={shipRefToUse} position={[0, 0, 0]}>
         <group position={[0, -2.5, 0]} dispose={null}>
-          <group name="Sketchfab_model" rotation={[-Math.PI / 2, 0, Math.PI]}>
+          <group name="Sketchfab_model" rotation={[-Math.PI / 2, 0, 0]}>
             <mesh
               name="Materia��-material"
               geometry={nodes['Materia��-material'].geometry}

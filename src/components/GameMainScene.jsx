@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef} from 'react';
+import { Suspense, useEffect, useRef, useState} from 'react';
 import { Canvas } from '@react-three/fiber';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { Sky } from '@react-three/drei';
@@ -13,6 +13,7 @@ import { Bouys } from './Buoys';
 import { preloadAllModels } from '../utils/models';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useGameState } from '../contexts/GameStateContext';
 import KeyPress from './KeyPress';
 import * as messageType from '../const/messageType';
 
@@ -21,7 +22,16 @@ function GameMainScene() {
   const { user } = useAuth();
   const { sendMessage, isConnected, subscribe } = useWebSocket();
 
-  const shipRef = useRef(null);
+  // Состояние для хранения имен игроков
+  const [playerNames, setPlayerNames] = useState([]);
+
+  // Ref для корабля текущего игрока
+  const currentPlayerShipRef = useRef(null);
+
+  const currentPlayerName = user.username;
+
+  // Используем глобальный gameState через контекст
+  const gameState = useGameState();
 
   useEffect(() => {
     console.log("GameMainScene useEffect called")
@@ -32,17 +42,59 @@ function GameMainScene() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe1 = subscribe(messageType.INIT_GAME_STATE, (payload) => {
-      console.log(payload)
+    const unsubscribeInitGameInfo = subscribe(messageType.INIT_GAME_STATE, (payload) => {
+      const playersData = payload.players.reduce((acc, player) => {
+        acc[player.name] = {
+          ...player,
+          targetX: player.x,
+          targetZ: player.z,
+          targetAngle: player.angle,
+        };
+        return acc;
+      }, {});
+
+      gameState.current.playerStates = playersData;
+      setPlayerNames(Object.keys(playersData)); // Обновляем список имен игроков
     });
 
-    const unsubscribe2 = subscribe(messageType.UPDATE_GAME_STATE, (payload) => {
-      console.log(payload)
+    const unsubscribeUpdateGameInfo = subscribe(messageType.UPDATE_GAME_STATE, (payload) => {
+      const updatedPlayers = payload.players.reduce((acc, player) => {
+        if (gameState.current.playerStates[player.name]) {
+          acc[player.name] = {
+            ...gameState.current.playerStates[player.name],
+            targetX: player.x,
+            targetZ: player.z,
+            targetAngle: player.angle,
+          };
+        }
+        return acc;
+      }, { ...gameState.current.playerStates });
+
+      gameState.current.playerStates = updatedPlayers;
+    });
+
+    const unsubscribePlayerJoin = subscribe(messageType.PLAYER_JOIN, (payload) => {
+      gameState.current.playerStates[payload.name] = {
+        ...payload,
+        targetX: payload.x,
+        targetZ: payload.z,
+        targetAngle: payload.angle,
+      };
+
+      setPlayerNames((prevNames) => [...prevNames, payload.name]); // Добавляем имя нового игрока
+    });
+
+    const unsubscribePlayerLeave = subscribe(messageType.PLAYER_LEAVE, (payload) => {
+      delete gameState.current.playerStates[payload.name];
+
+      setPlayerNames((prevNames) => prevNames.filter((name) => name !== payload.name)); // Удаляем имя игрока
     });
 
     return () => {
-      unsubscribe1();
-      unsubscribe2();
+      unsubscribeInitGameInfo();
+      unsubscribeUpdateGameInfo();
+      unsubscribePlayerJoin();
+      unsubscribePlayerLeave();
     };
   }, [subscribe]);
 
@@ -80,9 +132,23 @@ function GameMainScene() {
             <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]} />
             <Sky scale={1000} sunPosition={[sunX, sunY, sunZ]} turbidity={turbidity} />
             <Ocean />
-            <PlayerSailShip shipRef={shipRef} />
-            <CameraFollower targetRef={shipRef} />
-            <NpcSailShip key={1} position={[50, 0, 50]} rotation={[0, Math.PI / 4, 0]}/>
+            {/* Рендерим корабли всех игроков */}
+            {playerNames.map((name) => {
+              const playerState = gameState.current.playerStates[name];
+              if (!playerState) return null;
+
+              return (
+                <PlayerSailShip
+                  key={name}
+                  name={name} // Передаем весь объект playerState
+                  isCurrentPlayer={name === currentPlayerName}
+                  shipRef={name === currentPlayerName ? currentPlayerShipRef : null} // Передаем ref только для текущего игрока
+                />
+              );
+            })}
+
+            {/* Камера следует за кораблем текущего игрока */}
+            <CameraFollower targetRef={currentPlayerShipRef} />
             <Bouys position={[0, 0, 0]} />
           </Suspense>
         </Canvas>
