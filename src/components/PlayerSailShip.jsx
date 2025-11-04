@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { modelUrls } from '../utils/models'
@@ -7,8 +7,7 @@ import { useGameState } from '../contexts/GameStateContext';
 export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
   const { nodes, materials } = useGLTF(modelUrls.sail_ship)
 
-  const localShipRef = useRef();
-  const shipRefToUse = shipRef || localShipRef;
+  const shipRefToUse = isCurrentPlayer ? shipRef : useRef();
 
   // Глобальное состояние игры
   const gameState = useGameState();
@@ -39,9 +38,9 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
       };
 
       targetRef.current = {
-        x: initialPlayerState.targetX,
-        z: initialPlayerState.targetZ,
-        angle: initialPlayerState.targetAngle,
+        x: initialPlayerState.x,
+        z: initialPlayerState.z,
+        angle: initialPlayerState.angle,
         delta: initialPlayerState.delta || 0.1,
       };
     }
@@ -56,9 +55,9 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
 
     // Обновляем целевое состояние
     targetRef.current = {
-      x: playerState.targetX,
-      z: playerState.targetZ,
-      angle: playerState.targetAngle,
+      x: playerState.x,
+      z: playerState.z,
+      angle: playerState.angle,
       delta: playerState.delta || 0.1,
     };
 
@@ -74,7 +73,7 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
 
     // Плавное обновление угла
     const angleDiff = (targetRef.current.angle - currentRef.current.angle + Math.PI) % (Math.PI * 2) - Math.PI;
-    const newAngle = currentRef.current.angle + angleDiff * delta * smoothFactor / serverDelta;
+    const newAngle = currentRef.current.angle + angleDiff * delta;
 
     currentRef.current.angle = newAngle;
 
@@ -84,9 +83,10 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
   });
 
   return (
-      <group ref={shipRefToUse} position={[0, 0, 0]}>
+      <group ref={shipRefToUse} position={[currentRef.current ? currentRef.current.x : 0, 0, currentRef.current ? currentRef.current.z : 0]}>
         <group position={[0, -2.5, 0]} dispose={null}>
-          <group name="Sketchfab_model" rotation={[-Math.PI / 2, 0, 0]}>
+          
+          <group name="Sketchfab_model" rotation={[-Math.PI / 2, 0, -Math.PI / 2]}>
             <mesh
               name="Materia��-material"
               geometry={nodes['Materia��-material'].geometry}

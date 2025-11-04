@@ -15,6 +15,7 @@ import { useWebSocket } from '../contexts/WebSocketContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useGameState } from '../contexts/GameStateContext';
 import KeyPress from './KeyPress';
+import GameStateInfo from './GameStateInfo';
 import * as messageType from '../const/messageType';
 
 function GameMainScene() {
@@ -45,10 +46,7 @@ function GameMainScene() {
     const unsubscribeInitGameInfo = subscribe(messageType.INIT_GAME_STATE, (payload) => {
       const playersData = payload.players.reduce((acc, player) => {
         acc[player.name] = {
-          ...player,
-          targetX: player.x,
-          targetZ: player.z,
-          targetAngle: player.angle,
+          ...player
         };
         return acc;
       }, {});
@@ -61,10 +59,7 @@ function GameMainScene() {
       const updatedPlayers = payload.players.reduce((acc, player) => {
         if (gameState.current.playerStates[player.name]) {
           acc[player.name] = {
-            ...gameState.current.playerStates[player.name],
-            targetX: player.x,
-            targetZ: player.z,
-            targetAngle: player.angle,
+            ...player
           };
         }
         return acc;
@@ -75,19 +70,16 @@ function GameMainScene() {
 
     const unsubscribePlayerJoin = subscribe(messageType.PLAYER_JOIN, (payload) => {
       gameState.current.playerStates[payload.name] = {
-        ...payload,
-        targetX: payload.x,
-        targetZ: payload.z,
-        targetAngle: payload.angle,
+        ...payload
       };
 
       setPlayerNames((prevNames) => [...prevNames, payload.name]); // Добавляем имя нового игрока
     });
 
-    const unsubscribePlayerLeave = subscribe(messageType.PLAYER_LEAVE, (payload) => {
-      delete gameState.current.playerStates[payload.name];
+    const unsubscribePlayerLeave = subscribe(messageType.PLAYER_LEAVE, (username) => {
+      delete gameState.current.playerStates[username];
 
-      setPlayerNames((prevNames) => prevNames.filter((name) => name !== payload.name)); // Удаляем имя игрока
+      setPlayerNames((prevNames) => prevNames.filter((name) => name !== username)); // Удаляем имя игрока
     });
 
     return () => {
@@ -125,6 +117,7 @@ function GameMainScene() {
           ] }
       >
         <KeyPress />
+        <GameStateInfo name={currentPlayerName} />
         <Canvas camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 1000 }}>
           {perfVisible && <Perf position="top-left" />}
           <Suspense fallback={LoadingScreen} >
