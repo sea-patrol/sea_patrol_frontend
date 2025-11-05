@@ -56,16 +56,18 @@ function GameMainScene() {
     });
 
     const unsubscribeUpdateGameInfo = subscribe(messageType.UPDATE_GAME_STATE, (payload) => {
-      const updatedPlayers = payload.players.reduce((acc, player) => {
+      payload.players.forEach((player) => {
+        // Проверяем, существует ли игрок в текущем состоянии игры
         if (gameState.current.playerStates[player.name]) {
-          acc[player.name] = {
-            ...player
-          };
+          // Обновляем только указанные поля, если они существуют в payload
+          const playerState = gameState.current.playerStates[player.name];
+          if (player.x !== undefined) playerState.x = player.x;
+          if (player.z !== undefined) playerState.z = player.z;
+          if (player.angle !== undefined) playerState.angle = player.angle;
+          if (player.velocity !== undefined) playerState.velocity = player.velocity;
+          if (player.health !== undefined) playerState.health = player.health;
         }
-        return acc;
-      }, { ...gameState.current.playerStates });
-
-      gameState.current.playerStates = updatedPlayers;
+      });
     });
 
     const unsubscribePlayerJoin = subscribe(messageType.PLAYER_JOIN, (payload) => {

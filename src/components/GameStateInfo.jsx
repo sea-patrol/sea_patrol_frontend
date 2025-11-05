@@ -6,13 +6,17 @@ import * as messageType from '../const/messageType';
 export default function GameStateInfo({ name }) {
   // Глобальное состояние игры
   const gameState = useGameState();
-  const [playerState, setPlayerState] = useState(gameState.current?.playerStates[name]);
+  const [playerState, setPlayerState] = useState({x: 0, z: 0, angle: 0, velocity: 0});
 
   const { sendMessage, isConnected, subscribe } = useWebSocket();
 
   useEffect(() => {  
       const unsubscribeUpdateGameInfo = subscribe(messageType.UPDATE_GAME_STATE, (payload) => {
-        setPlayerState(gameState.current?.playerStates[name]);
+        const playerState = gameState.current?.playerStates[name];
+        setPlayerState({x: playerState?.x,
+          z: playerState?.z,
+          angle: playerState?.angle,
+          velocity: playerState?.velocity});
       });
   
       return () => {

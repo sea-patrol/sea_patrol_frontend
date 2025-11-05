@@ -4,6 +4,15 @@ import { useFrame } from '@react-three/fiber'
 import { modelUrls } from '../utils/models'
 import { useGameState } from '../contexts/GameStateContext';
 
+const WireframeBox = ({ width, height, depth }) => {
+  return (
+    <mesh>
+      <boxGeometry args={[width, height, depth]} />
+      <meshBasicMaterial color="orange" wireframe />
+    </mesh>
+  );
+};
+
 export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
   const { nodes, materials } = useGLTF(modelUrls.sail_ship)
 
@@ -11,6 +20,7 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
 
   // Глобальное состояние игры
   const gameState = useGameState();
+  const state = gameState.current?.playerStates[name];
 
   // Текущее состояние корабля
   const currentRef = useRef({
@@ -84,8 +94,14 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
 
   return (
       <group ref={shipRefToUse} position={[currentRef.current ? currentRef.current.x : 0, 0, currentRef.current ? currentRef.current.z : 0]}>
+        {state && (
+          <WireframeBox
+            width={state.width}
+            height={state.height}
+            depth={state.length}
+          />
+        )}
         <group position={[0, -2.5, 0]} dispose={null}>
-          
           <group name="Sketchfab_model" rotation={[-Math.PI / 2, 0, -Math.PI / 2]}>
             <mesh
               name="Materia��-material"
