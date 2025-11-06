@@ -82,13 +82,13 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
     currentRef.current.z = newZ;
 
     // Плавное обновление угла
-    const angleDiff = (targetRef.current.angle - currentRef.current.angle + Math.PI) % (Math.PI * 2) - Math.PI;
+    const angleDiff = targetRef.current.angle - currentRef.current.angle;
     const newAngle = currentRef.current.angle + angleDiff * delta;
 
     currentRef.current.angle = newAngle;
 
     // Обновляем позицию и угол корабля
-    shipRefToUse.current.position.set(newX, 0, newZ);
+    shipRefToUse.current.position.set(newZ, 0, newX);
     shipRefToUse.current.rotation.y = newAngle;
   });
 
@@ -102,7 +102,7 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
           />
         )}
         <group position={[0, -2.5, 0]} dispose={null}>
-          <group name="Sketchfab_model" rotation={[-Math.PI / 2, 0, -Math.PI / 2]}>
+          <group name="Sketchfab_model" rotation={[-Math.PI / 2, 0, Math.PI]}>
             <mesh
               name="Materia��-material"
               geometry={nodes['Materia��-material'].geometry}
