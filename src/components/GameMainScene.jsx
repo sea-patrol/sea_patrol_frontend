@@ -120,7 +120,7 @@ function GameMainScene() {
       >
         <KeyPress />
         <GameStateInfo name={currentPlayerName} />
-        <Canvas camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 1000 }}>
+        <Canvas dpr={ 1 } camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 1000 }}>
           {perfVisible && <Perf position="top-left" />}
           <Suspense fallback={LoadingScreen} >
             <ambientLight intensity={0.5} />

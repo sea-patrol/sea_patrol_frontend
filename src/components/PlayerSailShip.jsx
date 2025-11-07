@@ -88,7 +88,7 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
     currentRef.current.angle = newAngle;
 
     // Обновляем позицию и угол корабля
-    shipRefToUse.current.position.set(newZ, 0, newX);
+    shipRefToUse.current.position.set(newX, 0, newZ);
     shipRefToUse.current.rotation.y = newAngle;
   });
 
