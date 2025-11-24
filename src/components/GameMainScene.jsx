@@ -6,6 +6,7 @@ import Ocean from './Ocean';
 import PlayerSailShip from './PlayerSailShip';
 import CameraFollower from './CameraFollower';
 import NpcSailShip from './NpcSailShip';
+import Boat from './Boat';
 import { Leva, useControls } from 'leva'
 import { Perf } from 'r3f-perf'
 import { KeyboardControls } from '@react-three/drei'
@@ -145,6 +146,7 @@ function GameMainScene() {
             {/* Камера следует за кораблем текущего игрока */}
             <CameraFollower targetRef={currentPlayerShipRef} />
             <Bouys position={[0, 0, 0]} />
+            <Boat position={[50, 0, 50]} />
           </Suspense>
         </Canvas>
       </KeyboardControls>
