@@ -1,0 +1,8 @@
+export const CHAT_MESSAGE = 'CHAT_MESSAGE'
+export const CHAT_JOIN = 'CHAT_JOIN'
+export const CHAT_LEAVE = 'CHAT_LEAVE'
+export const PLAYER_INPUT = 'PLAYER_INPUT'
+export const PLAYER_JOIN = 'PLAYER_JOIN'
+export const PLAYER_LEAVE = 'PLAYER_LEAVE'
+export const INIT_GAME_STATE = 'INIT_GAME_STATE'
+export const UPDATE_GAME_STATE = 'UPDATE_GAME_STATE'

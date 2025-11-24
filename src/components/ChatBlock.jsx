@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { useAuth } from '../contexts/AuthContext';
+import * as messageType from '../const/messageType';
 import '../styles/ChatBlock.css';
 
 function ChatBlock() {
@@ -21,7 +22,7 @@ function ChatBlock() {
 
   // Подписка на сообщения типа "chat/message"
   useEffect(() => {
-    const unsubscribe = subscribe('chat/message', (payload) => {
+    const unsubscribe = subscribe(messageType.CHAT_MESSAGE, (payload) => {
       setMessages((prevMessages) => {
         const newMessages = [...prevMessages, payload];
         return newMessages.slice(-30); // Ограничиваем количество сообщений
@@ -36,7 +37,7 @@ function ChatBlock() {
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
 
-    const messageData = ['chat/message', { to: 'global', text: newMessage.trim() }];
+    const messageData = [messageType.CHAT_MESSAGE, { to: 'global', text: newMessage.trim() }];
     sendMessage(messageData);
     setNewMessage('');
   };
@@ -66,7 +67,7 @@ function ChatBlock() {
             messages.map((message, index) => (
               <div key={index} className={`message ${message.from === user.username ? 'own-message' : 'other-message'}`}>
                 <div className="message-header">
-                  <span className="username">{message.from}</span>
+                  <span className="username">{message.from}:</span>
                 </div>
                 <div className="message-content">{message.text}</div>
               </div>

@@ -1,141 +1,106 @@
+import { useRef, useEffect } from 'react';
 import { useGLTF } from '@react-three/drei'
-import { useFrame, useThree } from '@react-three/fiber'
-import { useKeyboardControls } from '@react-three/drei'
-import { useRef, useState, useEffect } from 'react'
-import { modelUrls } from '../utils/models';
-import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
+import { modelUrls } from '../utils/models'
+import { useGameState } from '../contexts/GameStateContext';
 
-export default function MainSailShip() {
+const WireframeBox = ({ width, height, depth }) => {
+  return (
+    <mesh>
+      <boxGeometry args={[width, height, depth]} />
+      <meshBasicMaterial color="orange" wireframe />
+    </mesh>
+  );
+};
+
+export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
   const { nodes, materials } = useGLTF(modelUrls.sail_ship)
-  const { gl } = useThree()
 
-  const moveSpeed = 0.5
-  const turnSpeed = 0.05
+  const shipRefToUse = isCurrentPlayer ? shipRef : useRef();
 
-  const [ smoothedCameraPosition ] = useState(() => new THREE.Vector3(20, 50, 50))
-  const [ smoothedCameraTarget ] = useState(() => new THREE.Vector3())
-  // Camera rotation state for mouse control
-  const [cameraAngleY, setCameraAngleY] = useState(0) // yaw
-  const [cameraAngleX, setCameraAngleX] = useState(0) // pitch
-  const [cameraDistance, setCameraDistance] = useState(45.25)
-  
-  // Mouse state
-  const [isMouseDown, setIsMouseDown] = useState(false)
-  const [lastMouseX, setLastMouseX] = useState(0)
-  const [lastMouseY, setLastMouseY] = useState(0)
+  // Глобальное состояние игры
+  const gameState = useGameState();
+  const state = gameState.current?.playerStates[name];
 
-  const [ subscribeKeys, getKeys ] = useKeyboardControls()
+  // Текущее состояние корабля
+  const currentRef = useRef({
+    x: 0,
+    z: 0,
+    angle: 0,
+  });
 
-  const shipRef = useRef()
+  // Целевое состояние корабля
+  const targetRef = useRef({
+    x: 0,
+    z: 0,
+    angle: 0,
+    delta: 0.1, // Delta сервера
+  });
 
-  // Mouse event handlers
   useEffect(() => {
-    const handleMouseDown = (event) => {
-      if (event.button === 0) { // Left mouse button
-        setIsMouseDown(true)
-        setLastMouseX(event.clientX)
-        setLastMouseY(event.clientY)
-        gl.domElement.style.cursor = 'grabbing'
-      }
+    // Инициализация начального состояния
+    const initialPlayerState = gameState.current?.playerStates[name];
+    if (initialPlayerState) {
+      currentRef.current = {
+        x: initialPlayerState.x,
+        z: initialPlayerState.z,
+        angle: initialPlayerState.angle,
+      };
+
+      targetRef.current = {
+        x: initialPlayerState.x,
+        z: initialPlayerState.z,
+        angle: initialPlayerState.angle,
+        delta: initialPlayerState.delta || 0.1,
+      };
     }
+  }, [name]);
 
-    const handleMouseUp = (event) => {
-      if (event.button === 0) { // Left mouse button
-        setIsMouseDown(false)
-        gl.domElement.style.cursor = 'grab'
-      }
-    }
+  useFrame((state, delta) => {
+    if (!shipRefToUse.current) return;
 
-    const handleMouseMove = (event) => {
-      if (isMouseDown) {
-        const deltaX = event.clientX - lastMouseX
-        const deltaY = event.clientY - lastMouseY
-        
-        // Update camera angles based on mouse movement
-        setCameraAngleY(prev => prev - deltaX * 0.005) // Horizontal movement affects yaw
-        setCameraAngleX(prev => {
-          const newAngle = prev + deltaY * 0.005 // Vertical movement affects pitch
-          // Limit pitch to prevent camera flipping
-          return Math.max(-Math.PI/3, Math.min(Math.PI/3, newAngle))
-        })
-        
-        setLastMouseX(event.clientX)
-        setLastMouseY(event.clientY)
-      }
-    }
+    // Получаем актуальное целевое состояние из gameState
+    const playerState = gameState.current?.playerStates[name];
+    if (!playerState) return;
 
-    const handleWheel = (event) => {
-      event.preventDefault()
-      setCameraDistance(prev => {
-        const newDistance = prev + event.deltaY * 0.01
-        // Limit zoom distance
-        return Math.max(5, Math.min(100, newDistance))
-      })
-    }
+    // Обновляем целевое состояние
+    targetRef.current = {
+      x: playerState.x,
+      z: playerState.z,
+      angle: playerState.angle,
+      delta: playerState.delta || 0.1,
+    };
 
-    const canvas = gl.domElement
-    canvas.addEventListener('mousedown', handleMouseDown)
-    canvas.addEventListener('mouseup', handleMouseUp)
-    canvas.addEventListener('mousemove', handleMouseMove)
-    canvas.addEventListener('wheel', handleWheel)
-    canvas.style.cursor = 'grab'
+    // Плавное обновление позиции
+    const smoothFactor = 5; // Коэффициент плавности
+    const serverDelta = targetRef.current.delta;
 
-    return () => {
-      canvas.removeEventListener('mousedown', handleMouseDown)
-      canvas.removeEventListener('mouseup', handleMouseUp)
-      canvas.removeEventListener('mousemove', handleMouseMove)
-      canvas.removeEventListener('wheel', handleWheel)
-      canvas.style.cursor = 'default'
-    }
-  }, [gl.domElement, isMouseDown, lastMouseX, lastMouseY])
+    const newX = currentRef.current.x + (targetRef.current.x - currentRef.current.x) * delta;
+    const newZ = currentRef.current.z + (targetRef.current.z - currentRef.current.z) * delta;
 
-  useFrame((state, delta) =>
-  {
-      const { forward, backward, leftward, rightward } = getKeys()
-      
-      if (!shipRef.current) return
-      
-      // Handle ship movement
-      if (forward) {
-        shipRef.current.position.x += Math.sin(shipRef.current.rotation.y) * moveSpeed
-        shipRef.current.position.z += Math.cos(shipRef.current.rotation.y) * moveSpeed
-      }
-      if (backward) {
-        shipRef.current.position.x -= Math.sin(shipRef.current.rotation.y) * moveSpeed
-        shipRef.current.position.z -= Math.cos(shipRef.current.rotation.y) * moveSpeed
-      }
-      if (leftward) {
-        shipRef.current.rotation.y += turnSpeed
-      }
-      if (rightward) {
-        shipRef.current.rotation.y -= turnSpeed
-      }
-      
-      // Get ship's current rotation
-      const rotation = shipRef.current.rotation
-      // Get ship's current position
-      const position = shipRef.current.position
-      // Calculate camera position using spherical coordinates
-      const cameraPosition = new THREE.Vector3()
-      cameraPosition.x = position.x + cameraDistance * Math.sin(cameraAngleY) * Math.cos(cameraAngleX)
-      cameraPosition.y = position.y + cameraDistance * Math.sin(cameraAngleX) + 18.65
-      // Ensure camera Y position is never less than 1
-      cameraPosition.y = Math.max(1, cameraPosition.y)
-      cameraPosition.z = position.z + cameraDistance * Math.cos(cameraAngleY) * Math.cos(cameraAngleX)
-      
-      const cameraTarget = new THREE.Vector3()
-      cameraTarget.copy(position)
-      cameraTarget.y += 0.25 // Slight vertical offset for better framing
-      
-      smoothedCameraPosition.lerp(cameraPosition, 5 * delta)
-      smoothedCameraTarget.lerp(cameraTarget, 5 * delta)
+    currentRef.current.x = newX;
+    currentRef.current.z = newZ;
 
-      state.camera.position.copy(smoothedCameraPosition)
-      state.camera.lookAt(smoothedCameraTarget)
-  })
+    // Плавное обновление угла
+    const angleDiff = targetRef.current.angle - currentRef.current.angle;
+    const newAngle = currentRef.current.angle + angleDiff * delta;
+
+    currentRef.current.angle = newAngle;
+
+    // Обновляем позицию и угол корабля
+    shipRefToUse.current.position.set(newX, 0, newZ);
+    shipRefToUse.current.rotation.y = newAngle;
+  });
 
   return (
-      <group ref={shipRef} position={[0, 0, 0]}>
+      <group ref={shipRefToUse} position={[currentRef.current ? currentRef.current.x : 0, 0, currentRef.current ? currentRef.current.z : 0]}>
+        {state && (
+          <WireframeBox
+            width={state.width}
+            height={state.height}
+            depth={state.length}
+          />
+        )}
         <group position={[0, -2.5, 0]} dispose={null}>
           <group name="Sketchfab_model" rotation={[-Math.PI / 2, 0, Math.PI]}>
             <mesh
