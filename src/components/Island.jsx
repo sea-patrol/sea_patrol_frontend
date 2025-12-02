@@ -11,7 +11,7 @@ export default function Island(props) {
      <primitive
        object={scene}
        scale={5}
-      position={[100, 5, 100]} // Позиция модели
+      position={[100, -1, 100]} // Позиция модели
      />
    );
 }

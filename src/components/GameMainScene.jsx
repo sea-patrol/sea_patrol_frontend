@@ -6,6 +6,7 @@ import Ocean from './Ocean';
 import PlayerSailShip from './PlayerSailShip';
 import CameraFollower from './CameraFollower';
 import NpcSailShip from './NpcSailShip';
+import FishHouse from './FishHouse';
 import Boat from './Boat';
 import Island from './Island';
 import { Leva, useControls } from 'leva'
@@ -149,6 +150,7 @@ function GameMainScene() {
             <Bouys position={[0, 0, 0]} />
             <Boat position={[50, 0, 50]} />
             <Island />
+            <FishHouse position={[-50, 0, 0]} />
           </Suspense>
         </Canvas>
       </KeyboardControls>
