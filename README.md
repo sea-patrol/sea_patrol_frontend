@@ -1,4 +1,4 @@
-Используется стек React + JS + Vite + Three.js + R3F + R3R
+Используется стек React + JS + Vite + Three.js + R3F
 
 После скачивания необходимо в папке sea_patrol_frontend выполнить
 npm install
@@ -30,9 +30,4 @@ npm install leva
 ### Monitoring
 https://github.com/utsuboco/r3f-perf
 npm install r3f-perf
-
-
-### Физика
-https://rapier.rs/
-npm install @react-three/rapier
 
