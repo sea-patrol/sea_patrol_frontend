@@ -10,7 +10,7 @@ npm run dev
 npm run build
 
 Команда создания шаблона репозитория: 
-npm create vite@latest sea_patrol_frontend -- --template react-ts 
+npm create vite@latest sea_patrol_frontend -- --template react
 
 ## Установленные зависимости
 
@@ -30,4 +30,3 @@ npm install leva
 ### Monitoring
 https://github.com/utsuboco/r3f-perf
 npm install r3f-perf
-
