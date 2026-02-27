@@ -129,13 +129,38 @@ src/
 
 ### 3.5 Testing Workflow
 
-**Текущее состояние**: Тесты не настроены в MVP-версии.
+**Текущее состояние**: Тесты настроены и работают (TASK-1 ✅).
 
-**План внедрения**:
-1. Добавить Vitest + @testing-library/react для компонентных тестов
-2. Настроить тесты для критичных компонентов (AuthContext, WebSocketContext)
-3. Добавить интеграционные тесты для игрового процесса
-4. Настроить CI/CD пайплайн для автоматического прогона тестов
+**Стек тестирования**:
+- **Тест-раннер**: Vitest (интегрирован с Vite)
+- **React-компоненты**: @testing-library/react + @testing-library/jest-dom
+- **3D-компоненты**: @react-three/test-renderer
+- **REST API моки**: MSW (Mock Service Worker)
+- **WebSocket моки**: mock-socket
+
+**Структура тестов**:
+```
+src/
+├── __tests__/
+│   ├── components/       # Login, Signup, PlayerSailShip
+│   ├── contexts/         # AuthContext, WebSocketContext
+│   └── integration/      # auth-flow
+├── mocks/
+│   ├── handlers.js       # MSW обработчики REST API
+│   ├── websocket.js      # Мок WebSocket
+│   └── data.js           # Тестовые данные
+└── setupTests.js         # Глобальная настройка тестов
+```
+
+**Запуск тестов**:
+- `npm run test` — запуск в режиме watch (dev)
+- `npm run test:run` — однократный запуск (CI/CD)
+- `npm run test:coverage` — запуск с отчётом о покрытии
+
+**Покрытие (TASK-1)**:
+- 6 тестовых файлов
+- 53 теста (все проходят ✅)
+- Протестированы: AuthContext, WebSocketContext, Login, Signup, PlayerSailShip, auth-flow
 
 ## 4. Working Commands
 
@@ -149,7 +174,11 @@ src/
 - `npm run preview` — локальный preview production-сборки.
 
 ### 4.3 Testing
-- **Не настроено в текущей версии**. См. раздел 3.5 Testing Workflow.
+- `npm run test` — запуск в режиме watch (dev).
+- `npm run test:run` — однократный запуск (CI/CD).
+- `npm run test:coverage` — запуск с отчётом о покрытии.
+
+**Текущее покрытие**: 6 файлов, 53 теста (AuthContext, WebSocketContext, Login, Signup, PlayerSailShip, auth-flow).
 
 ### 4.4 Git Workflow
 - `git fetch` — получить актуальное состояние удаленных веток.
