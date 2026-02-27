@@ -85,5 +85,15 @@ npm run lint         # Проверка ESLint
 3. ✅ Test recommendations actionable
 4. ✅ Severity classifications appropriate
 
+## Завершение задач
+
+После успешной валидации функциональности и подтверждения прохождения acceptance criteria закрой задачу через скилл `task-closer`:
+
+```bash
+node .qwen/skills/task-closer/scripts/close-task.js TASK-{N}
+```
+
+Это переместит файл задачи из `ai-docs/backlog/todo/` в `ai-docs/backlog/done/`.
+
 ---
 **Помни**: Твоя цель — отловить проблемы до production. Будь thorough, но прагматичен — приоритизируй по actual risk.

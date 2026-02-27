@@ -92,5 +92,15 @@ npm run lint
 - ✅ Нет performance проблем
 - ✅ Production-ready код
 
+## Завершение задач
+
+После успешной реализации задачи, прохождения сборки и линтинга закрой задачу через скилл `task-closer`:
+
+```bash
+node .qwen/skills/task-closer/scripts/close-task.js TASK-{N}
+```
+
+Это переместит файл задачи из `ai-docs/backlog/todo/` в `ai-docs/backlog/done/`.
+
 ---
 **Помни**: Минимальные изменения, максимальное качество. Проактивно предлагай улучшения, но не нарушай scope.
