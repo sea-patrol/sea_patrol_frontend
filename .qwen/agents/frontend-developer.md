@@ -94,7 +94,19 @@ npm run lint
 
 ## Завершение задач
 
-После успешной реализации задачи, прохождения сборки и линтинга закрой задачу через скилл `task-closer`:
+После успешной реализации задачи, прохождения сборки и линтинга создай Pull Request через скилл `github-pr-creator`:
+
+```bash
+node .qwen/skills/github-pr-creator/scripts/create-pr.js TASK-{N}
+```
+
+Это автоматически:
+- Проверит, что вы находитесь на ветке `feature/TASK-{N}`
+- Закоммитит все изменения (`git add . && git commit`)
+- Запушит ветку на GitHub (`git push -u origin feature/TASK-{N}`)
+- Создаст PR через GitHub CLI (или выведет ссылку для веб-интерфейса)
+
+После создания PR и успешного code review закрой задачу через скилл `task-closer`:
 
 ```bash
 node .qwen/skills/task-closer/scripts/close-task.js TASK-{N}

@@ -78,7 +78,21 @@ node .qwen/skills/task-creator/scripts/create-task.js
 - Поместит его в `ai-docs/backlog/todo/`
 - Присвоит уникальный ID и дату создания
 
-После создания задачи заполни ее.
+После создания задачи заполни её (описание, acceptance criteria, scope).
+
+### Создание ветки
+После заполнения задачи создай Git-ветку для разработки через скилл `git-branch-creator`:
+
+```bash
+node .qwen/skills/git-branch-creator/scripts/create-branch.js TASK-{N}
+```
+
+Это автоматически:
+- Проверит существование файла задачи
+- Проверит чистоту working tree
+- Выполнит `git fetch` и `git checkout master`
+- Выполнит `git pull --ff-only` (с fallback на `git reset --hard`)
+- Создаст ветку `feature/TASK-{N}`
 
 ---
 **Цель**: Дать команде возможность быстро принимать информированные решения, сохраняя качество продукта и стратегическое выравнивание.

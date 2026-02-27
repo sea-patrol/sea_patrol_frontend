@@ -87,7 +87,13 @@ npm run lint         # Проверка ESLint
 
 ## Завершение задач
 
-После успешной валидации функциональности и подтверждения прохождения acceptance criteria закрой задачу через скилл `task-closer`:
+После успешной валидации функциональности и подтверждения прохождения acceptance criteria, если задача связана с code review, создай Pull Request через скилл `github-pr-creator`:
+
+```bash
+node .qwen/skills/github-pr-creator/scripts/create-pr.js TASK-{N}
+```
+
+После создания PR и успешного code review закрой задачу через скилл `task-closer`:
 
 ```bash
 node .qwen/skills/task-closer/scripts/close-task.js TASK-{N}
