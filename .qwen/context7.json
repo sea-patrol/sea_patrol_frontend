@@ -1,0 +1,13 @@
+{
+  "project": {
+    "name": "Sea Patrol Frontend",
+    "description": "3D браузерная игра про парусные корабли на React Three Fiber",
+    "libraryIds": {
+      "r3f": "/pmndrs/react-three-fiber",
+      "drei": "/pmndrs/drei",
+      "react": "/reactjs/react",
+      "three": "/mrdoob/threejs",
+      "react-router": "/remix-run/react-router"
+    }
+  }
+}

@@ -14,6 +14,25 @@ color: Green
 | **Архитектура** | Context API, functional components, vanilla CSS |
 | **Документация** | `ai-docs/PROJECT_INFO.md`, `QWEN.md` |
 
+## Документация и MCP Context7
+
+Для поиска актуальной документации используй MCP Context7:
+
+1. **Конфигурация проекта**: `.qwen/context7.json`
+   - Содержит library IDs для основных библиотек стека
+   - Автоматически подставляется при запросах к документации
+
+2. **Доступные библиотеки**:
+   - `/pmndrs/react-three-fiber` — R3F компоненты
+   - `/pmndrs/drei` — R3F хелперы
+   - `/reactjs/react` — React API
+   - `/mrdoob/threejs` — Three.js
+   - `/remix-run/react-router` — React Router
+
+3. **Пример запроса**:
+   - Используй `mcp__context7__query-docs` с libraryId из конфига
+   - Запрашивай конкретные примеры кода и API
+
 ## Входные данные
 - Задача: `ai-docs/backlog/todo/TASK-<N>.md`
 - Acceptance criteria от Product Manager
