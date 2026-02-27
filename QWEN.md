@@ -115,3 +115,22 @@ npm run lint
 | `eslint.config.js` | Правила ESLint для React/JSX |
 | `package.json` | Зависимости и npm-скрипты |
 | `index.html` | HTML-точка входа |
+
+---
+
+## Доступные скиллы
+
+| Скилл | Описание |
+|-------|----------|
+| `task-creator` | Создание новой задачи в бэклоге. Использовать при запросах создать задачу, тикет, TASK, добавить в бэклог, сгенерировать файл задачи по шаблону. |
+| `task-closer` | Перемещение задачи из todo в done. Использовать при завершении задач, закрытии тикетов, переносе TASK в done. |
+
+### Использование скиллов
+
+```bash
+# Создание задачи
+node .qwen/skills/task-creator/scripts/create-task.js
+
+# Закрытие задачи
+node .qwen/skills/task-closer/scripts/close-task.js TASK-1
+```
