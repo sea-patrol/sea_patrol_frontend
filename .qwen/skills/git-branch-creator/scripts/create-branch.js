@@ -1,5 +1,10 @@
-const { execSync } = require('child_process');
-const path = require('path');
+import { execSync } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Конфигурация
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
@@ -32,20 +37,19 @@ function normalizeTaskId(input) {
  * @returns {{exists: boolean, location: string|null}}
  */
 function checkTaskExists(taskId) {
-  const fs = require('fs');
   const filename = `${taskId}.md`;
-  
+
   const todoPath = path.join(TODO_DIR, filename);
   const donePath = path.join(DONE_DIR, filename);
-  
+
   if (fs.existsSync(todoPath)) {
     return { exists: true, location: TODO_DIR };
   }
-  
+
   if (fs.existsSync(donePath)) {
     return { exists: true, location: DONE_DIR };
   }
-  
+
   return { exists: false, location: null };
 }
 
