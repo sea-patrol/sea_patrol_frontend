@@ -29,5 +29,12 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false, // отключить sourcemaps для уменьшения размера
     minify: 'esbuild', // минификация
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.js',
+    include: ['src/**/*.test.{js,jsx}'],
+    css: true,
   }
 })
