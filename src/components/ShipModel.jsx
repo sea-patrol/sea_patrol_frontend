@@ -1,0 +1,163 @@
+import { useGLTF } from '@react-three/drei'
+import { modelUrls } from '../utils/models';
+
+/**
+ * ShipModel - переиспользуемый компонент 3D-модели парусного корабля.
+ * 
+ * @param {boolean} dispose - Флаг для оптимизации памяти. 
+ *                            По умолчанию true (модель удаляется при анмаунте).
+ *                            Установите false, если модель используется повторно.
+ * 
+ * @note Модель предзагружается через preloadAllModels() в GameMainScene.
+ */
+export function ShipModel({ dispose = true }) {
+  const { nodes, materials } = useGLTF(modelUrls.sail_ship)
+
+  return (
+    <group position={[0, -2.5, 0]} dispose={dispose ? null : undefined}>
+      <group name="Sketchfab_model" rotation={[-Math.PI / 2, 0, Math.PI]}>
+        <mesh
+          name="Materia-material"
+          geometry={nodes['Materia-material'].geometry}
+          material={materials.Materia}
+        />
+        <mesh
+          name="Materia_001-material"
+          geometry={nodes['Materia_001-material'].geometry}
+          material={materials['Materia.001']}
+        />
+        <mesh
+          name="Materia_004-material"
+          geometry={nodes['Materia_004-material'].geometry}
+          material={materials['Materia.004']}
+        />
+        <mesh
+          name="Materia_003-material"
+          geometry={nodes['Materia_003-material'].geometry}
+          material={materials['Materia.003']}
+        />
+        <lineSegments
+          name="Object_15"
+          geometry={nodes.Object_15.geometry}
+          material={materials.material_0}
+        />
+        <mesh
+          name="Materia-material_1"
+          geometry={nodes['Materia-material_1'].geometry}
+          material={materials.Materia}
+        />
+        <mesh
+          name="Materia_003-material_1"
+          geometry={nodes['Materia_003-material_1'].geometry}
+          material={materials['Materia.003']}
+        />
+        <mesh
+          name="Materia_003-material_2"
+          geometry={nodes['Materia_003-material_2'].geometry}
+          material={materials['Materia.003']}
+          scale={[-1, 1, 1]}
+        />
+        <mesh
+          name="Materia_003-material_3"
+          geometry={nodes['Materia_003-material_3'].geometry}
+          material={materials['Materia.003']}
+        />
+        <lineSegments
+          name="Object_24"
+          geometry={nodes.Object_24.geometry}
+          material={materials.material_0}
+        />
+        <mesh
+          name="Materia_007-material"
+          geometry={nodes['Materia_007-material'].geometry}
+          material={materials['Materia.007']}
+        />
+        <mesh
+          name="Materia-material_2"
+          geometry={nodes['Materia-material_2'].geometry}
+          material={materials.Materia}
+        />
+        <mesh
+          name="Materia_003-material_4"
+          geometry={nodes['Materia_003-material_4'].geometry}
+          material={materials['Materia.003']}
+        />
+        <mesh
+          name="Materia_004-material_1"
+          geometry={nodes['Materia_004-material_1'].geometry}
+          material={materials['Materia.004']}
+        />
+        <mesh
+          name="Materia_006-material"
+          geometry={nodes['Materia_006-material'].geometry}
+          material={materials['Materia.006']}
+        />
+        <mesh
+          name="Materia_003-material_5"
+          geometry={nodes['Materia_003-material_5'].geometry}
+          material={materials['Materia.003']}
+        />
+        <mesh
+          name="Materia_003-material_6"
+          geometry={nodes['Materia_003-material_6'].geometry}
+          material={materials['Materia.003']}
+        />
+        <mesh
+          name="Materia_005-material"
+          geometry={nodes['Materia_005-material'].geometry}
+          material={materials['Materia.005']}
+        />
+        <mesh
+          name="Materia_004-material_2"
+          geometry={nodes['Materia_004-material_2'].geometry}
+          material={materials['Materia.004']}
+        />
+        <mesh
+          name="Materia_002-material"
+          geometry={nodes['Materia_002-material'].geometry}
+          material={materials['Materia.002']}
+        />
+        <mesh
+          name="Object_45"
+          geometry={nodes.Object_45.geometry}
+          material={materials.material_0}
+        />
+        <mesh
+          name="Object_47"
+          geometry={nodes.Object_47.geometry}
+          material={materials.material_0}
+        />
+        <mesh
+          name="Object_49"
+          geometry={nodes.Object_49.geometry}
+          material={materials.material_0}
+        />
+        <mesh
+          name="Object_51"
+          geometry={nodes.Object_51.geometry}
+          material={materials.material_0}
+        />
+        <mesh
+          name="Materia_004-material_3"
+          geometry={nodes['Materia_004-material_3'].geometry}
+          material={materials['Materia.004']}
+        />
+        <lineSegments
+          name="Object_55"
+          geometry={nodes.Object_55.geometry}
+          material={materials.material_0}
+        />
+        <mesh
+          name="Materia_003-material_7"
+          geometry={nodes['Materia_003-material_7'].geometry}
+          material={materials['Materia.003']}
+        />
+        <mesh
+          name="Materia_003-material_8"
+          geometry={nodes['Materia_003-material_8'].geometry}
+          material={materials['Materia.003']}
+        />
+      </group>
+    </group>
+  )
+}

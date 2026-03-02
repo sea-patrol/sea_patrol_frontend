@@ -5,7 +5,6 @@ import { Sky } from '@react-three/drei';
 import Ocean from './Ocean';
 import PlayerSailShip from './PlayerSailShip';
 import CameraFollower from './CameraFollower';
-import NpcSailShip from './NpcSailShip';
 import { Leva, useControls } from 'leva'
 import { Perf } from 'r3f-perf'
 import { KeyboardControls } from '@react-three/drei'
