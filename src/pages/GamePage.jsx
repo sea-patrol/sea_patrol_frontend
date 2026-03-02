@@ -1,8 +1,8 @@
 import ChatBlock from '../components/ChatBlock';
-import ProfileBlock from '../components/ProfileBlock';
 import GameMainScene from '../components/GameMainScene';
-import { WebSocketProvider } from '../contexts/WebSocketContext';
+import ProfileBlock from '../components/ProfileBlock';
 import { GameStateProvider } from '../contexts/GameStateContext';
+import { WebSocketProvider } from '../contexts/WebSocketContext';
 import '../styles/GamePage.css'
 
 function GamePage() {

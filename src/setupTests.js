@@ -1,7 +1,8 @@
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
-import { afterAll, afterEach, beforeAll } from 'vitest';
 import { setupServer } from 'msw/node';
+import { afterAll, afterEach, beforeAll } from 'vitest';
+
 import { handlers } from './mocks/handlers';
 
 // Глобальная очистка после каждого теста

@@ -55,7 +55,9 @@
 - **Мониторинг производительности**: r3f-perf
 - **PWA**: vite-plugin-pwa
 - **Язык**: JavaScript (ES2020+)
-- **Linting**: ESLint (@eslint/js, eslint-plugin-react-hooks, eslint-plugin-react-refresh)
+- **Linting**: ESLint (@eslint/js, eslint-plugin-react-hooks, eslint-plugin-react-refresh, eslint-plugin-import, eslint-plugin-jsx-a11y, eslint-plugin-testing-library)
+- **Pre-commit хуки**: Husky + lint-staged
+- **Абсолютные импорты**: Vite alias (`@/` → `src/`)
 - **Package manager**: `npm`
 
 ### 3.2 Current Repository Structure
@@ -126,6 +128,10 @@ src/
   - `no-unused-vars`: разрешены переменные, начинающиеся с `A-Z` или `_` (для JSX)
   - React Hooks: рекомендованные правила
   - Vite React Refresh: для горячей перезагрузки
+  - `import/order`: сортировка импортов по группам с алфавитным порядком
+  - `jsx-a11y`: правила доступности для JSX элементов
+  - `testing-library`: лучшие практики для тестов React Testing Library
+- **Абсолютные импорты**: Использовать `@/` для импортов из `src/` (например, `@/components/PlayerSailShip`)
 
 ### 3.5 Testing Workflow
 
@@ -172,6 +178,7 @@ src/
 - `npm run lint` — проверка линтером ESLint.
 - `npm run build` — production-сборка в директорию `dist/`.
 - `npm run preview` — локальный preview production-сборки.
+- `npm run prepare` — установка Husky хуков (автоматически после `npm install`).
 
 ### 4.3 Testing
 - `npm run test` — запуск в режиме watch (dev).

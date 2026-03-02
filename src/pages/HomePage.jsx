@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+
 import Login from '../components/Login';
 import Signup from '../components/Signup';
+import { useAuth } from '../contexts/AuthContext';
 import '../styles/HomePage.css';
 
 function HomePage() {

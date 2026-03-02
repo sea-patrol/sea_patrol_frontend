@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
+
 import { useAuth } from './AuthContext';
 
 const WebSocketContext = createContext();

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { useWebSocket } from '../contexts/WebSocketContext';
-import { useAuth } from '../contexts/AuthContext';
+
 import * as messageType from '../const/messageType';
+import { useAuth } from '../contexts/AuthContext';
+import { useWebSocket } from '../contexts/WebSocketContext';
 import '../styles/ChatBlock.css';
 
 function ChatBlock() {

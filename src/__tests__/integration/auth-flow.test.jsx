@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { AuthProvider, useAuth } from '../../contexts/AuthContext';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 import Login from '../../components/Login';
 import Signup from '../../components/Signup';
+import { AuthProvider, useAuth } from '../../contexts/AuthContext';
 import { testUsers } from '../../mocks/data';
 
 // Компонент-обертка для тестирования полного потока аутентификации

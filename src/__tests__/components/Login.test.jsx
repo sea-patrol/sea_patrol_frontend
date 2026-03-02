@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { AuthProvider } from '../../contexts/AuthContext';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 import Login from '../../components/Login';
+import { AuthProvider } from '../../contexts/AuthContext';
 import { testUsers } from '../../mocks/data';
 
 const mockOnSwitchToSignup = vi.fn();
