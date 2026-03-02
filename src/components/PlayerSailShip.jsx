@@ -2,7 +2,7 @@ import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useRef, useEffect } from 'react';
 
-import { useGameState } from '../contexts/GameStateContext';
+import { usePlayerState } from '../contexts/GameStateContext';
 import { modelUrls } from '../utils/models'
 
 const WireframeBox = ({ width, height, depth }) => {
@@ -19,9 +19,8 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
 
   const shipRefToUse = isCurrentPlayer ? shipRef : useRef();
 
-  // Глобальное состояние игры
-  const gameState = useGameState();
-  const state = gameState.current?.playerStates[name];
+  // Глобальное состояние игры - используем селектор
+  const playerState = usePlayerState(name);
 
   // Текущее состояние корабля
   const currentRef = useRef({
@@ -40,28 +39,26 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
 
   useEffect(() => {
     // Инициализация начального состояния
-    const initialPlayerState = gameState.current?.playerStates[name];
-    if (initialPlayerState) {
+    if (playerState) {
       currentRef.current = {
-        x: initialPlayerState.x,
-        z: initialPlayerState.z,
-        angle: initialPlayerState.angle,
+        x: playerState.x,
+        z: playerState.z,
+        angle: playerState.angle,
       };
 
       targetRef.current = {
-        x: initialPlayerState.x,
-        z: initialPlayerState.z,
-        angle: initialPlayerState.angle,
-        delta: initialPlayerState.delta || 0.1,
+        x: playerState.x,
+        z: playerState.z,
+        angle: playerState.angle,
+        delta: playerState.delta || 0.1,
       };
     }
-  }, [name]);
+  }, [name, playerState]);
 
   useFrame((state, delta) => {
     if (!shipRefToUse.current) return;
 
-    // Получаем актуальное целевое состояние из gameState
-    const playerState = gameState.current?.playerStates[name];
+    // Получаем актуальное целевое состояние из селектора
     if (!playerState) return;
 
     // Обновляем целевое состояние
@@ -95,11 +92,11 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
 
   return (
       <group ref={shipRefToUse} position={[currentRef.current ? currentRef.current.x : 0, 0, currentRef.current ? currentRef.current.z : 0]}>
-        {state && (
+        {playerState && (
           <WireframeBox
-            width={state.width}
-            height={state.height}
-            depth={state.length}
+            width={playerState.width}
+            height={playerState.height}
+            depth={playerState.length}
           />
         )}
         <group position={[0, -2.5, 0]} dispose={null}>
