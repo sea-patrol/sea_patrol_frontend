@@ -1,16 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
+import { useRef, useEffect } from 'react';
 
-import * as messageType from '../const/messageType';
-import { useAuth } from '../contexts/AuthContext';
-import { useWebSocket } from '../contexts/WebSocketContext';
+import { useAuth } from '../hooks/useAuth';
+import { useChat } from '../hooks/useChat';
 import '../styles/ChatBlock.css';
 
+/**
+ * Компонент чата
+ * @description Отображает сообщения и позволяет отправлять новые
+ */
 function ChatBlock() {
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef(null);
   const { user } = useAuth();
-  const { sendMessage, isConnected, subscribe } = useWebSocket();
+  const { messages, newMessage, isConnected, sendMessage, setNewMessage, handleKeyPress } = useChat();
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -21,37 +22,8 @@ function ChatBlock() {
     scrollToBottom();
   }, [messages]);
 
-  // Подписка на сообщения типа "chat/message"
-  useEffect(() => {
-    const unsubscribe = subscribe(messageType.CHAT_MESSAGE, (payload) => {
-      setMessages((prevMessages) => {
-        const newMessages = [...prevMessages, payload];
-        return newMessages.slice(-30); // Ограничиваем количество сообщений
-      });
-    });
-
-    return () => {
-      unsubscribe(); // Отписываемся при размонтировании компонента
-    };
-  }, [subscribe]);
-
   const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
-
-    const messageData = [messageType.CHAT_MESSAGE, { to: 'global', text: newMessage.trim() }];
-    sendMessage(messageData);
-    setNewMessage('');
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const handleInputChange = (e) => {
-    setNewMessage(e.target.value);
+    sendMessage();
   };
 
   return (
@@ -66,7 +38,7 @@ function ChatBlock() {
             <div className="no-messages">No messages yet. Start the conversation!</div>
           ) : (
             messages.map((message, index) => (
-              <div key={index} className={`message ${message.from === user.username ? 'own-message' : 'other-message'}`}>
+              <div key={index} className={`message ${message.from === user?.username ? 'own-message' : 'other-message'}`}>
                 <div className="message-header">
                   <span className="username">{message.from}:</span>
                 </div>
@@ -81,7 +53,7 @@ function ChatBlock() {
         <input
           type="text"
           value={newMessage}
-          onChange={handleInputChange}
+          onChange={(e) => setNewMessage(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Type your message..."
           disabled={!isConnected}

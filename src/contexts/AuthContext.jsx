@@ -1,7 +1,19 @@
+/**
+ * @file AuthContext - Контекст аутентификации
+ * @description Управление состоянием пользователя, токеном и методами входа/выхода
+ */
+
 import { createContext, useContext, useState, useEffect } from 'react';
+
+import { login as loginApi, signup as signupApi, saveToken, getToken, clearAuthStorage } from '../api/auth';
 
 const AuthContext = createContext();
 
+/**
+ * Хук для доступа к контексту аутентификации
+ * @returns {Object} Объект контекста аутентификации
+ * @throws {Error} Если используется вне AuthProvider
+ */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -10,83 +22,83 @@ export const useAuth = () => {
   return context;
 };
 
+/**
+ * Провайдер контекста аутентификации
+ * @param {Object} props - Пропсы компонента
+ * @param {React.ReactNode} props.children - Дочерние компоненты
+ */
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(getToken());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const API_BASE_URL = 'http://localhost:8080/api/v1/auth'; // Update this to your backend URL
-
+  // Сбрасываем loading после инициализации токена
   useEffect(() => {
     setLoading(false);
-  }, [token]);
+  }, []);
 
+  /**
+   * Выполняет вход пользователя
+   * @param {string} username - Имя пользователя
+   * @param {string} password - Пароль
+   * @returns {Promise<Object>} Результат входа { success: boolean, error?: string }
+   */
   const login = async (username, password) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ username, password })
-      });
+    setError(null);
+    const result = await loginApi(username, password);
 
-      if (response.ok) {
-        const authData = await response.json();
-        setToken(authData.token);
-        setUser({
-          id: authData.userId,
-          username: authData.username
-        });
-        localStorage.setItem('token', authData.token);
-        return { success: true };
-      } else {
-        const errorData = await response.json();
-        return { success: false, error: errorData.message || 'Login failed' };
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, error: 'Network error occurred' };
+    if (result.success) {
+      setToken(result.token);
+      setUser(result.user);
+      saveToken(result.token);
+      return { success: true };
+    } else {
+      setError(result.error);
+      return { success: false, error: result.error };
     }
   };
 
+  /**
+   * Регистрирует нового пользователя
+   * @param {string} username - Имя пользователя
+   * @param {string} password - Пароль
+   * @param {string} email - Email
+   * @returns {Promise<Object>} Результат регистрации { success: boolean, error?: string, user?: Object }
+   */
   const signup = async (username, password, email) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ username, password, email })
-      });
+    setError(null);
+    const result = await signupApi(username, password, email);
 
-      if (response.ok) {
-        const userData = await response.json();
-        return { success: true, user: userData };
-      } else {
-        const errorData = await response.json();
-        return { success: false, error: errorData.message || 'Signup failed' };
-      }
-    } catch (error) {
-      console.error('Signup error:', error);
-      return { success: false, error: 'Network error occurred' };
+    if (result.success) {
+      return { success: true, user: result.user };
+    } else {
+      setError(result.error);
+      return { success: false, error: result.error };
     }
   };
 
+  /**
+   * Выполняет выход пользователя
+   * Очищает состояние и localStorage
+   */
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('token');
+    setError(null);
+    clearAuthStorage();
   };
 
   const value = {
     user,
     token,
     loading,
+    error,
     login,
     signup,
     logout,
-    isAuthenticated: !!token && !!user
+    isAuthenticated: !!token && !!user,
+    setError
   };
 
   return (
