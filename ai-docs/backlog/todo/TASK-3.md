@@ -138,12 +138,12 @@ npm run test:run
 **Решение:** Approve (архитектурные улучшения не влияют на логику)
 
 ## Финализация
-- [ ] PR создан (`gh pr create`)
+- [x] PR создан (gh pr create) — https://github.com/sea-patrol/sea_patrol_frontend/pull/8
 - [ ] PR замержен
 - [ ] Задача перенесена в `ai-docs/backlog/done/`
 - [ ] Документация обновлена (если нужно)
 
 ---
 **Ссылки:**
-- PR: #<N>
-- Commit: `<hash>`
+- PR: #8
+- Commit: `b133891`
