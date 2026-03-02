@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls as OrbitControlsImpl } from 'three/examples/jsm/controls/OrbitControls';
+import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
+import { OrbitControls as OrbitControlsImpl } from 'three/examples/jsm/controls/OrbitControls';
 
 // Глобальные переменные для хранения состояния камеры
 let azimuthAngle = 0;

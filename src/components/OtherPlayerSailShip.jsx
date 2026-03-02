@@ -1,4 +1,5 @@
 import { useGLTF } from '@react-three/drei'
+
 import { modelUrls } from '../utils/models';
 
 export default function OtherPlayerSailShip(props) {

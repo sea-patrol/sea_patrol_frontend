@@ -1,22 +1,29 @@
-import { Suspense, useEffect, useRef, useState} from 'react';
-import { Canvas } from '@react-three/fiber';
-import { LoadingScreen } from '../components/LoadingScreen';
 import { Sky } from '@react-three/drei';
-import Ocean from './Ocean';
-import PlayerSailShip from './PlayerSailShip';
-import CameraFollower from './CameraFollower';
-import NpcSailShip from './NpcSailShip';
+import { KeyboardControls } from '@react-three/drei'
+import { Canvas } from '@react-three/fiber';
 import { Leva, useControls } from 'leva'
 import { Perf } from 'r3f-perf'
-import { KeyboardControls } from '@react-three/drei'
-import { Bouys } from './Buoys';
-import { preloadAllModels } from '../utils/models';
-import { useWebSocket } from '../contexts/WebSocketContext';
+import { Suspense, useEffect, useRef, useState} from 'react';
+
+import { LoadingScreen } from '../components/LoadingScreen';
+import * as messageType from '../const/messageType';
 import { useAuth } from '../contexts/AuthContext';
+import { useWebSocket } from '../contexts/WebSocketContext';
+import { preloadAllModels } from '../utils/models';
+
+import { Bouys } from './Buoys';
+import CameraFollower from './CameraFollower';
+import NpcSailShip from './NpcSailShip';
+import Ocean from './Ocean';
+import PlayerSailShip from './PlayerSailShip';
+
+
+
 import { useGameState } from '../contexts/GameStateContext';
+
 import KeyPress from './KeyPress';
 import GameStateInfo from './GameStateInfo';
-import * as messageType from '../const/messageType';
+
 
 function GameMainScene() {
 

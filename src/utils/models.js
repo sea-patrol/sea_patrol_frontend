@@ -1,4 +1,5 @@
 import { useGLTF } from '@react-three/drei';
+
 import sailShipUrl from '../assets/sail_ship.glb';
 
 // Экспортируем URL'ы для импорта в компонентах

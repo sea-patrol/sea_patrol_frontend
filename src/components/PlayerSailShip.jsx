@@ -1,8 +1,9 @@
-import { useRef, useEffect } from 'react';
 import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { modelUrls } from '../utils/models'
+import { useRef, useEffect } from 'react';
+
 import { useGameState } from '../contexts/GameStateContext';
+import { modelUrls } from '../utils/models'
 
 const WireframeBox = ({ width, height, depth }) => {
   return (

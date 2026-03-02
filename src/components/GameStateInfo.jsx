@@ -1,7 +1,8 @@
 import { useRef, useEffect, useState } from 'react';
+
+import * as messageType from '../const/messageType';
 import { useGameState } from '../contexts/GameStateContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
-import * as messageType from '../const/messageType';
 
 export default function GameStateInfo({ name }) {
   // Глобальное состояние игры

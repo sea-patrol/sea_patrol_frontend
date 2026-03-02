@@ -1,6 +1,6 @@
-import * as THREE from 'three'
-import { useMemo } from 'react'
 import { Text } from '@react-three/drei'
+import { useMemo } from 'react'
+import * as THREE from 'three'
 
 const boxGeometry = new THREE.BoxGeometry(2, 2, 2)
 const xMaterial = new THREE.MeshStandardMaterial({ color: 'red' })

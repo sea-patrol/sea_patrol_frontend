@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
 import { useKeyboardControls } from '@react-three/drei';
-import { useWebSocket } from '../contexts/WebSocketContext';
+import { useEffect, useState } from 'react';
+
 import * as messageType from '../const/messageType';
+import { useWebSocket } from '../contexts/WebSocketContext';
 
 const KeyPress = () => {
   const [subscribeKeys] = useKeyboardControls();
