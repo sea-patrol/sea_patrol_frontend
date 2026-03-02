@@ -93,12 +93,12 @@ npm run test:run
 **Решение:** Approve (инфраструктурные изменения не влияют на логику)
 
 ## Финализация
-- [ ] PR создан (`gh pr create`)
+- [x] PR создан (`gh pr create`) — https://github.com/sea-patrol/sea_patrol_frontend/pull/7
 - [ ] PR замержен
 - [x] Задача перенесена в `ai-docs/backlog/done/`
 - [x] Документация обновлена (PROJECT_INFO.md)
 
 ---
 **Ссылки:**
-- PR: #<N>
-- Commit: `5de47e5`
+- PR: #7
+- Commit: `f49b341`
