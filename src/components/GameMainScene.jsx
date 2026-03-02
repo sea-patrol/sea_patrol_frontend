@@ -1,15 +1,15 @@
-import { Suspense, useEffect, useRef, useState} from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { Sky } from '@react-three/drei';
 import Ocean from './Ocean';
 import PlayerSailShip from './PlayerSailShip';
 import CameraFollower from './CameraFollower';
-import { Leva, useControls } from 'leva'
-import { Perf } from 'r3f-perf'
-import { KeyboardControls } from '@react-three/drei'
+import { Leva, useControls } from 'leva';
+import { Perf } from 'r3f-perf';
+import { KeyboardControls } from '@react-three/drei';
 import { Bouys } from './Buoys';
-import { preloadAllModels } from '../utils/models';
+import { useModelPreload } from '../hooks/useModelPreload';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useGameState } from '../contexts/GameStateContext';
@@ -18,9 +18,8 @@ import GameStateInfo from './GameStateInfo';
 import * as messageType from '../const/messageType';
 
 function GameMainScene() {
-
   const { user } = useAuth();
-  const { sendMessage, isConnected, subscribe } = useWebSocket();
+  const { subscribe } = useWebSocket();
 
   // Состояние для хранения имен игроков
   const [playerNames, setPlayerNames] = useState([]);
@@ -33,13 +32,7 @@ function GameMainScene() {
   // Используем глобальный gameState через контекст
   const gameState = useGameState();
 
-  useEffect(() => {
-    console.log("GameMainScene useEffect called")
-
-    preloadAllModels().then(() => {
-     console.log("preloadAllModels.then called")
-    });
-  }, []);
+  useModelPreload();
 
   useEffect(() => {
     const unsubscribeInitGameInfo = subscribe(messageType.INIT_GAME_STATE, (payload) => {
@@ -89,15 +82,11 @@ function GameMainScene() {
       unsubscribePlayerJoin();
       unsubscribePlayerLeave();
     };
-  }, [subscribe]);
+  }, [subscribe, gameState]);
 
   const { perfVisible } = useControls('Monitoring', {
     perfVisible: true
-  })
-
-  const {physicsDebug} = useControls('PhysicsDebug', {
-    physicsDebug: false
-  })
+  });
 
   const { sunX, sunY, sunZ, turbidity } = useControls('Солнце', {
     sunX: { value: 500, min: -1500, max: 1500, step: 10 },
@@ -110,18 +99,18 @@ function GameMainScene() {
     <>
       <Leva />
       <KeyboardControls
-          map={ [
-              { name: 'up', keys: [ 'ArrowUp', 'KeyW' ] },
-              { name: 'down', keys: [ 'ArrowDown', 'KeyS' ] },
-              { name: 'left', keys: [ 'ArrowLeft', 'KeyA' ] },
-              { name: 'right', keys: [ 'ArrowRight', 'KeyD' ] }
-          ] }
+        map={[
+          { name: 'up', keys: ['ArrowUp', 'KeyW'] },
+          { name: 'down', keys: ['ArrowDown', 'KeyS'] },
+          { name: 'left', keys: ['ArrowLeft', 'KeyA'] },
+          { name: 'right', keys: ['ArrowRight', 'KeyD'] }
+        ]}
       >
         <KeyPress />
         <GameStateInfo name={currentPlayerName} />
-        <Canvas dpr={ 1 } camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 1000 }}>
+        <Canvas dpr={1} camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 1000 }}>
           {perfVisible && <Perf position="top-left" />}
-          <Suspense fallback={LoadingScreen} >
+          <Suspense fallback={LoadingScreen}>
             <ambientLight intensity={0.5} />
             <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]} />
             <Sky scale={1000} sunPosition={[sunX, sunY, sunZ]} turbidity={turbidity} />
@@ -134,9 +123,9 @@ function GameMainScene() {
               return (
                 <PlayerSailShip
                   key={name}
-                  name={name} // Передаем весь объект playerState
+                  name={name}
                   isCurrentPlayer={name === currentPlayerName}
-                  shipRef={name === currentPlayerName ? currentPlayerShipRef : null} // Передаем ref только для текущего игрока
+                  shipRef={name === currentPlayerName ? currentPlayerShipRef : null}
                 />
               );
             })}

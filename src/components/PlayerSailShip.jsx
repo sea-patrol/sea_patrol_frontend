@@ -1,5 +1,5 @@
-import { useRef, useEffect } from 'react';
-import { useFrame } from '@react-three/fiber'
+import { useRef } from 'react';
+import { useShipInterpolation } from '../hooks/useShipInterpolation';
 import { useGameState } from '../contexts/GameStateContext';
 import { ShipModel } from './ShipModel';
 
@@ -12,93 +12,30 @@ const WireframeBox = ({ width, height, depth }) => {
   );
 };
 
+/**
+ * PlayerSailShip - компонент корабля игрока с интерполяцией позиции.
+ *
+ * @param {string} name - Имя игрока
+ * @param {boolean} isCurrentPlayer - Флаг текущего игрока
+ * @param {React.RefObject} shipRef - Ref для корабля (только для текущего игрока)
+ */
 export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
-  const shipRefToUse = isCurrentPlayer ? shipRef : useRef();
-
-  // Глобальное состояние игры
+  const { position, rotation } = useShipInterpolation(name);
+  const defaultRef = useRef();
+  const shipRefToUse = isCurrentPlayer ? shipRef : defaultRef;
   const gameState = useGameState();
   const state = gameState.current?.playerStates[name];
 
-  // Текущее состояние корабля
-  const currentRef = useRef({
-    x: 0,
-    z: 0,
-    angle: 0,
-  });
-
-  // Целевое состояние корабля
-  const targetRef = useRef({
-    x: 0,
-    z: 0,
-    angle: 0,
-    delta: 0.1, // Delta сервера
-  });
-
-  useEffect(() => {
-    // Инициализация начального состояния
-    const initialPlayerState = gameState.current?.playerStates[name];
-    if (initialPlayerState) {
-      currentRef.current = {
-        x: initialPlayerState.x,
-        z: initialPlayerState.z,
-        angle: initialPlayerState.angle,
-      };
-
-      targetRef.current = {
-        x: initialPlayerState.x,
-        z: initialPlayerState.z,
-        angle: initialPlayerState.angle,
-        delta: initialPlayerState.delta || 0.1,
-      };
-    }
-  }, [name]);
-
-  useFrame((state, delta) => {
-    if (!shipRefToUse.current) return;
-
-    // Получаем актуальное целевое состояние из gameState
-    const playerState = gameState.current?.playerStates[name];
-    if (!playerState) return;
-
-    // Обновляем целевое состояние
-    targetRef.current = {
-      x: playerState.x,
-      z: playerState.z,
-      angle: playerState.angle,
-      delta: playerState.delta || 0.1,
-    };
-
-    // Плавное обновление позиции
-    const smoothFactor = 5; // Коэффициент плавности
-    const serverDelta = targetRef.current.delta;
-
-    const newX = currentRef.current.x + (targetRef.current.x - currentRef.current.x) * delta;
-    const newZ = currentRef.current.z + (targetRef.current.z - currentRef.current.z) * delta;
-
-    currentRef.current.x = newX;
-    currentRef.current.z = newZ;
-
-    // Плавное обновление угла
-    const angleDiff = targetRef.current.angle - currentRef.current.angle;
-    const newAngle = currentRef.current.angle + angleDiff * delta;
-
-    currentRef.current.angle = newAngle;
-
-    // Обновляем позицию и угол корабля
-    shipRefToUse.current.position.set(newX, 0, newZ);
-    shipRefToUse.current.rotation.y = newAngle;
-  });
-
   return (
-      <group ref={shipRefToUse} position={[currentRef.current ? currentRef.current.x : 0, 0, currentRef.current ? currentRef.current.z : 0]}>
-        {state && (
-          <WireframeBox
-            width={state.width}
-            height={state.height}
-            depth={state.length}
-          />
-        )}
-        <ShipModel dispose={false} />
-      </group>
-  )
+    <group ref={shipRefToUse} position={position} rotation={[0, rotation, 0]}>
+      {state && (
+        <WireframeBox
+          width={state.width}
+          height={state.height}
+          depth={state.length}
+        />
+      )}
+      <ShipModel dispose={false} />
+    </group>
+  );
 }
