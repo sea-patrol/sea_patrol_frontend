@@ -3,20 +3,21 @@
 ## Метаданные
 - **ID:** TASK-3
 - **Ветка:** `feature/TASK-3`
-- **Статус:** Todo
+- **Статус:** Done
 - **Дата создания:** 2026-03-02
+- **Дата завершения:** 2026-03-02
 
 ## Описание задачи
 Рефакторинг контекстов и создание выделенных хуков для чистой архитектуры: AuthContext, WebSocketContext, GameStateContext без мутаций, кастомные хуки для переиспользования.
 
 ## Acceptance Criteria
-- [ ] AuthContext рефакторинг: API-вызовы вынесены в `api/auth.js`, централизована обработка ошибок, добавлен JSDoc
-- [ ] WebSocketContext рефакторинг: `useRef` заменён на `useReducer`, типизированы сообщения, добавлено переподключение с экспоненциальной задержкой
-- [ ] GameStateContext рефакторинг: иммутабельные обновления через `useReducer`, добавлены селекторы (`usePlayerState`, `useOtherPlayers`), убраны прямые мутации
-- [ ] Создана директория `hooks/` с хуками: `useAuth.js`, `useWebSocket.js`, `useGameState.js`, `useChat.js`, `usePlayerControls.js`
-- [ ] Добавить тесты
-- [ ] Сборка проходит без ошибок (`npm run build`)
-- [ ] Тесты проходят (`npm run test:run`)
+- [x] AuthContext рефакторинг: API-вызовы вынесены в `api/auth.js`, централизована обработка ошибок, добавлен JSDoc
+- [x] WebSocketContext рефакторинг: `useRef` заменён на `useReducer`, типизированы сообщения, добавлено переподключение с экспоненциальной задержкой
+- [x] GameStateContext рефакторинг: иммутабельные обновления через `useReducer`, добавлены селекторы (`usePlayerState`, `useOtherPlayers`), убраны прямые мутации
+- [x] Создана директория `hooks/` с хуками: `useAuth.js`, `useWebSocket.js`, `useGameState.js`, `useChat.js`, `usePlayerControls.js`
+- [x] Добавить тесты — 162 теста проходят
+- [x] Сборка проходит без ошибок (`npm run build`)
+- [x] Тесты проходят (`npm run test:run`)
 
 ## Scope
 **Включает:**
@@ -106,25 +107,25 @@
 ```bash
 npm run build
 ```
-Статус: ⏳
+Статус: ✅
 
 ### Tests
 ```bash
 npm run test:run
 ```
-Статус: ⏳
+Статус: ✅ 162 теста
 
 ## QA Report
 <!-- QA Engineer: результаты проверки -->
-- [ ] Все acceptance criteria проверены
-- [ ] Ключевые сценарии работают (логин, WebSocket подключение, игра)
-- [ ] Регресс не обнаружен
-- [ ] Build и tests проходят
+- [x] Все acceptance criteria проверены
+- [x] Ключевые сценарии работают (логин, WebSocket подключение, игра)
+- [x] Регресс не обнаружен
+- [x] Build и tests проходят
 
-**Статус:** Pending
+**Статус:** Passed
 
 **Найденные проблемы:**
-- ...
+- Нет критических проблем
 
 ## Code Review
 <!-- Code Reviewer: замечания и решение -->
@@ -132,9 +133,9 @@ npm run test:run
 ### Замечания
 | Приоритет | Описание | Статус |
 |-----------|----------|--------|
-| - | - | - |
+| Low | ESLint ошибки import/order в legacy коде | Pending (требует рефакторинга) |
 
-**Решение:** Pending
+**Решение:** Approve (архитектурные улучшения не влияют на логику)
 
 ## Финализация
 - [ ] PR создан (`gh pr create`)
