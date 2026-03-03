@@ -4,7 +4,7 @@ const ProfileBlock = () => {
     return (
         <div className="profile">
             <div className='avatar'>
-                <img src='src/images/Pirate.jpg'/>
+                <img src='src/images/Pirate.jpg' alt="Аватар игрока" />
             </div>
             <div className='name'>
                 Black Beard
