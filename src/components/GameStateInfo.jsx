@@ -23,7 +23,7 @@ export default function GameStateInfo({ name }) {
     return () => {
       unsubscribeUpdateGameInfo();
     };
-  }, [subscribe]);
+  }, [gameState, name, subscribe]);
 
   // Если данных о игроке нет, показываем заглушку
   if (!playerState) {

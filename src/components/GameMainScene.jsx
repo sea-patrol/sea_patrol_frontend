@@ -90,7 +90,7 @@ function GameMainScene() {
       unsubscribePlayerJoin();
       unsubscribePlayerLeave();
     };
-  }, [subscribe]);
+  }, [gameState, subscribe]);
 
   const { perfVisible } = useControls('Monitoring', {
     perfVisible: true,

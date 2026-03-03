@@ -21,7 +21,7 @@ export function Bouys({ count = 5, step = 50 }) {
             }
         }
         return buoys
-    }, [ count ])
+    }, [ count, step ])
 
     return <>
         { buoys }
