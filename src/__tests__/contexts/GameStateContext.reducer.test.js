@@ -7,6 +7,7 @@ import {
   selectCurrentPlayerState,
   selectPlayerNames,
   selectPlayerState,
+  wsMessageToGameAction,
 } from '../../contexts/GameStateContext';
 
 function deepFreeze(obj) {
@@ -114,5 +115,24 @@ describe('gameStateReducer', () => {
     expect(selectPlayerNames(state).sort()).toEqual(['alice', 'bob']);
     expect(selectPlayerState(state, 'alice')).toEqual({ name: 'alice', x: 1 });
     expect(selectCurrentPlayerState(state, 'bob')).toEqual({ name: 'bob', x: 2 });
+  });
+
+  it('wsMessageToGameAction: маппит WS-сообщения в reducer actions', () => {
+    expect(wsMessageToGameAction(messageType.INIT_GAME_STATE, { players: [] })).toEqual({
+      type: messageType.INIT_GAME_STATE,
+      payload: { players: [] },
+    });
+
+    expect(wsMessageToGameAction(messageType.PLAYER_LEAVE, 'alice')).toEqual({
+      type: messageType.PLAYER_LEAVE,
+      payload: 'alice',
+    });
+
+    expect(wsMessageToGameAction(messageType.PLAYER_LEAVE, { username: 'bob' })).toEqual({
+      type: messageType.PLAYER_LEAVE,
+      payload: 'bob',
+    });
+
+    expect(wsMessageToGameAction('SOME_UNKNOWN', {})).toBe(null);
   });
 });

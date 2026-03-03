@@ -28,6 +28,28 @@ export function selectCurrentPlayerState(state, currentPlayerName) {
   return selectPlayerState(state, currentPlayerName);
 }
 
+export function wsMessageToGameAction(wsType, wsPayload) {
+  switch (wsType) {
+    case messageType.INIT_GAME_STATE:
+    case messageType.UPDATE_GAME_STATE:
+    case messageType.PLAYER_JOIN:
+      return { type: wsType, payload: wsPayload };
+
+    case messageType.PLAYER_LEAVE: {
+      if (typeof wsPayload === 'string') {
+        return { type: wsType, payload: wsPayload };
+      }
+
+      const username = wsPayload?.username ?? wsPayload?.name;
+      if (!username) return null;
+      return { type: wsType, payload: username };
+    }
+
+    default:
+      return null;
+  }
+}
+
 function applyDefinedPatch(prev, patch) {
   const base = prev ?? { name: patch?.name };
   let next = base;

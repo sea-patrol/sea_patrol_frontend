@@ -172,7 +172,7 @@ src/
 
 **Покрытие (TASK-1)**:
 - 11 тестовых файлов
-- 74 теста (все проходят ✅)
+- 76 тестов (все проходят ✅)
 - Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), Login, Signup, PlayerSailShip, auth-flow, authApi, wsClient, messageAdapter, ws-send-regression
 
 ## 4. Working Commands
@@ -192,7 +192,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 11 файлов, 74 теста (AuthContext, WebSocketContext, GameStateContext reducer, Login, Signup, PlayerSailShip, auth-flow, authApi, wsClient, messageAdapter, ws-send-regression).
+**Текущее покрытие**: 11 файлов, 76 тестов (AuthContext, WebSocketContext, GameStateContext reducer, Login, Signup, PlayerSailShip, auth-flow, authApi, wsClient, messageAdapter, ws-send-regression).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.
