@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // GameStateContext.js
 import { createContext, useContext, useRef } from 'react';
 

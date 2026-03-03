@@ -13,7 +13,7 @@ const KeyPress = () => {
       left: false,
     });
 
-  const { sendMessage, isConnected, subscribe } = useWebSocket();
+  const { sendMessage, isConnected } = useWebSocket();
 
   useEffect(() => {
       if (!isConnected) {

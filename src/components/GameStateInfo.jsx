@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import * as messageType from '../const/messageType';
 import { useGameState } from '../contexts/GameStateContext';
@@ -9,20 +9,20 @@ export default function GameStateInfo({ name }) {
   const gameState = useGameState();
   const [playerState, setPlayerState] = useState({x: 0, z: 0, angle: 0, velocity: 0});
 
-  const { sendMessage, isConnected, subscribe } = useWebSocket();
+  const { subscribe } = useWebSocket();
 
-  useEffect(() => {  
-      const unsubscribeUpdateGameInfo = subscribe(messageType.UPDATE_GAME_STATE, (payload) => {
-        const playerState = gameState.current?.playerStates[name];
-        setPlayerState({x: playerState?.x,
+  useEffect(() => {
+    const unsubscribeUpdateGameInfo = subscribe(messageType.UPDATE_GAME_STATE, () => {
+      const playerState = gameState.current?.playerStates[name];
+      setPlayerState({ x: playerState?.x,
           z: playerState?.z,
           angle: playerState?.angle,
-          velocity: playerState?.velocity});
-      });
-  
-      return () => {
-        unsubscribeUpdateGameInfo();
-      };
+          velocity: playerState?.velocity });
+    });
+
+    return () => {
+      unsubscribeUpdateGameInfo();
+    };
   }, [subscribe]);
 
   // Если данных о игроке нет, показываем заглушку
