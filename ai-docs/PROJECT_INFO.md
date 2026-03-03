@@ -79,6 +79,7 @@ src/
 │   ├── Ocean.jsx           # Рендеринг океана
 │   ├── OtherPlayerSailShip.jsx  # Корабль другого игрока
 │   ├── PlayerSailShip.jsx  # Корабль игрока с интерполяцией
+│   ├── ShipModel.jsx       # Общая 3D-модель корабля (GLTF meshes)
 │   ├── ProfileBlock.jsx    # UI профиля игрока
 │   └── Signup.jsx          # Форма регистрации
 ├── const/            # Константы
