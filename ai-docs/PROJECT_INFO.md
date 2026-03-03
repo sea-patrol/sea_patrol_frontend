@@ -85,7 +85,7 @@ src/
 │   └── messageType.js        # Типы WebSocket-сообщений
 ├── contexts/         # React Context провайдеры
 │   ├── AuthContext.jsx       # Состояние аутентификации
-│   ├── GameStateContext.jsx  # Глобальное состояние игры
+│   ├── GameStateContext.jsx  # Глобальное состояние игры (useReducer + dispatch; stateRef для чтения)
 │   └── WebSocketContext.jsx  # WebSocket-соединение и pub/sub
 ├── images/           # Изображения (иконки, текстуры UI)
 ├── pages/            # Страницы приложения
@@ -171,9 +171,9 @@ src/
 - `npm run test:coverage` — запуск с отчётом о покрытии
 
 **Покрытие (TASK-1)**:
-- 6 тестовых файлов
-- 53 теста (все проходят ✅)
-- Протестированы: AuthContext, WebSocketContext, Login, Signup, PlayerSailShip, auth-flow
+- 11 тестовых файлов
+- 74 теста (все проходят ✅)
+- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), Login, Signup, PlayerSailShip, auth-flow, authApi, wsClient, messageAdapter, ws-send-regression
 
 ## 4. Working Commands
 
@@ -192,7 +192,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 6 файлов, 53 теста (AuthContext, WebSocketContext, Login, Signup, PlayerSailShip, auth-flow).
+**Текущее покрытие**: 11 файлов, 74 теста (AuthContext, WebSocketContext, GameStateContext reducer, Login, Signup, PlayerSailShip, auth-flow, authApi, wsClient, messageAdapter, ws-send-regression).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.

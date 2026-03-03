@@ -21,8 +21,8 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
   const shipRefToUse = isCurrentPlayer && shipRef ? shipRef : localShipRef;
 
   // Глобальное состояние игры
-  const gameState = useGameState();
-  const state = gameState.current?.playerStates[name];
+  const { stateRef } = useGameState();
+  const state = stateRef.current?.playerStates[name];
 
   // Текущее состояние корабля
   const currentRef = useRef({
@@ -41,7 +41,7 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
 
   useEffect(() => {
     // Инициализация начального состояния
-    const initialPlayerState = gameState.current?.playerStates[name];
+    const initialPlayerState = stateRef.current?.playerStates[name];
     if (initialPlayerState) {
       currentRef.current = {
         x: initialPlayerState.x,
@@ -56,13 +56,13 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
         delta: initialPlayerState.delta || 0.1,
       };
     }
-  }, [gameState, name]);
+  }, [name, stateRef]);
 
   useFrame((state, delta) => {
     if (!shipRefToUse.current) return;
 
     // Получаем актуальное целевое состояние из gameState
-    const playerState = gameState.current?.playerStates[name];
+    const playerState = stateRef.current?.playerStates[name];
     if (!playerState) return;
 
     // Обновляем целевое состояние
