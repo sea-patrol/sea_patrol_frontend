@@ -101,7 +101,8 @@ src/
 │   ├── Login.css
 │   └── Signup.css
 ├── utils/            # Вспомогательные функции
-│   └── models.js             # Утилиты загрузки 3D-моделей
+│   ├── models.js             # Утилиты загрузки 3D-моделей
+│   └── useShipInterpolation.js # Хук интерполяции движения корабля
 ├── shared/           # Переиспользуемые модули (API и т.д.)
 │   ├── api/
 │   │   └── authApi.js        # Auth API (login/signup)
@@ -172,9 +173,9 @@ src/
 - `npm run test:coverage` — запуск с отчётом о покрытии
 
 **Покрытие (TASK-1)**:
-- 11 тестовых файлов
-- 76 тестов (все проходят ✅)
-- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), Login, Signup, PlayerSailShip, auth-flow, authApi, wsClient, messageAdapter, ws-send-regression
+- 12 тестовых файлов
+- 80 тестов (все проходят ✅)
+- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), Login, Signup, PlayerSailShip, auth-flow, authApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
 
 ## 4. Working Commands
 
@@ -193,7 +194,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 11 файлов, 76 тестов (AuthContext, WebSocketContext, GameStateContext reducer, Login, Signup, PlayerSailShip, auth-flow, authApi, wsClient, messageAdapter, ws-send-regression).
+**Текущее покрытие**: 12 файлов, 80 тестов (AuthContext, WebSocketContext, GameStateContext reducer, Login, Signup, PlayerSailShip, auth-flow, authApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.
