@@ -70,7 +70,9 @@ src/
 │   ├── Buoys.jsx           # Буи в океане
 │   ├── CameraFollower.jsx  # Камера, следующая за кораблём
 │   ├── ChatBlock.jsx       # UI чата
-│   ├── GameMainScene.jsx   # Основная 3D-сцена
+│   ├── GameDebugOverlay.jsx # Debug overlay (Leva + Perf controls)
+│   ├── GameMainScene.jsx   # Оркестрация сцены (WS + состояние + controls)
+│   ├── GameSceneCanvas.jsx # Рендер 3D-сцены в Canvas
 │   ├── GameStateInfo.jsx   # UI отображения состояния игры
 │   ├── KeyPress.jsx        # Обработка нажатий клавиш
 │   ├── LoadingScreen.jsx   # Экран загрузки
@@ -102,6 +104,7 @@ src/
 │   └── Signup.css
 ├── utils/            # Вспомогательные функции
 │   ├── models.js             # Утилиты загрузки 3D-моделей
+│   ├── useGameWsGameState.js    # WS-оркестрация game-state (подписки → dispatch)
 │   └── useShipInterpolation.js # Хук интерполяции движения корабля
 ├── shared/           # Переиспользуемые модули (API и т.д.)
 │   ├── api/
