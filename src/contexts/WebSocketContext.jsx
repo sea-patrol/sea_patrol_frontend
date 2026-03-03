@@ -1,9 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuth } from './AuthContext';
 
 const WebSocketContext = createContext();
+const WS_URL = 'ws://localhost:8080/ws/game';
 
 export const useWebSocket = () => {
   const context = useContext(WebSocketContext);
@@ -17,31 +18,54 @@ export const WebSocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const { token, user } = useAuth();
   const wsRef = useRef(null);
-  const WS_URL = 'ws://localhost:8080/ws/game';
 
   // Центральное хранилище для подписчиков
-  const subscribers = useRef({});
+  const subscribersRef = useRef({});
 
-  useEffect(() => {
-    if (token && user) {
-      connectWebSocket();
+  const tokenRef = useRef(token);
+  const userRef = useRef(user);
+  tokenRef.current = token;
+  userRef.current = user;
+
+  const sendMessage = useCallback((messageData) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      try {
+        wsRef.current.send(JSON.stringify(messageData));
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
     }
+  }, []);
 
+  // Метод для подписки на определенный тип сообщений
+  const subscribe = useCallback((type, callback) => {
+    if (!subscribersRef.current[type]) {
+      subscribersRef.current[type] = new Set();
+    }
+    subscribersRef.current[type].add(callback);
+
+    // Возвращаем функцию для отписки
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
+      if (subscribersRef.current[type]) {
+        subscribersRef.current[type].delete(callback);
       }
     };
-  }, [token, user]);
+  }, []);
 
-  const connectWebSocket = () => {
+  const connectWebSocket = useCallback(() => {
+    const currentToken = tokenRef.current;
+    const currentUser = userRef.current;
+
+    if (!currentToken || !currentUser) return;
+
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
 
     if (wsRef.current) {
       wsRef.current.close();
+      wsRef.current = null;
     }
 
-    const ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`);
+    const ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(currentToken)}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -56,7 +80,7 @@ export const WebSocketProvider = ({ children }) => {
     ws.onclose = () => {
       setIsConnected(false);
       setTimeout(() => {
-        if (token && user) {
+        if (tokenRef.current && userRef.current) {
           connectWebSocket();
         }
       }, 3000);
@@ -69,45 +93,35 @@ export const WebSocketProvider = ({ children }) => {
         const payload = messageData.payload;
 
         // Уведомляем всех подписчиков данного типа
-        if (subscribers.current[type]) {
-          subscribers.current[type].forEach((callback) => callback(payload));
+        if (subscribersRef.current[type]) {
+          subscribersRef.current[type].forEach((callback) => callback(payload));
         }
       } catch (error) {
         console.error('Error parsing message:', error);
       }
     };
-  };
+  }, []);
 
-  const sendMessage = (messageData) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      try {
-        wsRef.current.send(JSON.stringify(messageData));
-      } catch (error) {
-        console.error('Error sending message:', error);
-      }
+  useEffect(() => {
+    if (token && user) {
+      connectWebSocket();
     }
-  };
 
-  // Метод для подписки на определенный тип сообщений
-  const subscribe = (type, callback) => {
-    if (!subscribers.current[type]) {
-      subscribers.current[type] = new Set();
-    }
-    subscribers.current[type].add(callback);
-
-    // Возвращаем функцию для отписки
     return () => {
-      if (subscribers.current[type]) {
-        subscribers.current[type].delete(callback);
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
       }
     };
-  };
+  }, [connectWebSocket, token, user]);
 
-  const value = {
-    isConnected,
-    sendMessage,
-    subscribe,
-  };
+  const value = useMemo(() => {
+    return {
+      isConnected,
+      sendMessage,
+      subscribe,
+    };
+  }, [isConnected, sendMessage, subscribe]);
 
   return (
     <WebSocketContext.Provider value={value}>

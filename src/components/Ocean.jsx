@@ -25,7 +25,7 @@ function Ocean() {
       fog: false,
       format: gl.encoding
     }),
-    [waterNormals]
+    [gl, waterNormals]
   )
   useFrame((state, delta) => (ref.current.material.uniforms.time.value += delta))
   return (

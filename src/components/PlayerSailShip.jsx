@@ -56,7 +56,7 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
         delta: initialPlayerState.delta || 0.1,
       };
     }
-  }, [name]);
+  }, [gameState, name]);
 
   useFrame((state, delta) => {
     if (!shipRefToUse.current) return;
