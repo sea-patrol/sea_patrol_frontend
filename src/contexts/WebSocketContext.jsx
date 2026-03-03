@@ -32,7 +32,8 @@ export const useWebSocket = () => {
 
 export const WebSocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
-  const { token, user } = useAuth();
+  const { token } = useAuth();
+  const [lastClose, setLastClose] = useState(null);
 
   const clientRef = useRef(null);
   if (!clientRef.current) {
@@ -40,20 +41,34 @@ export const WebSocketProvider = ({ children }) => {
   }
 
   const tokenRef = useRef(token);
-  const userRef = useRef(user);
   tokenRef.current = token;
-  userRef.current = user;
 
   const connectWebSocket = useCallback(() => {
+    setLastClose(null);
     clientRef.current.connect({
       getUrl: () => {
         const currentToken = tokenRef.current;
-        const currentUser = userRef.current;
-        if (!currentToken || !currentUser) return null;
+        if (!currentToken) return null;
         return `${WS_URL}?token=${encodeURIComponent(currentToken)}`;
       },
-      reconnectDelayMs: 3000,
+      reconnect: {
+        initialDelayMs: 1000,
+        maxDelayMs: 8000,
+        factor: 2,
+        maxAttempts: 5,
+        cooldownMs: 30000,
+      },
       onConnectionChange: setIsConnected,
+      onOpen: () => {
+        setLastClose(null);
+      },
+      onClose: (event) => {
+        // CloseEvent есть в браузере, но в тестовой среде может быть undefined
+        const code = event?.code;
+        const reason = event?.reason;
+        setLastClose({ code, reason });
+        console.warn('WebSocket closed:', { code, reason });
+      },
       onError: (error) => {
         console.error('WebSocket error:', error);
       },
@@ -69,7 +84,10 @@ export const WebSocketProvider = ({ children }) => {
   }, []);
 
   const sendMessage = useCallback((messageData) => {
-    clientRef.current.send(messageData);
+    const result = clientRef.current.send(messageData);
+    if (!result.ok) {
+      console.warn('WebSocket send failed:', result.error);
+    }
   }, []);
 
   const subscribe = useCallback((type, callback) => {
@@ -77,7 +95,7 @@ export const WebSocketProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (token && user) {
+    if (token) {
       connectWebSocket();
     } else {
       disconnectWebSocket();
@@ -86,15 +104,17 @@ export const WebSocketProvider = ({ children }) => {
     return () => {
       disconnectWebSocket();
     };
-  }, [connectWebSocket, disconnectWebSocket, token, user]);
+  }, [connectWebSocket, disconnectWebSocket, token]);
 
   const value = useMemo(() => {
     return {
       isConnected,
+      hasToken: !!token,
+      lastClose,
       sendMessage,
       subscribe,
     };
-  }, [isConnected, sendMessage, subscribe]);
+  }, [isConnected, lastClose, sendMessage, subscribe, token]);
 
   return (
     <WebSocketContext.Provider value={value}>

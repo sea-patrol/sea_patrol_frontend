@@ -10,7 +10,7 @@ function ChatBlock() {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef(null);
   const { user } = useAuth();
-  const { sendMessage, isConnected, subscribe } = useWebSocket();
+  const { sendMessage, isConnected, subscribe, hasToken, lastClose } = useWebSocket();
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -59,14 +59,19 @@ function ChatBlock() {
       <div className="board">
         <div className="connection-status">
           <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}></span>
-          {isConnected ? 'Connected' : 'Connecting...'}
+          {isConnected ? 'Connected' : hasToken ? 'Disconnected' : 'No token'}
+          {!isConnected && lastClose?.code !== undefined && (
+            <span style={{ marginLeft: 8, opacity: 0.8 }}>
+              (close: {String(lastClose.code)}{lastClose.reason ? `, ${lastClose.reason}` : ''})
+            </span>
+          )}
         </div>
         <div className="messages-container">
           {messages.length === 0 ? (
             <div className="no-messages">No messages yet. Start the conversation!</div>
           ) : (
             messages.map((message, index) => (
-              <div key={index} className={`message ${message.from === user.username ? 'own-message' : 'other-message'}`}>
+              <div key={index} className={`message ${message.from === user?.username ? 'own-message' : 'other-message'}`}>
                 <div className="message-header">
                   <span className="username">{message.from}:</span>
                 </div>

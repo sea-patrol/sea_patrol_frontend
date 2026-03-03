@@ -49,6 +49,7 @@ describe('wsClient', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it('routes parsed messages to subscribers', () => {
@@ -91,5 +92,100 @@ describe('wsClient', () => {
     const result = client.send(['PING', { a: 1 }]);
     expect(result.ok).toBe(true);
     expect(ws.sent[0]).toBe(JSON.stringify(['PING', { a: 1 }]));
+  });
+
+  it('reconnects with exponential backoff and stops after maxAttempts', () => {
+    vi.useFakeTimers();
+
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+
+    const client = createWsClient();
+    const onConnectionChange = vi.fn();
+
+    client.connect({
+      getUrl: () => 'ws://example',
+      onConnectionChange,
+      reconnect: { initialDelayMs: 1000, maxDelayMs: 8000, factor: 2, maxAttempts: 3, cooldownMs: 30000 },
+    });
+
+    const ws1 = MockWebSocket.instances[0];
+    ws1.close();
+    expect(setTimeoutSpy).toHaveBeenLastCalledWith(expect.any(Function), 1000);
+
+    vi.advanceTimersByTime(1000);
+    expect(MockWebSocket.instances).toHaveLength(2);
+
+    const ws2 = MockWebSocket.instances[1];
+    ws2.close();
+    expect(setTimeoutSpy).toHaveBeenLastCalledWith(expect.any(Function), 2000);
+
+    vi.advanceTimersByTime(2000);
+    expect(MockWebSocket.instances).toHaveLength(3);
+
+    const ws3 = MockWebSocket.instances[2];
+    ws3.close();
+    expect(setTimeoutSpy).toHaveBeenLastCalledWith(expect.any(Function), 4000);
+
+    vi.advanceTimersByTime(4000);
+    expect(MockWebSocket.instances).toHaveLength(4);
+
+    const ws4 = MockWebSocket.instances[3];
+    ws4.close();
+
+    // maxAttempts=3 -> уходим на cooldown
+    expect(setTimeoutSpy).toHaveBeenLastCalledWith(expect.any(Function), 30000);
+
+    vi.advanceTimersByTime(30000);
+    expect(MockWebSocket.instances).toHaveLength(5);
+
+    setTimeoutSpy.mockRestore();
+  });
+
+  it('disconnect clears scheduled reconnect', () => {
+    vi.useFakeTimers();
+
+    const client = createWsClient();
+    client.connect({
+      getUrl: () => 'ws://example',
+      onConnectionChange: vi.fn(),
+      reconnect: { initialDelayMs: 1000, maxDelayMs: 8000, factor: 2, maxAttempts: 5, cooldownMs: 30000 },
+    });
+
+    const ws1 = MockWebSocket.instances[0];
+    ws1.close(); // планируем reconnect
+
+    client.disconnect();
+
+    vi.advanceTimersByTime(1000);
+    expect(MockWebSocket.instances).toHaveLength(1);
+  });
+
+  it('does not break current socket on stale close (reconnect race)', () => {
+    let url = 'ws://one';
+
+    const client = createWsClient();
+    client.connect({
+      getUrl: () => url,
+      onConnectionChange: vi.fn(),
+    });
+
+    const ws1 = MockWebSocket.instances[0];
+    ws1.open();
+
+    url = 'ws://two';
+    client.connect({
+      getUrl: () => url,
+      onConnectionChange: vi.fn(),
+    });
+
+    const ws2 = MockWebSocket.instances[1];
+    ws2.open();
+
+    // старый сокет закрывается после открытия нового
+    ws1.close();
+
+    const sendResult = client.send(['PING', { a: 1 }]);
+    expect(sendResult.ok).toBe(true);
+    expect(ws2.sent[0]).toBe(JSON.stringify(['PING', { a: 1 }]));
   });
 });

@@ -6,7 +6,9 @@ export const createWsClient = (options = {}) => {
   let socket = null;
   let reconnectTimerId = null;
   let shouldReconnect = true;
-  let suppressReconnectOnce = false;
+  let suppressReconnectSocket = null;
+  let reconnectAttempt = 0;
+  let activeUrl = null;
 
   const subscribersByType = new Map();
 
@@ -15,6 +17,36 @@ export const createWsClient = (options = {}) => {
       clearTimeout(reconnectTimerId);
       reconnectTimerId = null;
     }
+  };
+
+  const suppressReconnectForCurrentSocket = () => {
+    if (socket) suppressReconnectSocket = socket;
+  };
+
+  const getReconnectConfig = (connectOptions) => {
+    const defaults = {
+      initialDelayMs: 1000,
+      maxDelayMs: 8000,
+      factor: 2,
+      maxAttempts: 5,
+      cooldownMs: 30000,
+    };
+
+    if (typeof connectOptions?.reconnectDelayMs === 'number') {
+      return {
+        ...defaults,
+        initialDelayMs: connectOptions.reconnectDelayMs,
+        maxDelayMs: connectOptions.reconnectDelayMs,
+      };
+    }
+
+    return { ...defaults, ...(connectOptions?.reconnect || {}) };
+  };
+
+  const getReconnectDelayMs = (connectOptions, attemptIndex) => {
+    const reconnect = getReconnectConfig(connectOptions);
+    const delay = reconnect.initialDelayMs * Math.pow(reconnect.factor, attemptIndex);
+    return Math.min(delay, reconnect.maxDelayMs);
   };
 
   const unsubscribe = (type, callback) => {
@@ -35,55 +67,86 @@ export const createWsClient = (options = {}) => {
   const safeCloseSocket = () => {
     if (!socket) return;
     try {
+      suppressReconnectForCurrentSocket();
       socket.close();
     } catch {
       // ignore
     } finally {
       socket = null;
+      activeUrl = null;
     }
   };
 
   const openSocket = (connectOptions) => {
-    const { getUrl, onConnectionChange, onError, onMessageError } = connectOptions;
+    const { getUrl, onConnectionChange, onError, onMessageError, onReconnectAttempt, onOpen, onClose } = connectOptions;
     const url = getUrl?.();
     if (!url) return;
 
-    if (socket && socket.readyState === WebSocket.OPEN) return;
+    if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) && activeUrl === url) {
+      return;
+    }
 
     if (socket) {
-      suppressReconnectOnce = true;
       safeCloseSocket();
     }
 
     const ws = new WebSocket(url);
     socket = ws;
+    activeUrl = url;
 
     ws.onopen = () => {
+      if (socket !== ws) return;
+      reconnectAttempt = 0;
+      clearReconnectTimer();
+      onOpen?.();
       onConnectionChange?.(true);
     };
 
     ws.onerror = (error) => {
+      if (socket !== ws) return;
       onError?.(error);
-      onConnectionChange?.(false);
     };
 
-    ws.onclose = () => {
-      onConnectionChange?.(false);
+    ws.onclose = (event) => {
+      const isSuppressed = suppressReconnectSocket === ws;
+      if (isSuppressed) suppressReconnectSocket = null;
 
-      if (suppressReconnectOnce) {
-        suppressReconnectOnce = false;
-        return;
-      }
+      if (socket !== ws) return;
+
+      onConnectionChange?.(false);
+      socket = null;
+      activeUrl = null;
+
+      onClose?.(event);
+
+      if (isSuppressed) return;
 
       if (!shouldReconnect) return;
 
+      const reconnect = getReconnectConfig(connectOptions);
+      if (reconnectAttempt >= reconnect.maxAttempts) {
+        // делаем паузу и начинаем новый цикл попыток
+        clearReconnectTimer();
+        reconnectAttempt = 0;
+        reconnectTimerId = setTimeout(() => {
+          openSocket(connectOptions);
+        }, reconnect.cooldownMs);
+        return;
+      }
+
       clearReconnectTimer();
+      const currentAttemptIndex = reconnectAttempt;
+      const delayMs = getReconnectDelayMs(connectOptions, currentAttemptIndex);
+      reconnectAttempt += 1;
+
+      onReconnectAttempt?.({ attempt: reconnectAttempt, delayMs });
       reconnectTimerId = setTimeout(() => {
         openSocket(connectOptions);
-      }, connectOptions.reconnectDelayMs ?? 3000);
+      }, delayMs);
     };
 
     ws.onmessage = (event) => {
+      if (socket !== ws) return;
       const parsed = adapter.parseMessage(event.data);
       if (!parsed.ok) {
         onMessageError?.(parsed.error);
@@ -96,14 +159,16 @@ export const createWsClient = (options = {}) => {
 
   const connect = (connectOptions) => {
     shouldReconnect = true;
+    reconnectAttempt = 0;
     clearReconnectTimer();
     openSocket(connectOptions);
   };
 
   const disconnect = () => {
     shouldReconnect = false;
+    reconnectAttempt = 0;
     clearReconnectTimer();
-    suppressReconnectOnce = true;
+    suppressReconnectForCurrentSocket();
     safeCloseSocket();
   };
 
