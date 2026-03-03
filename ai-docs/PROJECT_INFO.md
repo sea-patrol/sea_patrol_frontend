@@ -102,8 +102,11 @@ src/
 ├── utils/            # Вспомогательные функции
 │   └── models.js             # Утилиты загрузки 3D-моделей
 ├── shared/           # Переиспользуемые модули (API и т.д.)
-│   └── api/
-│       └── authApi.js        # Auth API (login/signup)
+│   ├── api/
+│   │   └── authApi.js        # Auth API (login/signup)
+│   └── ws/
+│       ├── messageAdapter.js # Парсинг/валидация/сериализация WS сообщений
+│       └── wsClient.js       # Низкоуровневый WS клиент (connect/send/subscribe)
 ├── App.jsx           # Корневой компонент с роутингом
 ├── index.css         # Глобальные стили
 └── main.jsx          # Точка входа приложения
