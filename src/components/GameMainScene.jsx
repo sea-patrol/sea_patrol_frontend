@@ -32,7 +32,7 @@ function GameMainScene() {
   const currentPlayerName = user.username;
 
   // Используем глобальный gameState через контекст
-  const gameState = useGameState();
+  const { stateRef, dispatch } = useGameState();
 
   useEffect(() => {
     console.log('GameMainScene useEffect called');
@@ -44,42 +44,22 @@ function GameMainScene() {
 
   useEffect(() => {
     const unsubscribeInitGameInfo = subscribe(messageType.INIT_GAME_STATE, (payload) => {
-      const playersData = payload.players.reduce((acc, player) => {
-        acc[player.name] = {
-          ...player
-        };
-        return acc;
-      }, {});
-
-      gameState.current.playerStates = playersData;
-      setPlayerNames(Object.keys(playersData)); // Обновляем список имен игроков
+      dispatch({ type: messageType.INIT_GAME_STATE, payload });
+      setPlayerNames(payload.players.map((p) => p.name)); // Обновляем список имен игроков
     });
 
     const unsubscribeUpdateGameInfo = subscribe(messageType.UPDATE_GAME_STATE, (payload) => {
-      payload.players.forEach((player) => {
-        // Проверяем, существует ли игрок в текущем состоянии игры
-        if (gameState.current.playerStates[player.name]) {
-          // Обновляем только указанные поля, если они существуют в payload
-          const playerState = gameState.current.playerStates[player.name];
-          if (player.x !== undefined) playerState.x = player.x;
-          if (player.z !== undefined) playerState.z = player.z;
-          if (player.angle !== undefined) playerState.angle = player.angle;
-          if (player.velocity !== undefined) playerState.velocity = player.velocity;
-          if (player.health !== undefined) playerState.health = player.health;
-        }
-      });
+      dispatch({ type: messageType.UPDATE_GAME_STATE, payload });
     });
 
     const unsubscribePlayerJoin = subscribe(messageType.PLAYER_JOIN, (payload) => {
-      gameState.current.playerStates[payload.name] = {
-        ...payload
-      };
+      dispatch({ type: messageType.PLAYER_JOIN, payload });
 
       setPlayerNames((prevNames) => [...prevNames, payload.name]); // Добавляем имя нового игрока
     });
 
     const unsubscribePlayerLeave = subscribe(messageType.PLAYER_LEAVE, (username) => {
-      delete gameState.current.playerStates[username];
+      dispatch({ type: messageType.PLAYER_LEAVE, payload: username });
 
       setPlayerNames((prevNames) => prevNames.filter((name) => name !== username)); // Удаляем имя игрока
     });
@@ -90,7 +70,7 @@ function GameMainScene() {
       unsubscribePlayerJoin();
       unsubscribePlayerLeave();
     };
-  }, [gameState, subscribe]);
+  }, [dispatch, subscribe]);
 
   const { perfVisible } = useControls('Monitoring', {
     perfVisible: true,
@@ -129,7 +109,7 @@ function GameMainScene() {
             <Ocean />
             {/* Рендерим корабли всех игроков */}
             {playerNames.map((name) => {
-              const playerState = gameState.current.playerStates[name];
+              const playerState = stateRef.current.playerStates[name];
               if (!playerState) return null;
 
               return (

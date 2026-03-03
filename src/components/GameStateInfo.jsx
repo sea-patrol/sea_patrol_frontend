@@ -6,14 +6,14 @@ import { useWebSocket } from '../contexts/WebSocketContext';
 
 export default function GameStateInfo({ name }) {
   // Глобальное состояние игры
-  const gameState = useGameState();
+  const { stateRef } = useGameState();
   const [playerState, setPlayerState] = useState({x: 0, z: 0, angle: 0, velocity: 0});
 
   const { subscribe } = useWebSocket();
 
   useEffect(() => {
     const unsubscribeUpdateGameInfo = subscribe(messageType.UPDATE_GAME_STATE, () => {
-      const playerState = gameState.current?.playerStates[name];
+      const playerState = stateRef.current?.playerStates[name];
       setPlayerState({ x: playerState?.x,
           z: playerState?.z,
           angle: playerState?.angle,
@@ -23,7 +23,7 @@ export default function GameStateInfo({ name }) {
     return () => {
       unsubscribeUpdateGameInfo();
     };
-  }, [gameState, name, subscribe]);
+  }, [name, stateRef, subscribe]);
 
   // Если данных о игроке нет, показываем заглушку
   if (!playerState) {
