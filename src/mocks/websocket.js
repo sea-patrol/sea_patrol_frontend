@@ -1,6 +1,19 @@
 import { Server } from 'mock-socket';
 
-const WS_URL = 'ws://localhost:8080/ws/game';
+const DEFAULT_BACKEND_HOSTNAME = 'localhost';
+const DEFAULT_BACKEND_PORT = 8080;
+
+const trimTrailingSlashes = (value) => value.replace(/\/+$/, '');
+
+const getDefaultWsBaseUrl = () => {
+  const location = typeof window !== 'undefined' ? window.location : undefined;
+  const protocol = location?.protocol === 'https:' ? 'wss:' : 'ws:';
+  const hostname = location?.hostname || DEFAULT_BACKEND_HOSTNAME;
+  return `${protocol}//${hostname}:${DEFAULT_BACKEND_PORT}`;
+};
+
+const WS_BASE_URL = trimTrailingSlashes(import.meta.env.VITE_WS_BASE_URL || getDefaultWsBaseUrl());
+const WS_URL = `${WS_BASE_URL}/ws/game`;
 
 /**
  * Создает мок WebSocket сервер для тестирования

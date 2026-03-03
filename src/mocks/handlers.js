@@ -2,11 +2,24 @@ import { http, HttpResponse } from 'msw';
 
 import { testUsers, mockAuthResponses } from './data';
 
-const API_BASE_URL = 'http://localhost:8080/api/v1/auth';
+const DEFAULT_BACKEND_HOSTNAME = 'localhost';
+const DEFAULT_BACKEND_PORT = 8080;
+
+const trimTrailingSlashes = (value) => value.replace(/\/+$/, '');
+
+const getDefaultApiBaseUrl = () => {
+  const location = typeof window !== 'undefined' ? window.location : undefined;
+  const protocol = location?.protocol === 'https:' ? 'https:' : 'http:';
+  const hostname = location?.hostname || DEFAULT_BACKEND_HOSTNAME;
+  return `${protocol}//${hostname}:${DEFAULT_BACKEND_PORT}`;
+};
+
+const API_BASE_URL = trimTrailingSlashes(import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl());
+const AUTH_API_BASE_URL = `${API_BASE_URL}/api/v1/auth`;
 
 export const handlers = [
   // POST /api/v1/auth/login
-  http.post(`${API_BASE_URL}/login`, async ({ request }) => {
+  http.post(`${AUTH_API_BASE_URL}/login`, async ({ request }) => {
     const { username, password } = await request.json();
 
     // Проверка валидности пользователя
@@ -30,7 +43,7 @@ export const handlers = [
   }),
 
   // POST /api/v1/auth/signup
-  http.post(`${API_BASE_URL}/signup`, async ({ request }) => {
+  http.post(`${AUTH_API_BASE_URL}/signup`, async ({ request }) => {
     const { username, password, email } = await request.json();
 
     // Проверка на существующего пользователя

@@ -3,6 +3,21 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
+const DEFAULT_BACKEND_HOSTNAME = 'localhost';
+const DEFAULT_BACKEND_PORT = 8080;
+
+const trimTrailingSlashes = (value) => value.replace(/\/+$/, '');
+
+const getDefaultApiBaseUrl = () => {
+  const location = typeof window !== 'undefined' ? window.location : undefined;
+  const protocol = location?.protocol === 'https:' ? 'https:' : 'http:';
+  const hostname = location?.hostname || DEFAULT_BACKEND_HOSTNAME;
+  return `${protocol}//${hostname}:${DEFAULT_BACKEND_PORT}`;
+};
+
+const API_BASE_URL = trimTrailingSlashes(import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl());
+const AUTH_API_BASE_URL = `${API_BASE_URL}/api/v1/auth`;
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -16,15 +31,13 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
-  const API_BASE_URL = 'http://localhost:8080/api/v1/auth'; // Update this to your backend URL
-
   useEffect(() => {
     setLoading(false);
   }, [token]);
 
   const login = async (username, password) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      const response = await fetch(`${AUTH_API_BASE_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -53,7 +66,7 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (username, password, email) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/signup`, {
+      const response = await fetch(`${AUTH_API_BASE_URL}/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
