@@ -16,8 +16,9 @@ const WireframeBox = ({ width, height, depth }) => {
 
 export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
   const { nodes, materials } = useGLTF(modelUrls.sail_ship)
+  const localShipRef = useRef(null);
 
-  const shipRefToUse = isCurrentPlayer ? shipRef : useRef();
+  const shipRefToUse = isCurrentPlayer && shipRef ? shipRef : localShipRef;
 
   // Глобальное состояние игры
   const gameState = useGameState();
@@ -71,10 +72,6 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
       angle: playerState.angle,
       delta: playerState.delta || 0.1,
     };
-
-    // Плавное обновление позиции
-    const smoothFactor = 5; // Коэффициент плавности
-    const serverDelta = targetRef.current.delta;
 
     const newX = currentRef.current.x + (targetRef.current.x - currentRef.current.x) * delta;
     const newZ = currentRef.current.z + (targetRef.current.z - currentRef.current.z) * delta;

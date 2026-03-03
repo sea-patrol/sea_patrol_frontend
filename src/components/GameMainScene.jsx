@@ -1,34 +1,27 @@
-import { Sky } from '@react-three/drei';
-import { KeyboardControls } from '@react-three/drei'
+import { KeyboardControls, Sky } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
-import { Leva, useControls } from 'leva'
-import { Perf } from 'r3f-perf'
-import { Suspense, useEffect, useRef, useState} from 'react';
+import { Leva, useControls } from 'leva';
+import { Perf } from 'r3f-perf';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { LoadingScreen } from '../components/LoadingScreen';
 import * as messageType from '../const/messageType';
 import { useAuth } from '../contexts/AuthContext';
+import { useGameState } from '../contexts/GameStateContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { preloadAllModels } from '../utils/models';
 
 import { Bouys } from './Buoys';
 import CameraFollower from './CameraFollower';
+import GameStateInfo from './GameStateInfo';
+import KeyPress from './KeyPress';
 import NpcSailShip from './NpcSailShip';
 import Ocean from './Ocean';
 import PlayerSailShip from './PlayerSailShip';
 
-
-
-import { useGameState } from '../contexts/GameStateContext';
-
-import KeyPress from './KeyPress';
-import GameStateInfo from './GameStateInfo';
-
-
 function GameMainScene() {
-
   const { user } = useAuth();
-  const { sendMessage, isConnected, subscribe } = useWebSocket();
+  const { subscribe } = useWebSocket();
 
   // Состояние для хранения имен игроков
   const [playerNames, setPlayerNames] = useState([]);
@@ -42,10 +35,10 @@ function GameMainScene() {
   const gameState = useGameState();
 
   useEffect(() => {
-    console.log("GameMainScene useEffect called")
+    console.log('GameMainScene useEffect called');
 
     preloadAllModels().then(() => {
-     console.log("preloadAllModels.then called")
+      console.log('preloadAllModels.then called');
     });
   }, []);
 
@@ -100,36 +93,36 @@ function GameMainScene() {
   }, [subscribe]);
 
   const { perfVisible } = useControls('Monitoring', {
-    perfVisible: true
-  })
+    perfVisible: true,
+  });
 
-  const {physicsDebug} = useControls('PhysicsDebug', {
-    physicsDebug: false
-  })
+  useControls('PhysicsDebug', {
+    physicsDebug: false,
+  });
 
   const { sunX, sunY, sunZ, turbidity } = useControls('Солнце', {
     sunX: { value: 500, min: -1500, max: 1500, step: 10 },
     sunY: { value: 150, min: -1000, max: 1000, step: 10 },
     sunZ: { value: -1000, min: -1000, max: 1000, step: 10 },
-    turbidity: { value: 0.1, min: 0, max: 20, step: 0.1 }
+    turbidity: { value: 0.1, min: 0, max: 20, step: 0.1 },
   });
 
   return (
     <>
       <Leva />
       <KeyboardControls
-          map={ [
-              { name: 'up', keys: [ 'ArrowUp', 'KeyW' ] },
-              { name: 'down', keys: [ 'ArrowDown', 'KeyS' ] },
-              { name: 'left', keys: [ 'ArrowLeft', 'KeyA' ] },
-              { name: 'right', keys: [ 'ArrowRight', 'KeyD' ] }
-          ] }
+        map={[
+          { name: 'up', keys: ['ArrowUp', 'KeyW'] },
+          { name: 'down', keys: ['ArrowDown', 'KeyS'] },
+          { name: 'left', keys: ['ArrowLeft', 'KeyA'] },
+          { name: 'right', keys: ['ArrowRight', 'KeyD'] },
+        ]}
       >
         <KeyPress />
         <GameStateInfo name={currentPlayerName} />
-        <Canvas dpr={ 1 } camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 1000 }}>
+        <Canvas dpr={1} camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 1000 }}>
           {perfVisible && <Perf position="top-left" />}
-          <Suspense fallback={LoadingScreen} >
+          <Suspense fallback={LoadingScreen}>
             <ambientLight intensity={0.5} />
             <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]} />
             <Sky scale={1000} sunPosition={[sunX, sunY, sunZ]} turbidity={turbidity} />
