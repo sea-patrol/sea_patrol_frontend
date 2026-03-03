@@ -85,7 +85,7 @@ src/
 │   └── messageType.js        # Типы WebSocket-сообщений
 ├── contexts/         # React Context провайдеры
 │   ├── AuthContext.jsx       # Состояние аутентификации
-│   ├── GameStateContext.jsx  # Глобальное состояние игры (useReducer + dispatch; stateRef для чтения)
+│   ├── GameStateContext.jsx  # Глобальное состояние игры (useReducer + dispatch; selectors; stateRef для чтения)
 │   └── WebSocketContext.jsx  # WebSocket-соединение и pub/sub
 ├── images/           # Изображения (иконки, текстуры UI)
 ├── pages/            # Страницы приложения

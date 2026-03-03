@@ -2,7 +2,7 @@ import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useRef, useEffect } from 'react';
 
-import { useGameState } from '../contexts/GameStateContext';
+import { selectPlayerState, useGameState } from '../contexts/GameStateContext';
 import { modelUrls } from '../utils/models'
 
 const WireframeBox = ({ width, height, depth }) => {
@@ -22,7 +22,7 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
 
   // Глобальное состояние игры
   const { stateRef } = useGameState();
-  const state = stateRef.current?.playerStates[name];
+  const state = selectPlayerState(stateRef.current, name);
 
   // Текущее состояние корабля
   const currentRef = useRef({
@@ -41,7 +41,7 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
 
   useEffect(() => {
     // Инициализация начального состояния
-    const initialPlayerState = stateRef.current?.playerStates[name];
+    const initialPlayerState = selectPlayerState(stateRef.current, name);
     if (initialPlayerState) {
       currentRef.current = {
         x: initialPlayerState.x,
@@ -62,7 +62,7 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
     if (!shipRefToUse.current) return;
 
     // Получаем актуальное целевое состояние из gameState
-    const playerState = stateRef.current?.playerStates[name];
+    const playerState = selectPlayerState(stateRef.current, name);
     if (!playerState) return;
 
     // Обновляем целевое состояние
