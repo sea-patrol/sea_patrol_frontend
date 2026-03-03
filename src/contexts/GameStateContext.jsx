@@ -11,6 +11,23 @@ export const initialGameState = Object.freeze({
   playerStates: {},
 });
 
+export function selectPlayerStates(state) {
+  return state?.playerStates ?? {};
+}
+
+export function selectPlayerNames(state) {
+  return Object.keys(selectPlayerStates(state));
+}
+
+export function selectPlayerState(state, name) {
+  if (!name) return undefined;
+  return selectPlayerStates(state)[name];
+}
+
+export function selectCurrentPlayerState(state, currentPlayerName) {
+  return selectPlayerState(state, currentPlayerName);
+}
+
 function applyDefinedPatch(prev, patch) {
   const base = prev ?? { name: patch?.name };
   let next = base;

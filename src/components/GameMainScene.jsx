@@ -7,7 +7,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { LoadingScreen } from '../components/LoadingScreen';
 import * as messageType from '../const/messageType';
 import { useAuth } from '../contexts/AuthContext';
-import { useGameState } from '../contexts/GameStateContext';
+import { selectPlayerState, useGameState } from '../contexts/GameStateContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { preloadAllModels } from '../utils/models';
 
@@ -109,7 +109,7 @@ function GameMainScene() {
             <Ocean />
             {/* Рендерим корабли всех игроков */}
             {playerNames.map((name) => {
-              const playerState = stateRef.current.playerStates[name];
+              const playerState = selectPlayerState(stateRef.current, name);
               if (!playerState) return null;
 
               return (

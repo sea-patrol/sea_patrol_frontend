@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import * as messageType from '../const/messageType';
-import { useGameState } from '../contexts/GameStateContext';
+import { selectPlayerState, useGameState } from '../contexts/GameStateContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
 
 export default function GameStateInfo({ name }) {
@@ -13,7 +13,7 @@ export default function GameStateInfo({ name }) {
 
   useEffect(() => {
     const unsubscribeUpdateGameInfo = subscribe(messageType.UPDATE_GAME_STATE, () => {
-      const playerState = stateRef.current?.playerStates[name];
+      const playerState = selectPlayerState(stateRef.current, name);
       setPlayerState({ x: playerState?.x,
           z: playerState?.z,
           angle: playerState?.angle,

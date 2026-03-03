@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import * as messageType from '../../const/messageType';
-import { gameStateReducer, initialGameState } from '../../contexts/GameStateContext';
+import {
+  gameStateReducer,
+  initialGameState,
+  selectCurrentPlayerState,
+  selectPlayerNames,
+  selectPlayerState,
+} from '../../contexts/GameStateContext';
 
 function deepFreeze(obj) {
   if (!obj || typeof obj !== 'object' || Object.isFrozen(obj)) return obj;
@@ -96,5 +102,17 @@ describe('gameStateReducer', () => {
 
     expect(nextState.playerStates).toEqual({ bob: { name: 'bob', x: 2 } });
   });
-});
 
+  it('selectors: возвращают список игроков и игрока по имени', () => {
+    const state = deepFreeze({
+      playerStates: {
+        alice: { name: 'alice', x: 1 },
+        bob: { name: 'bob', x: 2 },
+      },
+    });
+
+    expect(selectPlayerNames(state).sort()).toEqual(['alice', 'bob']);
+    expect(selectPlayerState(state, 'alice')).toEqual({ name: 'alice', x: 1 });
+    expect(selectCurrentPlayerState(state, 'bob')).toEqual({ name: 'bob', x: 2 });
+  });
+});
