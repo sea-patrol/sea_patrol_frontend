@@ -1,8 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, waitFor } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 import { AuthProvider, useAuth } from '../../contexts/AuthContext';
-import { testUsers } from '../../mocks/data';
 
 // Тестовый компонент для доступа к контексту
 const TestAuthConsumer = () => {

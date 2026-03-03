@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // PlayerSailShip использует useGLTF и useFrame, которые мокируются в setupTests.js
 // Тестируем только базовую структуру и существование компонента
