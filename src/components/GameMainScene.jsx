@@ -7,7 +7,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { LoadingScreen } from '../components/LoadingScreen';
 import * as messageType from '../const/messageType';
 import { useAuth } from '../contexts/AuthContext';
-import { selectPlayerState, useGameState } from '../contexts/GameStateContext';
+import { selectPlayerState, useGameState, wsMessageToGameAction } from '../contexts/GameStateContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { preloadAllModels } from '../utils/models';
 
@@ -44,22 +44,26 @@ function GameMainScene() {
 
   useEffect(() => {
     const unsubscribeInitGameInfo = subscribe(messageType.INIT_GAME_STATE, (payload) => {
-      dispatch({ type: messageType.INIT_GAME_STATE, payload });
+      const action = wsMessageToGameAction(messageType.INIT_GAME_STATE, payload);
+      if (action) dispatch(action);
       setPlayerNames(payload.players.map((p) => p.name)); // Обновляем список имен игроков
     });
 
     const unsubscribeUpdateGameInfo = subscribe(messageType.UPDATE_GAME_STATE, (payload) => {
-      dispatch({ type: messageType.UPDATE_GAME_STATE, payload });
+      const action = wsMessageToGameAction(messageType.UPDATE_GAME_STATE, payload);
+      if (action) dispatch(action);
     });
 
     const unsubscribePlayerJoin = subscribe(messageType.PLAYER_JOIN, (payload) => {
-      dispatch({ type: messageType.PLAYER_JOIN, payload });
+      const action = wsMessageToGameAction(messageType.PLAYER_JOIN, payload);
+      if (action) dispatch(action);
 
       setPlayerNames((prevNames) => [...prevNames, payload.name]); // Добавляем имя нового игрока
     });
 
     const unsubscribePlayerLeave = subscribe(messageType.PLAYER_LEAVE, (username) => {
-      dispatch({ type: messageType.PLAYER_LEAVE, payload: username });
+      const action = wsMessageToGameAction(messageType.PLAYER_LEAVE, username);
+      if (action) dispatch(action);
 
       setPlayerNames((prevNames) => prevNames.filter((name) => name !== username)); // Удаляем имя игрока
     });
