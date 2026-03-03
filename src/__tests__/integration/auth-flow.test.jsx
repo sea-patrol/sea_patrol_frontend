@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -65,7 +65,7 @@ describe('Auth Flow Integration', () => {
   describe('Login Flow', () => {
     it('should complete full login flow: Login component → AuthContext → REST API → authenticated', async () => {
       const user = userEvent.setup();
-      const { container } = renderAuthFlow();
+      renderAuthFlow();
 
       // Начальное состояние - не аутентифицирован
       expect(screen.getByTestId('auth-status').textContent).toBe('not-authenticated');
@@ -119,7 +119,7 @@ describe('Auth Flow Integration', () => {
 
     it('should allow logout after successful login', async () => {
       const user = userEvent.setup();
-      const { container } = renderAuthFlow();
+      renderAuthFlow();
 
       // Логинимся
       const usernameInput = screen.getByLabelText(/username:/i);
@@ -297,12 +297,11 @@ describe('Auth Flow Integration', () => {
       // Сохраняем токен в localStorage
       localStorage.setItem('token', 'test-jwt-token-valid-user');
 
-      const { container, unmount, rerender } = renderAuthFlow();
+      renderAuthFlow();
 
       // Токен загружен, но пользователь еще не установлен (требуется login)
       // AuthContext загружает токен из localStorage при инициализации
-      const tokenEl = container.querySelector('[data-testid="username"]');
-      
+
       // Проверяем, что токен в localStorage
       expect(localStorage.getItem('token')).toBe('test-jwt-token-valid-user');
     });
