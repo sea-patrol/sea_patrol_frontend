@@ -184,6 +184,8 @@ src/
 - `VITE_API_BASE_URL` — базовый URL HTTP backend (например, `http://localhost:8080`), далее фронтенд добавляет `/api/v1/auth/*`.
 - `VITE_WS_BASE_URL` — базовый URL WebSocket backend (например, `ws://localhost:8080`), далее фронтенд добавляет `/ws/game`.
 
+📡 Подробное описание текущего REST/WS API: [`ai-docs/API_INFO.md`](ai-docs/API_INFO.md).
+
 ### 4.5 Git Workflow
 - `git fetch` — получить актуальное состояние удаленных веток.
 - `git checkout main` — перейти на `main` перед стартом новой задачи.

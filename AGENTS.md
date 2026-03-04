@@ -5,6 +5,7 @@
 **Sea Patrol** — это многопользовательская 3D-браузерная игра про парусные корабли, построенная на **React**, **Three.js** и **React Three Fiber (R3F)**. Игроки могут регистрироваться/входить в систему, управлять парусными кораблями в 3D-океане и взаимодействовать с другими игроками в реальном времени через WebSocket-соединения.
 
 📖 **Полная документация проекта** доступна в файле [`ai-docs/PROJECT_INFO.md`](ai-docs/PROJECT_INFO.md).
+📡 **Описание текущего API (REST + WebSocket)**: [`ai-docs/API_INFO.md`](ai-docs/API_INFO.md).
 
 ### Технологический стек
 
@@ -30,6 +31,7 @@
 4. **Предпочитай редактирование** созданию новых абстракций
 5. **Всегда проверяй** `npm run build` и `npm run test:run` после изменений
 6. **Обновляй `ai-docs/PROJECT_INFO.md`** при изменении структуры/архитектуры/команд
+7. **Обновляй `ai-docs/API_INFO.md`** при изменении REST/WS контрактов (эндпоинты, форматы сообщений, message types)
 
 ## Сборка и запуск
 
@@ -84,7 +86,18 @@ npm run lint
 | `/api/v1/auth/signup` | HTTP POST | Регистрация пользователя |
 | `/ws/game` | WebSocket | Синхронизация состояния игры в реальном времени |
 
+Подробности по контракту (форматы сообщений/ответов): [`ai-docs/API_INFO.md`](ai-docs/API_INFO.md).
+
 ---
+
+## Где искать реализацию API на фронте
+
+- REST auth: `src/shared/api/authApi.js`
+- WebSocket provider (URL, reconnect, token query): `src/features/realtime/model/WebSocketContext.jsx`
+- WebSocket client (connect/reconnect/subscribe/send): `src/shared/ws/wsClient.js`
+- Формат сообщений (tuple/object): `src/shared/ws/messageAdapter.js`
+- Список message types: `src/shared/constants/messageType.js`
+- WS → game state (subscribe/reducer mapping): `src/features/game/model/useGameWsGameState.js`, `src/features/game/model/GameStateContext.jsx`
 
 ## Конвенции разработки
 
@@ -110,8 +123,8 @@ npm run lint
 
 ### 3D-ресурсы
 
-- Модели хранятся в `src/assets/` (формат `.glb`)
-- Предзагрузка через `useGLTF.preload()` в `src/utils/models.js`
+- Модели хранятся в `src/shared/assets/` (формат `.glb`)
+- Предзагрузка через `useGLTF.preload()` в `src/shared/assets/models.js`
 - Vite настроен на обработку файлов `.glb`/`.gltf` через `assetsInclude`
 
 ---
@@ -126,20 +139,3 @@ npm run lint
 | `index.html` | HTML-точка входа |
 
 ---
-
-## Доступные скиллы
-
-| Скилл | Описание |
-|-------|----------|
-| `task-creator` | Создание новой задачи в бэклоге. Использовать при запросах создать задачу, тикет, TASK, добавить в бэклог, сгенерировать файл задачи по шаблону. |
-| `task-closer` | Перемещение задачи из todo в done. Использовать при завершении задач, закрытии тикетов, переносе TASK в done. |
-
-### Использование скиллов
-
-```bash
-# Создание задачи
-node .qwen/skills/task-creator/scripts/create-task.js
-
-# Закрытие задачи
-node .qwen/skills/task-closer/scripts/close-task.js TASK-1
-```
