@@ -3,10 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import Login from '../../components/Login';
-import Signup from '../../components/Signup';
-import { AuthProvider, useAuth } from '../../contexts/AuthContext';
-import { testUsers } from '../../mocks/data';
+import { AuthProvider, useAuth } from '../../features/auth/model/AuthContext';
+import Login from '../../features/auth/ui/Login';
+import Signup from '../../features/auth/ui/Signup';
+import { testUsers } from '../../test/mocks/data';
 
 // Компонент-обертка для тестирования полного потока аутентификации
 const AuthFlowTest = () => {

@@ -1,0 +1,51 @@
+.game-page {
+    width: 100vw;
+    height: 100vh;
+}
+
+.username-display {
+    position: fixed;
+    z-index: 9999;
+    top: 2vh;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px 16px;
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+}
+
+.game-profile {
+    position: fixed;
+    z-index: 9999;
+    top: 1cqmax;
+    left: 1cqmax;
+}
+
+.game-menu {
+    position: fixed;
+    z-index: 9999;
+
+    top: 1cqmax;
+    right: 1cqmax;
+}
+
+.game-menu:hover {
+    cursor: pointer;
+    color: black;
+}
+
+.chat-block {
+    position: fixed;
+    z-index: 9999;
+
+    bottom: 1%;
+    left: 1%;
+
+    width: 25vw;
+    height: 30vh;
+}

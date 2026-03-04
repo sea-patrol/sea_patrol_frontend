@@ -64,46 +64,34 @@
 
 ```
 src/
-├── assets/           # 3D-модели (.glb), текстуры
-│   └── sail_ship.glb
-├── components/       # React-компоненты
-│   ├── Buoys.jsx           # Буи в океане
-│   ├── CameraFollower.jsx  # Камера, следующая за кораблём
-│   ├── ChatBlock.jsx       # UI чата
-│   ├── GameMainScene.jsx   # Основная 3D-сцена
-│   ├── GameStateInfo.jsx   # UI отображения состояния игры
-│   ├── KeyPress.jsx        # Обработка нажатий клавиш
-│   ├── LoadingScreen.jsx   # Экран загрузки
-│   ├── Login.jsx           # Форма входа
-│   ├── NpcSailShip.jsx     # Корабль NPC
-│   ├── Ocean.jsx           # Рендеринг океана
-│   ├── OtherPlayerSailShip.jsx  # Корабль другого игрока
-│   ├── PlayerSailShip.jsx  # Корабль игрока с интерполяцией
-│   ├── ProfileBlock.jsx    # UI профиля игрока
-│   └── Signup.jsx          # Форма регистрации
-├── const/            # Константы
-│   └── messageType.js        # Типы WebSocket-сообщений
-├── contexts/         # React Context провайдеры
-│   ├── AuthContext.jsx       # Состояние аутентификации
-│   ├── GameStateContext.jsx  # Глобальное состояние игры
-│   └── WebSocketContext.jsx  # WebSocket-соединение и pub/sub
-├── images/           # Изображения (иконки, текстуры UI)
-├── pages/            # Страницы приложения
-│   ├── GamePage.jsx          # Игровая страница
-│   └── HomePage.jsx          # Главная страница с аутентификацией
-├── styles/           # CSS-стили
-│   ├── App.css
-│   ├── ChatBlock.css
-│   ├── GameStateInfo.css
-│   ├── HomePage.css
-│   ├── LoadingScreen.css
-│   ├── Login.css
-│   └── Signup.css
-├── utils/            # Вспомогательные функции
-│   └── models.js             # Утилиты загрузки 3D-моделей
-├── App.jsx           # Корневой компонент с роутингом
-├── index.css         # Глобальные стили
-└── main.jsx          # Точка входа приложения
+├── app/                  # Точка входа и корневой App
+│   ├── App.jsx
+│   └── main.jsx
+├── pages/                # Страницы
+│   ├── HomePage/
+│   └── GamePage/
+├── widgets/              # UI-виджеты (сборки UI)
+│   ├── ChatPanel/
+│   └── GameHud/
+├── features/             # Фичи (ui + model)
+│   ├── auth/             # AuthContext + формы
+│   ├── realtime/         # WebSocketContext
+│   ├── game/             # GameStateContext + ws→dispatch hook
+│   ├── player-controls/  # KeyPress
+│   └── ships/            # Ship UI + interpolation
+├── scene/                # 3D-сцена (Canvas + океан + камера + debug)
+│   ├── ocean/
+│   └── camera/
+├── shared/               # Переиспользуемое: api/ws/constants/assets/styles
+│   ├── api/
+│   ├── ws/
+│   ├── constants/
+│   ├── assets/
+│   └── styles/
+├── test/                 # test setup + msw mocks (setupFiles)
+│   ├── setup/
+│   └── mocks/
+└── __tests__/            # Vitest тесты (unit/integration)
 ```
 
 ### 3.3 Architecture Decisions
@@ -111,8 +99,9 @@ src/
 - **Минимум зависимостей**: Только необходимые библиотеки для React/Vite/R3F
 - **Context API для глобального состояния**: Auth, WebSocket, GameState — без Redux/Zustand
 - **Client-side prediction**: Интерполяция позиций кораблей между обновлениями сервера для плавности
+- **WebSocket reconnect**: экспоненциальный backoff (1s/2s/4s/8s), лимит попыток, cleanup таймеров при logout/unmount
 - **PWA для офлайн-кэширования**: 3D-модели (.glb) кэшируются через Service Worker
-- **Простая структура**: Плоская иерархия компонентов, расширяемая по мере роста
+- **Слоистая структура `src/`**: app/pages/widgets/features/scene/shared для контроля зависимостей и упрощения роста проекта
 - **Модульная загрузка моделей**: Централизованная предзагрузка через `useGLTF.preload()`
 
 ### 3.4 Quality & Standards
@@ -146,16 +135,18 @@ src/
 
 **Структура тестов**:
 ```
-src/
-├── __tests__/
-│   ├── components/       # Login, Signup, PlayerSailShip
-│   ├── contexts/         # AuthContext, WebSocketContext
-│   └── integration/      # auth-flow
-├── mocks/
-│   ├── handlers.js       # MSW обработчики REST API
-│   ├── websocket.js      # Мок WebSocket
-│   └── data.js           # Тестовые данные
-└── setupTests.js         # Глобальная настройка тестов
+ src/
+ ├── __tests__/
+ │   ├── components/       # Login, Signup, PlayerSailShip
+ │   ├── contexts/         # AuthContext, WebSocketContext
+ │   └── integration/      # auth-flow
+ └── test/
+     ├── mocks/            # MSW обработчики + тестовые данные
+     │   ├── handlers.js
+     │   ├── websocket.js
+     │   └── data.js
+     └── setup/
+         └── setupTests.js # Глобальная настройка тестов (Vitest setupFiles)
 ```
 
 **Запуск тестов**:
@@ -164,9 +155,9 @@ src/
 - `npm run test:coverage` — запуск с отчётом о покрытии
 
 **Покрытие (TASK-1)**:
-- 6 тестовых файлов
-- 53 теста (все проходят ✅)
-- Протестированы: AuthContext, WebSocketContext, Login, Signup, PlayerSailShip, auth-flow
+- 12 тестовых файлов
+- 80 тестов (все проходят ✅)
+- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), Login, Signup, PlayerSailShip, auth-flow, authApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
 
 ## 4. Working Commands
 
@@ -185,9 +176,17 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 6 файлов, 53 теста (AuthContext, WebSocketContext, Login, Signup, PlayerSailShip, auth-flow).
+**Текущее покрытие**: 12 файлов, 80 тестов (AuthContext, WebSocketContext, GameStateContext reducer, Login, Signup, PlayerSailShip, auth-flow, authApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
 
-### 4.4 Git Workflow
+### 4.4 Environment Variables
+Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.
+
+- `VITE_API_BASE_URL` — базовый URL HTTP backend (например, `http://localhost:8080`), далее фронтенд добавляет `/api/v1/auth/*`.
+- `VITE_WS_BASE_URL` — базовый URL WebSocket backend (например, `ws://localhost:8080`), далее фронтенд добавляет `/ws/game`.
+
+📡 Подробное описание текущего REST/WS API: [`ai-docs/API_INFO.md`](ai-docs/API_INFO.md).
+
+### 4.5 Git Workflow
 - `git fetch` — получить актуальное состояние удаленных веток.
 - `git checkout main` — перейти на `main` перед стартом новой задачи.
 - `git pull --ff-only` — обновить локальный `main` без merge-коммита.

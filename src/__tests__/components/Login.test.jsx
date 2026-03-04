@@ -2,9 +2,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import Login from '../../components/Login';
-import { AuthProvider } from '../../contexts/AuthContext';
-import { testUsers } from '../../mocks/data';
+import { AuthProvider } from '../../features/auth/model/AuthContext';
+import Login from '../../features/auth/ui/Login';
+import { testUsers } from '../../test/mocks/data';
 
 const mockOnSwitchToSignup = vi.fn();
 const mockOnLoginSuccess = vi.fn();
