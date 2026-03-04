@@ -64,7 +64,7 @@
 
 ```
 src/
-├── assets/           # 3D-модели (.glb), текстуры
+├── assets/           # 3D-модели (.glb), текстуры, изображения UI
 │   └── sail_ship.glb
 ├── components/       # React-компоненты
 │   ├── Buoys.jsx           # Буи в океане
@@ -90,7 +90,6 @@ src/
 │   ├── AuthContext.jsx       # Состояние аутентификации
 │   ├── GameStateContext.jsx  # Глобальное состояние игры (useReducer + dispatch; selectors; stateRef для чтения)
 │   └── WebSocketContext.jsx  # WebSocket-соединение и pub/sub
-├── images/           # Изображения (иконки, текстуры UI)
 ├── pages/            # Страницы приложения
 │   ├── GamePage.jsx          # Игровая страница
 │   └── HomePage.jsx          # Главная страница с аутентификацией
