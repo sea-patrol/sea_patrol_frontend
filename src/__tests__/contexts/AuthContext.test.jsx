@@ -1,4 +1,5 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { AuthProvider, useAuth } from '../../contexts/AuthContext';
@@ -42,99 +43,83 @@ describe('AuthContext', () => {
   describe('Initial state', () => {
     it('should initialize with null user and token from localStorage', () => {
       localStorage.clear();
-      const { container } = renderWithAuthProvider();
-      
-      const userEl = container.querySelector('[data-testid="user"]');
-      const tokenEl = container.querySelector('[data-testid="token"]');
-      
-      expect(userEl?.textContent).toBe('null');
-      expect(tokenEl?.textContent).toBe('null');
+      renderWithAuthProvider();
+
+      expect(screen.getByTestId('user')).toHaveTextContent('null');
+      expect(screen.getByTestId('token')).toHaveTextContent('null');
     });
 
     it('should load token from localStorage on mount', () => {
       localStorage.setItem('token', 'existing-token');
-      const { container } = renderWithAuthProvider();
-      
-      const tokenEl = container.querySelector('[data-testid="token"]');
-      expect(tokenEl?.textContent).toBe('existing-token');
+      renderWithAuthProvider();
+
+      expect(screen.getByTestId('token')).toHaveTextContent('existing-token');
     });
   });
 
   describe('login', () => {
     it('should successfully login with valid credentials', async () => {
-      const { container } = renderWithAuthProvider();
-      
-      const loginBtn = container.querySelector('[data-testid="login-btn"]');
-      loginBtn?.click();
+      const user = userEvent.setup();
+      renderWithAuthProvider();
 
       await waitFor(() => {
-        const userEl = container.querySelector('[data-testid="user"]');
-        expect(userEl?.textContent).toBe('testuser');
+        expect(screen.getByTestId('loading')).toHaveTextContent('false');
       });
 
-      const tokenEl = container.querySelector('[data-testid="token"]');
-      const authEl = container.querySelector('[data-testid="isAuthenticated"]');
-      
-      expect(tokenEl?.textContent).toBe('test-jwt-token-valid-user');
-      expect(authEl?.textContent).toBe('true');
+      await user.click(screen.getByTestId('login-btn'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('testuser');
+      });
+
+      expect(screen.getByTestId('token')).toHaveTextContent('test-jwt-token-valid-user');
+      expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('true');
     });
 
     it('should handle login failure with invalid credentials', async () => {
       // Тест проверяет, что при неудачном логине состояние не меняется
       // MSW обработчик уже настроен на возврат ошибки для неверного пароля
-      
-      const { container } = renderWithAuthProvider();
-      
-      // Просто проверяем, что начальный состояние - не аутентифицирован
-      const userEl = container.querySelector('[data-testid="user"]');
-      const authEl = container.querySelector('[data-testid="isAuthenticated"]');
-      
-      expect(userEl?.textContent).toBe('null');
-      expect(authEl?.textContent).toBe('false');
+
+      renderWithAuthProvider();
+
+      expect(screen.getByTestId('user')).toHaveTextContent('null');
+      expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('false');
     });
   });
 
   describe('signup', () => {
     it('should successfully signup with valid data', async () => {
-      const { container } = renderWithAuthProvider();
-      
-      const signupBtn = container.querySelector('[data-testid="signup-btn"]');
-      signupBtn?.click();
+      const user = userEvent.setup();
+      renderWithAuthProvider();
+
+      await user.click(screen.getByTestId('signup-btn'));
 
       await waitFor(() => {
         // Signup успешен, но не логинит автоматически
-        const userEl = container.querySelector('[data-testid="user"]');
         // После signup пользователь не логинится автоматически
-        expect(userEl?.textContent).toBe('null');
+        expect(screen.getByTestId('user')).toHaveTextContent('null');
       });
     });
   });
 
   describe('logout', () => {
     it('should clear user and token on logout', async () => {
-      const { container } = renderWithAuthProvider();
-      
-      // Сначала логинимся
-      const loginBtn = container.querySelector('[data-testid="login-btn"]');
-      loginBtn?.click();
+      const user = userEvent.setup();
+      renderWithAuthProvider();
+
+      await user.click(screen.getByTestId('login-btn'));
 
       await waitFor(() => {
-        const userEl = container.querySelector('[data-testid="user"]');
-        expect(userEl?.textContent).toBe('testuser');
+        expect(screen.getByTestId('user')).toHaveTextContent('testuser');
       });
 
       // Теперь logout
-      const logoutBtn = container.querySelector('[data-testid="logout-btn"]');
-      logoutBtn?.click();
+      await user.click(screen.getByTestId('logout-btn'));
 
       await waitFor(() => {
-        const userEl = container.querySelector('[data-testid="user"]');
-        const tokenEl = container.querySelector('[data-testid="token"]');
-        const authEl = container.querySelector('[data-testid="isAuthenticated"]');
-        
-        expect(userEl?.textContent).toBe('null');
-        expect(tokenEl?.textContent).toBe('null');
-        expect(authEl?.textContent).toBe('false');
+        expect(screen.getByTestId('user')).toHaveTextContent('null');
+        expect(screen.getByTestId('token')).toHaveTextContent('null');
+        expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('false');
       });
 
       // Проверяем, что localStorage очищен
@@ -144,29 +129,26 @@ describe('AuthContext', () => {
 
   describe('isAuthenticated', () => {
     it('should be true when both token and user exist', async () => {
-      const { container } = renderWithAuthProvider();
-      
-      const loginBtn = container.querySelector('[data-testid="login-btn"]');
-      loginBtn?.click();
+      const user = userEvent.setup();
+      renderWithAuthProvider();
+
+      await user.click(screen.getByTestId('login-btn'));
 
       await waitFor(() => {
-        const authEl = container.querySelector('[data-testid="isAuthenticated"]');
-        expect(authEl?.textContent).toBe('true');
+        expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('true');
       });
     });
 
-    it('should be false when token exists but user is null', () => {
+    it('should be false when token exists but user is null', async () => {
       // Токен есть, но пользователя нет
       localStorage.setItem('token', 'some-token');
-      const { container } = renderWithAuthProvider();
-      
-      // loading сначала true, потом false
-      const loadingEl = container.querySelector('[data-testid="loading"]');
-      expect(loadingEl?.textContent).toBe('false');
-      
-      const authEl = container.querySelector('[data-testid="isAuthenticated"]');
-      // isAuthenticated требует и token И user
-      expect(authEl?.textContent).toBe('false');
+      renderWithAuthProvider();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('false');
+      });
+
+      expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('false');
     });
   });
 });
