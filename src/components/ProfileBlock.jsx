@@ -1,10 +1,11 @@
 import '../styles/ProfileBlock.css'
+import pirateAvatar from '../assets/Pirate.jpg';
 
 const ProfileBlock = () => {
     return (
         <div className="profile">
             <div className='avatar'>
-                <img src='src/images/Pirate.jpg' alt="Аватар игрока" />
+                <img src={pirateAvatar} alt="Аватар игрока" />
             </div>
             <div className='name'>
                 Black Beard
