@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { clamp01, computeLerpAlpha, interpolateTransform, lerpScalar } from '../../utils/useShipInterpolation';
+import { clamp01, computeLerpAlpha, interpolateTransform, lerpScalar } from '../../features/ships/model/useShipInterpolation';
 
 describe('useShipInterpolation utils', () => {
   it('clamp01: clamps to [0..1]', () => {
@@ -35,4 +35,3 @@ describe('useShipInterpolation utils', () => {
     });
   });
 });
-

@@ -8,13 +8,13 @@ let lastClient = null;
 let lastConnectOptions = null;
 let subscribersByType = null;
 
-vi.mock('../../contexts/AuthContext', () => {
+vi.mock('@/features/auth/model/AuthContext', () => {
   return {
     useAuth: () => ({ token: mockToken }),
   };
 });
 
-vi.mock('../../shared/ws/wsClient', () => {
+vi.mock('@/shared/ws/wsClient', () => {
   return {
     createWsClient: () => {
       lastConnectOptions = null;
@@ -43,7 +43,7 @@ vi.mock('../../shared/ws/wsClient', () => {
   };
 });
 
-import { WebSocketProvider, useWebSocket } from '../../contexts/WebSocketContext';
+import { WebSocketProvider, useWebSocket } from '../../features/realtime/model/WebSocketContext';
 
 function StatusConsumer() {
   const { isConnected, hasToken, lastClose } = useWebSocket();

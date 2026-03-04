@@ -1,10 +1,10 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
-import ChatBlock from '../../components/ChatBlock';
-import KeyPress from '../../components/KeyPress';
-import { AuthProvider } from '../../contexts/AuthContext';
-import { WebSocketProvider } from '../../contexts/WebSocketContext';
+import { AuthProvider } from '../../features/auth/model/AuthContext';
+import KeyPress from '../../features/player-controls/ui/KeyPress';
+import { WebSocketProvider } from '../../features/realtime/model/WebSocketContext';
+import ChatBlock from '../../widgets/ChatPanel/ChatBlock';
 
 let keyboardSubscriber = null;
 

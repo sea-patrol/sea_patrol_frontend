@@ -64,56 +64,34 @@
 
 ```
 src/
-├── assets/           # 3D-модели (.glb), текстуры, изображения UI
-│   └── sail_ship.glb
-├── components/       # React-компоненты
-│   ├── Buoys.jsx           # Буи в океане
-│   ├── CameraFollower.jsx  # Камера, следующая за кораблём
-│   ├── ChatBlock.jsx       # UI чата
-│   ├── GameDebugOverlay.jsx # Debug overlay (Leva + Perf controls)
-│   ├── GameMainScene.jsx   # Оркестрация сцены (WS + состояние + controls)
-│   ├── GameSceneCanvas.jsx # Рендер 3D-сцены в Canvas
-│   ├── GameStateInfo.jsx   # UI отображения состояния игры
-│   ├── KeyPress.jsx        # Обработка нажатий клавиш
-│   ├── LoadingScreen.jsx   # Экран загрузки
-│   ├── Login.jsx           # Форма входа
-│   ├── NpcSailShip.jsx     # Корабль NPC
-│   ├── Ocean.jsx           # Рендеринг океана
-│   ├── OtherPlayerSailShip.jsx  # Корабль другого игрока
-│   ├── PlayerSailShip.jsx  # Корабль игрока с интерполяцией
-│   ├── ShipModel.jsx       # Общая 3D-модель корабля (GLTF meshes)
-│   ├── ProfileBlock.jsx    # UI профиля игрока
-│   └── Signup.jsx          # Форма регистрации
-├── const/            # Константы
-│   └── messageType.js        # Типы WebSocket-сообщений
-├── contexts/         # React Context провайдеры
-│   ├── AuthContext.jsx       # Состояние аутентификации
-│   ├── GameStateContext.jsx  # Глобальное состояние игры (useReducer + dispatch; selectors; stateRef для чтения)
-│   └── WebSocketContext.jsx  # WebSocket-соединение и pub/sub
-├── pages/            # Страницы приложения
-│   ├── GamePage.jsx          # Игровая страница
-│   └── HomePage.jsx          # Главная страница с аутентификацией
-├── styles/           # CSS-стили
-│   ├── App.css
-│   ├── ChatBlock.css
-│   ├── GameStateInfo.css
-│   ├── HomePage.css
-│   ├── LoadingScreen.css
-│   ├── Login.css
-│   └── Signup.css
-├── utils/            # Вспомогательные функции
-│   ├── models.js             # Утилиты загрузки 3D-моделей
-│   ├── useGameWsGameState.js    # WS-оркестрация game-state (подписки → dispatch)
-│   └── useShipInterpolation.js # Хук интерполяции движения корабля
-├── shared/           # Переиспользуемые модули (API и т.д.)
+├── app/                  # Точка входа и корневой App
+│   ├── App.jsx
+│   └── main.jsx
+├── pages/                # Страницы
+│   ├── HomePage/
+│   └── GamePage/
+├── widgets/              # UI-виджеты (сборки UI)
+│   ├── ChatPanel/
+│   └── GameHud/
+├── features/             # Фичи (ui + model)
+│   ├── auth/             # AuthContext + формы
+│   ├── realtime/         # WebSocketContext
+│   ├── game/             # GameStateContext + ws→dispatch hook
+│   ├── player-controls/  # KeyPress
+│   └── ships/            # Ship UI + interpolation
+├── scene/                # 3D-сцена (Canvas + океан + камера + debug)
+│   ├── ocean/
+│   └── camera/
+├── shared/               # Переиспользуемое: api/ws/constants/assets/styles
 │   ├── api/
-│   │   └── authApi.js        # Auth API (login/signup)
-│   └── ws/
-│       ├── messageAdapter.js # Парсинг/валидация/сериализация WS сообщений
-│       └── wsClient.js       # Низкоуровневый WS клиент (connect/send/subscribe)
-├── App.jsx           # Корневой компонент с роутингом
-├── index.css         # Глобальные стили
-└── main.jsx          # Точка входа приложения
+│   ├── ws/
+│   ├── constants/
+│   ├── assets/
+│   └── styles/
+├── test/                 # test setup + msw mocks (setupFiles)
+│   ├── setup/
+│   └── mocks/
+└── __tests__/            # Vitest тесты (unit/integration)
 ```
 
 ### 3.3 Architecture Decisions
@@ -123,7 +101,7 @@ src/
 - **Client-side prediction**: Интерполяция позиций кораблей между обновлениями сервера для плавности
 - **WebSocket reconnect**: экспоненциальный backoff (1s/2s/4s/8s), лимит попыток, cleanup таймеров при logout/unmount
 - **PWA для офлайн-кэширования**: 3D-модели (.glb) кэшируются через Service Worker
-- **Простая структура**: Плоская иерархия компонентов, расширяемая по мере роста
+- **Слоистая структура `src/`**: app/pages/widgets/features/scene/shared для контроля зависимостей и упрощения роста проекта
 - **Модульная загрузка моделей**: Централизованная предзагрузка через `useGLTF.preload()`
 
 ### 3.4 Quality & Standards
@@ -157,16 +135,18 @@ src/
 
 **Структура тестов**:
 ```
-src/
-├── __tests__/
-│   ├── components/       # Login, Signup, PlayerSailShip
-│   ├── contexts/         # AuthContext, WebSocketContext
-│   └── integration/      # auth-flow
-├── mocks/
-│   ├── handlers.js       # MSW обработчики REST API
-│   ├── websocket.js      # Мок WebSocket
-│   └── data.js           # Тестовые данные
-└── setupTests.js         # Глобальная настройка тестов
+ src/
+ ├── __tests__/
+ │   ├── components/       # Login, Signup, PlayerSailShip
+ │   ├── contexts/         # AuthContext, WebSocketContext
+ │   └── integration/      # auth-flow
+ └── test/
+     ├── mocks/            # MSW обработчики + тестовые данные
+     │   ├── handlers.js
+     │   ├── websocket.js
+     │   └── data.js
+     └── setup/
+         └── setupTests.js # Глобальная настройка тестов (Vitest setupFiles)
 ```
 
 **Запуск тестов**:
