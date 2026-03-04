@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import * as messageType from '../const/messageType';
 import { selectPlayerState, useGameState } from '../contexts/GameStateContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import '../styles/GameStateInfo.css';
 
 export default function GameStateInfo({ name }) {
   // Глобальное состояние игры
@@ -29,20 +30,7 @@ export default function GameStateInfo({ name }) {
   if (!playerState) {
     return (
       <div
-        style={{
-          position: 'absolute',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          color: 'white',
-          padding: '10px',
-          borderRadius: '5px',
-          zIndex: 1000,
-          textAlign: 'center',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '14px',
-        }}
+        className="game-state-info"
       >
         Загрузка данных...
       </div>
@@ -51,20 +39,7 @@ export default function GameStateInfo({ name }) {
 
   return (
     <div
-      style={{
-        position: 'absolute',
-        top: '20px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        color: 'white',
-        padding: '10px',
-        borderRadius: '5px',
-        zIndex: 1000,
-        textAlign: 'center',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
-      }}
+      className="game-state-info"
     >
       <div>{name}</div>
       <div>X: {playerState.x ? playerState.x.toFixed(2) : 0}, Z: {playerState.z ? playerState.z.toFixed(2) : 0}</div>

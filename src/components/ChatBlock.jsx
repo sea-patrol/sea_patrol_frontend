@@ -61,7 +61,7 @@ function ChatBlock() {
           <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}></span>
           {isConnected ? 'Connected' : hasToken ? 'Disconnected' : 'No token'}
           {!isConnected && lastClose?.code !== undefined && (
-            <span style={{ marginLeft: 8, opacity: 0.8 }}>
+            <span className="connection-close-info">
               (close: {String(lastClose.code)}{lastClose.reason ? `, ${lastClose.reason}` : ''})
             </span>
           )}

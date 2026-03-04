@@ -1,0 +1,8 @@
+.loading-screen {
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border-radius: 8px;
+  font-size: 18px;
+  font-family: monospace;
+}
