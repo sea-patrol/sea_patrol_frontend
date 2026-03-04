@@ -1,7 +1,23 @@
 import { Leva, useControls } from 'leva';
 import { Perf } from 'r3f-perf';
 
+const DEFAULT_SUN_POSITION = [500, 150, -1000];
+const DEFAULT_TURBIDITY = 0.1;
+const IS_DEV = import.meta.env.DEV;
+
 export default function GameDebugOverlay({ children }) {
+  if (!IS_DEV) {
+    return children({
+      perfNode: null,
+      sunPosition: DEFAULT_SUN_POSITION,
+      turbidity: DEFAULT_TURBIDITY,
+    });
+  }
+
+  return <GameDebugOverlayDev>{children}</GameDebugOverlayDev>;
+}
+
+function GameDebugOverlayDev({ children }) {
   const { perfVisible } = useControls('Monitoring', {
     perfVisible: true,
   });
@@ -30,4 +46,3 @@ export default function GameDebugOverlay({ children }) {
     </>
   );
 }
-
