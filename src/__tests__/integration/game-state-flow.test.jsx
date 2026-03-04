@@ -2,9 +2,9 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { useCallback, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import * as messageType from '../../const/messageType';
-import { GameStateProvider, selectPlayerNames, selectPlayerState, useGameState } from '../../contexts/GameStateContext';
-import { useGameWsGameState } from '../../utils/useGameWsGameState';
+import { GameStateProvider, selectPlayerNames, selectPlayerState, useGameState } from '../../features/game/model/GameStateContext';
+import { useGameWsGameState } from '../../features/game/model/useGameWsGameState';
+import * as messageType from '../../shared/constants/messageType';
 
 function createSubscribeMock() {
   const subscriptions = new Map();

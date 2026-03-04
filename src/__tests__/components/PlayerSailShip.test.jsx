@@ -3,12 +3,12 @@ import ReactThreeTestRenderer, { act, waitFor } from '@react-three/test-renderer
 import { useEffect, useRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import PlayerSailShip from '../../components/PlayerSailShip';
-import * as messageType from '../../const/messageType';
-import { GameStateProvider, useGameState } from '../../contexts/GameStateContext';
+import { GameStateProvider, useGameState } from '../../features/game/model/GameStateContext';
+import PlayerSailShip from '../../features/ships/ui/PlayerSailShip';
+import * as messageType from '../../shared/constants/messageType';
 
 // Модель корабля для этих тестов не важна, тестируем движение (transform) группы.
-vi.mock('../../components/ShipModel', () => {
+vi.mock('../../features/ships/ui/ShipModel', () => {
   return { default: () => null };
 });
 

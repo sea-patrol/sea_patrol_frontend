@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import * as messageType from '../../const/messageType';
 import {
   gameStateReducer,
   initialGameState,
@@ -8,7 +7,8 @@ import {
   selectPlayerNames,
   selectPlayerState,
   wsMessageToGameAction,
-} from '../../contexts/GameStateContext';
+} from '../../features/game/model/GameStateContext';
+import * as messageType from '../../shared/constants/messageType';
 
 function deepFreeze(obj) {
   if (!obj || typeof obj !== 'object' || Object.isFrozen(obj)) return obj;
