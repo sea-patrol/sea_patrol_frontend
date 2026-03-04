@@ -1,3 +1,8 @@
+.game-page {
+    width: 100vw;
+    height: 100vh;
+}
+
 .username-display {
     position: fixed;
     z-index: 9999;

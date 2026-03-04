@@ -1,19 +1,13 @@
 // src/components/LoadingScreen.jsx
 import { Html, useProgress } from '@react-three/drei';
+import '../styles/LoadingScreen.css';
 
 export function LoadingScreen() {
   const { progress } = useProgress(); // от 0 до 100
 
   return (
     <Html center>
-      <div style={{
-        padding: '20px',
-        background: 'rgba(0,0,0,0.7)',
-        color: 'white',
-        borderRadius: '8px',
-        fontSize: '18px',
-        fontFamily: 'monospace'
-      }}>
+      <div className="loading-screen">
         Loading... {Math.round(progress)}%
       </div>
     </Html>

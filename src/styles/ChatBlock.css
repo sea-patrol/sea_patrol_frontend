@@ -26,6 +26,11 @@
     color: #1976d2;
 }
 
+.connection-close-info {
+    margin-left: 8px;
+    opacity: 0.8;
+}
+
 .status-indicator {
     width: 8px;
     height: 8px;

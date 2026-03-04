@@ -7,7 +7,7 @@ import '../styles/GamePage.css'
 
 function GamePage() {
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
+    <div className="game-page">
       <WebSocketProvider>
         <div className='chat-block'>
           <ChatBlock />
