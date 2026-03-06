@@ -1,9 +1,11 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { useEffect } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthProvider } from '../../features/auth/model/AuthContext';
 import KeyPress from '../../features/player-controls/ui/KeyPress';
 import { WebSocketProvider } from '../../features/realtime/model/WebSocketContext';
+import { GameUiProvider, GAME_UI_MODE, useGameUi } from '../../features/ui-shell/model/GameUiContext';
 import ChatBlock from '../../widgets/ChatPanel/ChatBlock';
 
 let keyboardSubscriber = null;
@@ -57,11 +59,25 @@ class MockWebSocket {
   }
 }
 
+function SailingUiHarness({ children }) {
+  const { setScreenMode } = useGameUi();
+
+  useEffect(() => {
+    setScreenMode(GAME_UI_MODE.SAILING);
+  }, [setScreenMode]);
+
+  return children;
+}
+
 const renderWithProviders = (ui) => {
   return render(
     <AuthProvider>
-      <WebSocketProvider>{ui}</WebSocketProvider>
-    </AuthProvider>
+      <WebSocketProvider>
+        <GameUiProvider>
+          <SailingUiHarness>{ui}</SailingUiHarness>
+        </GameUiProvider>
+      </WebSocketProvider>
+    </AuthProvider>,
   );
 };
 
@@ -74,7 +90,6 @@ describe('WebSocket send regressions (chat + keyboard)', () => {
     vi.stubGlobal('WebSocket', MockWebSocket);
 
     if (!Element.prototype.scrollIntoView) {
-      // jsdom может не реализовывать scrollIntoView
       Element.prototype.scrollIntoView = () => {};
     }
   });

@@ -10,28 +10,18 @@ import { useGameWsGameState } from '@/features/game/model/useGameWsGameState';
 import KeyPress from '@/features/player-controls/ui/KeyPress';
 import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
 import { preloadAllModels } from '@/shared/assets/models';
-import GameStateInfo from '@/widgets/GameHud/GameStateInfo';
 
 function GameMainScene() {
   const { user } = useAuth();
   const { subscribe } = useWebSocket();
-
-  // Состояние для хранения имен игроков
   const [playerNames, setPlayerNames] = useState([]);
-
-  // Ref для корабля текущего игрока
   const currentPlayerShipRef = useRef(null);
-
-  const currentPlayerName = user.username;
-
-  // Используем глобальный gameState через контекст
+  const currentPlayerName = user?.username ?? null;
   const { stateRef, dispatch } = useGameState();
 
   useEffect(() => {
-    console.log('GameMainScene useEffect called');
-
-    preloadAllModels().then(() => {
-      console.log('preloadAllModels.then called');
+    preloadAllModels().catch((error) => {
+      console.error('Failed to preload models', error);
     });
   }, []);
 
@@ -49,7 +39,6 @@ function GameMainScene() {
           ]}
         >
           <KeyPress />
-          <GameStateInfo name={currentPlayerName} />
           <GameSceneCanvas
             playerNames={playerNames}
             currentPlayerName={currentPlayerName}

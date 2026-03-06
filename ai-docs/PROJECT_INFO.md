@@ -77,7 +77,8 @@ src/
 │   ├── auth/             # AuthContext + формы
 │   ├── realtime/         # WebSocketContext
 │   ├── game/             # GameStateContext + ws→dispatch hook
-│   ├── player-controls/  # KeyPress
+│   ├── player-controls/  # KeyPress c проверкой UI mode
+│   ├── ui-shell/         # GameUiContext + GameUiShell + централизованные hotkeys
 │   └── ships/            # Ship UI + interpolation
 ├── scene/                # 3D-сцена (Canvas + океан + камера + debug)
 │   ├── ocean/
@@ -97,7 +98,10 @@ src/
 ### 3.3 Architecture Decisions
 
 - **Минимум зависимостей**: Только необходимые библиотеки для React/Vite/R3F
-- **Context API для глобального состояния**: Auth, WebSocket, GameState — без Redux/Zustand
+- **Context API для глобального состояния**: Auth, WebSocket, GameState и GameUi — без Redux/Zustand
+- **UI shell отдельно от 3D-сцены**: `GamePage` оркестрирует providers, scene и `GameUiShell`, а HUD/окна/notice overlays больше не живут внутри canvas
+- **Единая UI mode model**: `GameUiContext` задаёт состояния `LOADING`, `LOBBY`, `SAILING`, `CHAT_FOCUS`, `WINDOW_FOCUS`, `MENU_OPEN`, `RECONNECTING`, `RESPAWN`
+- **Централизованные UI hotkeys**: `Enter`, `Esc`, `I`, `J`, `M` обрабатываются в одном слое (`GameUiHotkeys`), а gameplay input учитывает текущий UI mode
 - **Client-side prediction**: Интерполяция позиций кораблей между обновлениями сервера для плавности
 - **WebSocket reconnect**: экспоненциальный backoff (1s/2s/4s/8s), лимит попыток, cleanup таймеров при logout/unmount
 - **PWA для офлайн-кэширования**: 3D-модели (.glb) кэшируются через Service Worker
@@ -139,7 +143,8 @@ src/
  ├── __tests__/
  │   ├── components/       # Login, Signup, PlayerSailShip
  │   ├── contexts/         # AuthContext, WebSocketContext
- │   └── integration/      # auth-flow
+ │   ├── features/         # ui-shell reducer/hotkeys
+ │   └── integration/      # auth-flow + ws-send-regression + game-state-flow
  └── test/
      ├── mocks/            # MSW обработчики + тестовые данные
      │   ├── handlers.js
@@ -154,10 +159,10 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD)
 - `npm run test:coverage` — запуск с отчётом о покрытии
 
-**Покрытие (TASK-1)**:
-- 12 тестовых файлов
-- 80 тестов (все проходят ✅)
-- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), Login, Signup, PlayerSailShip, auth-flow, authApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
+**Текущее покрытие**:
+- 15 тестовых файлов
+- 82 теста (все проходят ✅)
+- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, Login, Signup, PlayerSailShip, auth-flow, game-state-flow, authApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
 
 ## 4. Working Commands
 
@@ -176,7 +181,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 12 файлов, 80 тестов (AuthContext, WebSocketContext, GameStateContext reducer, Login, Signup, PlayerSailShip, auth-flow, authApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
+**Текущее покрытие**: 15 файлов, 82 теста (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, Login, Signup, PlayerSailShip, auth-flow, game-state-flow, authApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.
@@ -202,3 +207,8 @@ src/
 - Для публикации требуется корректный `base` в `vite.config.js` (под имя репозитория).
 - Основная команда проверки перед деплоем: `npm run build`.
 - PWA-функциональность включается только в production-режиме (devOptions: { enabled: false }).
+
+
+
+
+

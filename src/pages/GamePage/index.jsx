@@ -1,19 +1,21 @@
 import { GameStateProvider } from '../../features/game/model/GameStateContext';
 import { WebSocketProvider } from '../../features/realtime/model/WebSocketContext';
+import { GameUiProvider } from '../../features/ui-shell/model/GameUiContext';
+import GameUiShell from '../../features/ui-shell/ui/GameUiShell';
 import GameMainScene from '../../scene/GameMainScene';
-import ChatBlock from '../../widgets/ChatPanel/ChatBlock';
-import ProfileBlock from '../../widgets/GameHud/ProfileBlock';
-import './GamePage.css'
+import './GamePage.css';
 
 function GamePage() {
   return (
     <div className="game-page">
       <WebSocketProvider>
-        <div className='chat-block'>
-          <ChatBlock />
-        </div>
         <GameStateProvider>
-          <GameMainScene />
+          <GameUiProvider>
+            <div className="game-page__viewport">
+              <GameMainScene />
+              <GameUiShell />
+            </div>
+          </GameUiProvider>
         </GameStateProvider>
       </WebSocketProvider>
     </div>

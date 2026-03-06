@@ -1,64 +1,62 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/features/auth/model/AuthContext';
 import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
 import * as messageType from '@/shared/constants/messageType';
 import './ChatBlock.css';
 
-function ChatBlock() {
+function ChatBlock({ inputRef, isChatFocused = false, onChatFocus, onChatBlur }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const localInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const { user } = useAuth();
   const { sendMessage, isConnected, subscribe, hasToken, lastClose } = useWebSocket();
 
-  // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const resolvedInputRef = inputRef ?? localInputRef;
 
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Подписка на сообщения типа "chat/message"
   useEffect(() => {
     const unsubscribe = subscribe(messageType.CHAT_MESSAGE, (payload) => {
-      setMessages((prevMessages) => {
-        const newMessages = [...prevMessages, payload];
-        return newMessages.slice(-30); // Ограничиваем количество сообщений
-      });
+      setMessages((prevMessages) => [...prevMessages, payload].slice(-30));
     });
 
     return () => {
-      unsubscribe(); // Отписываемся при размонтировании компонента
+      unsubscribe();
     };
   }, [subscribe]);
 
   const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !isConnected) return;
 
-    const messageData = [messageType.CHAT_MESSAGE, { to: 'global', text: newMessage.trim() }];
-    sendMessage(messageData);
+    sendMessage([messageType.CHAT_MESSAGE, { to: 'global', text: newMessage.trim() }]);
     setNewMessage('');
+    onChatBlur?.();
+    resolvedInputRef.current?.blur();
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
       handleSendMessage();
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onChatBlur?.();
+      resolvedInputRef.current?.blur();
     }
   };
 
-  const handleInputChange = (e) => {
-    setNewMessage(e.target.value);
-  };
-
   return (
-    <div className="chat">
+    <div className={`chat ${isChatFocused ? 'chat--focused' : ''}`}>
       <div className="board">
         <div className="connection-status">
-          <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}></span>
+          <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`} />
           {isConnected ? 'Connected' : hasToken ? 'Disconnected' : 'No token'}
           {!isConnected && lastClose?.code !== undefined && (
             <span className="connection-close-info">
@@ -84,10 +82,13 @@ function ChatBlock() {
       </div>
       <div className="input-container">
         <input
+          ref={resolvedInputRef}
           type="text"
           value={newMessage}
-          onChange={handleInputChange}
-          onKeyPress={handleKeyPress}
+          onChange={(event) => setNewMessage(event.target.value)}
+          onFocus={onChatFocus}
+          onBlur={onChatBlur}
+          onKeyDown={handleKeyDown}
           placeholder="Type your message..."
           disabled={!isConnected}
         />
