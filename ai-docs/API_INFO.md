@@ -23,6 +23,8 @@
 
 Базовый префикс: `{{API_BASE_URL}}/api/v1/auth`
 
+Канонический auth contract для MVP определяется фактической backend-реализацией и orchestration docs.
+
 ### 3.1 POST `/login`
 
 **Request JSON**
@@ -32,17 +34,26 @@
 
 **Response 200 JSON**
 ```json
-{ "token": "<jwt>", "userId": "user-1", "username": "alice" }
+{ "username": "alice", "token": "<jwt>", "issuedAt": "...", "expiresAt": "..." }
 ```
+
+**Важно для frontend**
+- `userId` не входит в текущий канонический login response.
+- frontend не должен падать, если `userId` отсутствует.
+- `token` обязателен для HTTP session и WebSocket подключения.
 
 **Ошибки**
-- `400` — невалидный запрос (ожидается JSON с `message`)
-- `401` — неверные креды (ожидается JSON с `message`)
+- `400` — validation / bad request
+- `401` — invalid credentials / unauthorized / invalid JWT
 
-Минимальный формат ошибки, который читает фронтенд:
+Канонический формат ошибки:
 ```json
-{ "message": "Some error message" }
+{ "errors": [{ "code": "SEAPATROL_INVALID_PASSWORD", "message": "Invalid password" }] }
 ```
+
+Важно:
+- корневой `{ "message": "..." }` не является каноническим auth error contract;
+- frontend parser должен уметь извлекать сообщение из `errors[0].message`.
 
 ### 3.2 POST `/signup`
 
@@ -51,14 +62,14 @@
 { "username": "alice", "password": "secret", "email": "alice@example.com" }
 ```
 
-**Response 201 JSON**
+**Response 200 JSON**
 ```json
-{ "id": "user-1", "username": "alice", "email": "alice@example.com" }
+{ "username": "alice" }
 ```
 
-**Ошибки**
-- `400` — валидация (ожидается JSON с `message`)
-- `409` — пользователь уже существует (ожидается JSON с `message`)
+**Важно для frontend**
+- `201 Created` c `{ id, username, email }` не является текущей каноникой MVP.
+- duplicate username conflict (`409`) пока не зафиксирован как часть канонического contract и должен появляться только после отдельного backend change.
 
 ## 4. WebSocket API
 
@@ -148,4 +159,5 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 - Chat: `CHAT_MESSAGE`
 - Game: `INIT_GAME_STATE`, `UPDATE_GAME_STATE`, `PLAYER_JOIN`, `PLAYER_LEAVE`, `PLAYER_INPUT`
 - Зарезервировано/не используется в UI сейчас: `CHAT_JOIN`, `CHAT_LEAVE`
+
 
