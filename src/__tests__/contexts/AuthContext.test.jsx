@@ -4,12 +4,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 import { AuthProvider, useAuth } from '../../features/auth/model/AuthContext';
 
-// Тестовый компонент для доступа к контексту
 const TestAuthConsumer = () => {
   const { user, token, loading, isAuthenticated, login, signup, logout } = useAuth();
   return (
     <div>
       <span data-testid="user">{user?.username || 'null'}</span>
+      <span data-testid="user-id">{user?.id || 'null'}</span>
       <span data-testid="token">{token || 'null'}</span>
       <span data-testid="loading">{loading.toString()}</span>
       <span data-testid="isAuthenticated">{isAuthenticated.toString()}</span>
@@ -36,7 +36,6 @@ const renderWithAuthProvider = () => {
 
 describe('AuthContext', () => {
   beforeEach(() => {
-    // Очищаем localStorage перед каждым тестом
     localStorage.clear();
   });
 
@@ -58,7 +57,7 @@ describe('AuthContext', () => {
   });
 
   describe('login', () => {
-    it('should successfully login with valid credentials', async () => {
+    it('should successfully login with valid credentials even without userId in payload', async () => {
       const user = userEvent.setup();
       renderWithAuthProvider();
 
@@ -72,14 +71,12 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('user')).toHaveTextContent('testuser');
       });
 
+      expect(screen.getByTestId('user-id')).toHaveTextContent('null');
       expect(screen.getByTestId('token')).toHaveTextContent('test-jwt-token-valid-user');
       expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('true');
     });
 
-    it('should handle login failure with invalid credentials', async () => {
-      // Тест проверяет, что при неудачном логине состояние не меняется
-      // MSW обработчик уже настроен на возврат ошибки для неверного пароля
-
+    it('should keep unauthenticated state before successful login', async () => {
       renderWithAuthProvider();
 
       expect(screen.getByTestId('user')).toHaveTextContent('null');
@@ -95,8 +92,6 @@ describe('AuthContext', () => {
       await user.click(screen.getByTestId('signup-btn'));
 
       await waitFor(() => {
-        // Signup успешен, но не логинит автоматически
-        // После signup пользователь не логинится автоматически
         expect(screen.getByTestId('user')).toHaveTextContent('null');
       });
     });
@@ -113,7 +108,6 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('user')).toHaveTextContent('testuser');
       });
 
-      // Теперь logout
       await user.click(screen.getByTestId('logout-btn'));
 
       await waitFor(() => {
@@ -122,7 +116,6 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('false');
       });
 
-      // Проверяем, что localStorage очищен
       expect(localStorage.getItem('token')).toBeNull();
     });
   });
@@ -140,7 +133,6 @@ describe('AuthContext', () => {
     });
 
     it('should be false when token exists but user is null', async () => {
-      // Токен есть, но пользователя нет
       localStorage.setItem('token', 'some-token');
       renderWithAuthProvider();
 

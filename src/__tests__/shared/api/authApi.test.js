@@ -3,36 +3,36 @@ import { describe, expect, it } from 'vitest';
 import { authApi } from '../../../shared/api/authApi';
 
 describe('authApi', () => {
-  it('login: returns token and user info on success', async () => {
+  it('login: returns canonical backend payload on success', async () => {
     const result = await authApi.login('testuser', 'password123');
 
     expect(result.ok).toBe(true);
     expect(result.data).toEqual({
       token: 'test-jwt-token-valid-user',
-      userId: 'test-user-1',
       username: 'testuser',
+      issuedAt: '2026-03-06T10:00:00.000Z',
+      expiresAt: '2026-03-06T11:00:00.000Z',
     });
   });
 
-  it('login: returns normalized http error on invalid credentials', async () => {
+  it('login: extracts message and code from backend errors array', async () => {
     const result = await authApi.login('testuser', 'wrong-password');
 
     expect(result.ok).toBe(false);
     expect(result.error).toMatchObject({
       type: 'http',
       status: 401,
-      message: 'Invalid username or password',
+      code: 'SEAPATROL_INVALID_PASSWORD',
+      message: 'Invalid password',
     });
   });
 
-  it('signup: returns user info on success', async () => {
+  it('signup: returns canonical backend payload on success', async () => {
     const result = await authApi.signup('newuser', 'password123', 'new@example.com');
 
     expect(result.ok).toBe(true);
     expect(result.data).toEqual({
-      id: 'test-user-1',
-      username: 'testuser',
-      email: 'test@example.com',
+      username: 'newuser',
     });
   });
 });

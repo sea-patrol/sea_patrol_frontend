@@ -206,7 +206,7 @@ describe('Signup Component', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/user already exists/i)).toBeInTheDocument();
+        expect(screen.getByText(/username already exists/i)).toBeInTheDocument();
       });
 
       expect(mockOnSignupSuccess).not.toHaveBeenCalled();
@@ -296,3 +296,4 @@ describe('Signup Component', () => {
     });
   });
 });
+

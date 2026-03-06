@@ -24,15 +24,38 @@ export const mockAuthResponses = {
   login: {
     success: {
       token: testTokens.validUser,
-      userId: testUsers.validUser.id,
       username: testUsers.validUser.username,
+      issuedAt: '2026-03-06T10:00:00.000Z',
+      expiresAt: '2026-03-06T11:00:00.000Z',
+    },
+    invalidPassword: {
+      errors: [
+        {
+          code: 'SEAPATROL_INVALID_PASSWORD',
+          message: 'Invalid password',
+        },
+      ],
+    },
+    validationError: {
+      errors: [
+        {
+          code: 'SEAPATROL_VALIDATION_ERROR',
+          message: 'username: must not be blank',
+        },
+      ],
     },
   },
   signup: {
     success: {
-      id: testUsers.validUser.id,
-      username: testUsers.validUser.username,
-      email: testUsers.validUser.email,
+      username: 'newuser',
+    },
+    validationError: {
+      errors: [
+        {
+          code: 'SEAPATROL_VALIDATION_ERROR',
+          message: 'email: must be a well-formed email address',
+        },
+      ],
     },
   },
 };

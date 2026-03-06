@@ -110,7 +110,7 @@ describe('Auth Flow Integration', () => {
 
       // Ждем появления ошибки
       await waitFor(() => {
-        expect(screen.getByText(/invalid username or password/i)).toBeInTheDocument();
+        expect(screen.getByText(/invalid password/i)).toBeInTheDocument();
       });
 
       // Состояние не должно измениться
@@ -207,7 +207,7 @@ describe('Auth Flow Integration', () => {
 
       // Ждем появления ошибки
       await waitFor(() => {
-        expect(screen.getByText(/user already exists/i)).toBeInTheDocument();
+        expect(screen.getByText(/username already exists/i)).toBeInTheDocument();
       });
     });
 
@@ -280,7 +280,7 @@ describe('Auth Flow Integration', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/invalid username or password/i)).toBeInTheDocument();
+        expect(screen.getByText(/invalid password/i)).toBeInTheDocument();
       });
 
       // Переключаемся на Signup
@@ -288,7 +288,7 @@ describe('Auth Flow Integration', () => {
       await user.click(switchToSignupBtn);
 
       // Ошибка должна исчезнуть
-      expect(screen.queryByText(/invalid username or password/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/invalid password/i)).not.toBeInTheDocument();
     });
   });
 
@@ -307,3 +307,4 @@ describe('Auth Flow Integration', () => {
     });
   });
 });
+

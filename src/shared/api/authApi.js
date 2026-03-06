@@ -23,6 +23,20 @@ const parseJsonSafely = async (response) => {
   }
 };
 
+const extractHttpError = (status, data) => {
+  const firstError = Array.isArray(data?.errors) ? data.errors[0] : null;
+  const message = firstError?.message || data?.message || 'Request failed';
+  const code = firstError?.code;
+
+  return {
+    type: 'http',
+    status,
+    message,
+    code,
+    data,
+  };
+};
+
 const postJson = async (path, body) => {
   let response;
   try {
@@ -49,12 +63,7 @@ const postJson = async (path, body) => {
   if (!response.ok) {
     return {
       ok: false,
-      error: {
-        type: 'http',
-        status: response.status,
-        message: data?.message || 'Request failed',
-        data,
-      },
+      error: extractHttpError(response.status, data),
     };
   }
 

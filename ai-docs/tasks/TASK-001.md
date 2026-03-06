@@ -54,7 +54,7 @@
 
 ## Предпосылки и зависимости
 - Frontend часть `TASK-001` нужна как baseline перед `TASK-003`.
-- Backend часть shared-задачи оформлена отдельно в `sea_patrol_backend/ai-docs/todo/TASK-001.md`.
+- Backend часть shared-задачи оформлена отдельно в `sea_patrol_backend/ai-docs/tasks/TASK-001.md`.
 
 ## Технический подход
 Frontend docs должны описывать не исторические ожидания UI, а тот backend contract, который реально считается каноническим для MVP. После этого любые runtime-несовпадения должны закрываться отдельной frontend-задачей, а не маскироваться неточными docs.
@@ -62,7 +62,7 @@ Frontend docs должны описывать не исторические ож
 ## Изменения по репозиторию
 ### `sea_patrol_frontend`
 - [x] Обновить `ai-docs/API_INFO.md`
-- [x] Создать `ai-docs/todo/TASK-001.md`
+- [x] Создать `ai-docs/tasks/TASK-001.md`
 - [ ] Обновить `ai-docs/PROJECT_INFO.md` при необходимости
 - [ ] Добавить или обновить тесты
 
@@ -107,7 +107,7 @@ Frontend docs должны описывать не исторические ож
 
 ## Реализация
 ### Измененные файлы
-1. `sea_patrol_frontend/ai-docs/todo/TASK-001.md` - frontend-specific описание shared задачи
+1. `sea_patrol_frontend/ai-docs/tasks/TASK-001.md` - frontend-specific описание shared задачи
 2. `sea_patrol_frontend/ai-docs/API_INFO.md` - frontend docs выровнены по каноническому auth contract
 
 ### Незапланированные находки
@@ -137,3 +137,4 @@ Frontend docs должны описывать не исторические ож
 
 ## Ссылки
 - Related docs: `sea_patrol_frontend/ai-docs/API_INFO.md`, `sea_patrol_orchestration/API.md`, `sea_patrol_backend/ai-docs/API_INFO.md`
+

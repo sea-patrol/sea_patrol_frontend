@@ -142,7 +142,7 @@ describe('Login Component', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/invalid username or password/i)).toBeInTheDocument();
+        expect(screen.getByText(/invalid password/i)).toBeInTheDocument();
       });
 
       expect(mockOnLoginSuccess).not.toHaveBeenCalled();
@@ -181,7 +181,7 @@ describe('Login Component', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/invalid username or password/i)).toBeInTheDocument();
+        expect(screen.getByText(/invalid password/i)).toBeInTheDocument();
       });
 
       // Очищаем поля и вводим правильные данные
@@ -218,3 +218,4 @@ describe('Login Component', () => {
     });
   });
 });
+

@@ -13,6 +13,18 @@ export const useAuth = () => {
   return context;
 };
 
+const buildAuthenticatedUser = (authData) => {
+  const user = {
+    username: authData.username,
+  };
+
+  if (authData.userId) {
+    user.id = authData.userId;
+  }
+
+  return user;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -28,15 +40,12 @@ export const AuthProvider = ({ children }) => {
 
       if (result.ok) {
         const authData = result.data;
-        if (!authData) {
+        if (!authData?.token || !authData?.username) {
           return { success: false, error: 'Invalid server response' };
         }
 
         setToken(authData.token);
-        setUser({
-          id: authData.userId,
-          username: authData.username
-        });
+        setUser(buildAuthenticatedUser(authData));
         localStorage.setItem('token', authData.token);
         return { success: true };
       }
