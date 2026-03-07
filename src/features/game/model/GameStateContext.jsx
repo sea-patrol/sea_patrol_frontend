@@ -149,7 +149,7 @@ export function GameStateProvider({ children }) {
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  const value = useMemo(() => ({ stateRef, dispatch }), [dispatch]);
+  const value = useMemo(() => ({ state, stateRef, dispatch }), [dispatch, state]);
 
   return (
     <GameStateContext.Provider value={value}>

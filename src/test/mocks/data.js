@@ -60,6 +60,38 @@ export const mockAuthResponses = {
   },
 };
 
+export const mockRoomCatalogResponses = {
+  populated: {
+    maxRooms: 5,
+    maxPlayersPerRoom: 100,
+    rooms: [
+      {
+        id: 'sandbox-1',
+        name: 'Sandbox 1',
+        mapId: 'caribbean-01',
+        mapName: 'Caribbean Sea',
+        currentPlayers: 4,
+        maxPlayers: 100,
+        status: 'OPEN',
+      },
+      {
+        id: 'regatta-night',
+        name: 'Regatta Night',
+        mapId: 'caribbean-01',
+        mapName: 'Caribbean Sea',
+        currentPlayers: 100,
+        maxPlayers: 100,
+        status: 'FULL',
+      },
+    ],
+  },
+  empty: {
+    maxRooms: 5,
+    maxPlayersPerRoom: 100,
+    rooms: [],
+  },
+};
+
 export const mockGameStates = {
   initial: {
     playerStates: {

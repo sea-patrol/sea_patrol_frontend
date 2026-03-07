@@ -90,7 +90,7 @@ export function gameUiReducer(state, action) {
       };
 
     case 'RETURN_TO_SAILING':
-      if (state.screenMode !== GAME_UI_MODE.SAILING) return state;
+      if (state.screenMode !== GAME_UI_MODE.SAILING && state.screenMode !== GAME_UI_MODE.LOBBY) return state;
 
       return {
         ...state,

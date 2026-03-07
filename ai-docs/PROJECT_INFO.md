@@ -72,7 +72,8 @@ src/
 │   └── GamePage/
 ├── widgets/              # UI-виджеты (сборки UI)
 │   ├── ChatPanel/
-│   └── GameHud/
+│   ├── GameHud/
+│   └── LobbyPanel/
 ├── features/             # Фичи (ui + model)
 │   ├── auth/             # AuthContext + формы
 │   ├── realtime/         # WebSocketContext
@@ -101,6 +102,7 @@ src/
 - **Context API для глобального состояния**: Auth, WebSocket, GameState и GameUi — без Redux/Zustand
 - **UI shell отдельно от 3D-сцены**: `GamePage` оркестрирует providers, scene и `GameUiShell`, а HUD/окна/notice overlays больше не живут внутри canvas
 - **Единая UI mode model**: `GameUiContext` задаёт состояния `LOADING`, `LOBBY`, `SAILING`, `CHAT_FOCUS`, `WINDOW_FOCUS`, `MENU_OPEN`, `RECONNECTING`, `RESPAWN`
+- **Lobby-first `/game` flow**: пока у текущего пользователя нет active room state, `GameUiShell` остаётся в `LOBBY`, рендерит `LobbyPanel` и загружает room catalog через `GET /api/v1/rooms`; переход в `SAILING` происходит только после появления текущего игрока в game state
 - **Централизованные UI hotkeys**: `Enter`, `Esc`, `I`, `J`, `M` обрабатываются в одном слое (`GameUiHotkeys`), а gameplay input учитывает текущий UI mode
 - **Client-side prediction**: Интерполяция позиций кораблей между обновлениями сервера для плавности
 - **WebSocket reconnect**: экспоненциальный backoff (1s/2s/4s/8s), лимит попыток, cleanup таймеров при logout/unmount
@@ -160,9 +162,9 @@ src/
 - `npm run test:coverage` — запуск с отчётом о покрытии
 
 **Текущее покрытие**:
-- 15 тестовых файлов
-- 82 теста (все проходят ✅)
-- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, Login, Signup, PlayerSailShip, auth-flow, game-state-flow, authApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
+- 17 тестовых файлов
+- 88 тестов (все проходят ✅)
+- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, Login, Signup, PlayerSailShip, LobbyPanel, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
 
 ## 4. Working Commands
 
@@ -181,7 +183,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 15 файлов, 82 теста (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, Login, Signup, PlayerSailShip, auth-flow, game-state-flow, authApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
+**Текущее покрытие**: 17 файлов, 88 тестов (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, Login, Signup, PlayerSailShip, LobbyPanel, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.
@@ -207,6 +209,8 @@ src/
 - Для публикации требуется корректный `base` в `vite.config.js` (под имя репозитория).
 - Основная команда проверки перед деплоем: `npm run build`.
 - PWA-функциональность включается только в production-режиме (devOptions: { enabled: false }).
+
+
 
 
 

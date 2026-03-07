@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 
-import { testUsers, mockAuthResponses } from './data';
+import { mockAuthResponses, mockRoomCatalogResponses, testUsers } from './data';
 
 const DEFAULT_BACKEND_HOSTNAME = 'localhost';
 const DEFAULT_BACKEND_PORT = 8080;
@@ -16,6 +16,7 @@ const getDefaultApiBaseUrl = () => {
 
 const API_BASE_URL = trimTrailingSlashes(import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl());
 const AUTH_API_BASE_URL = `${API_BASE_URL}/api/v1/auth`;
+const ROOMS_API_BASE_URL = `${API_BASE_URL}/api/v1/rooms`;
 
 export const handlers = [
   http.post(`${AUTH_API_BASE_URL}/login`, async ({ request }) => {
@@ -68,5 +69,24 @@ export const handlers = [
     }
 
     return HttpResponse.json({ username });
+  }),
+
+  http.get(ROOMS_API_BASE_URL, ({ request }) => {
+    const authorization = request.headers.get('authorization');
+    if (!authorization?.startsWith('Bearer ')) {
+      return HttpResponse.json(
+        {
+          errors: [
+            {
+              code: 'SEAPATROL_UNAUTHORIZED',
+              message: 'Unauthorized',
+            },
+          ],
+        },
+        { status: 401 }
+      );
+    }
+
+    return HttpResponse.json(mockRoomCatalogResponses.populated);
   }),
 ];

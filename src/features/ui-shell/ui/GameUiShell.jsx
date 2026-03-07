@@ -6,10 +6,12 @@ import './GameUiShell.css';
 import GameUiHotkeys from './GameUiHotkeys';
 
 import { useAuth } from '@/features/auth/model/AuthContext';
+import { selectCurrentPlayerState, useGameState } from '@/features/game/model/GameStateContext';
 import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
 import ChatBlock from '@/widgets/ChatPanel/ChatBlock';
 import GameStateInfo from '@/widgets/GameHud/GameStateInfo';
 import ProfileBlock from '@/widgets/GameHud/ProfileBlock';
+import LobbyPanel from '@/widgets/LobbyPanel/LobbyPanel';
 
 const WINDOW_COPY = {
   [UI_WINDOW.INVENTORY]: {
@@ -36,9 +38,17 @@ function ModeBadge({ mode }) {
 
 export default function GameUiShell() {
   const chatInputRef = useRef(null);
-  const { user, loading } = useAuth();
+  const { user, token, loading } = useAuth();
+  const { state } = useGameState();
   const { hasToken, isConnected, lastClose } = useWebSocket();
   const { activeWindow, mode, openChat, returnToSailing, setScreenMode, toggleMenu, toggleWindow } = useGameUi();
+
+  const currentPlayerState = selectCurrentPlayerState(state, user?.username);
+  const hasActiveRoomState = Boolean(currentPlayerState);
+  const showSailingHud = mode !== GAME_UI_MODE.LOBBY && mode !== GAME_UI_MODE.LOADING;
+  const showChatHud = mode !== GAME_UI_MODE.LOADING;
+  const showChatAction = mode !== GAME_UI_MODE.LOADING;
+  const showGameplayActions = mode !== GAME_UI_MODE.LOBBY && mode !== GAME_UI_MODE.LOADING;
 
   useEffect(() => {
     if (loading) {
@@ -46,18 +56,13 @@ export default function GameUiShell() {
       return;
     }
 
-    if (!user || !hasToken) {
-      setScreenMode(GAME_UI_MODE.LOBBY);
+    if (hasActiveRoomState) {
+      setScreenMode(isConnected ? GAME_UI_MODE.SAILING : GAME_UI_MODE.RECONNECTING);
       return;
     }
 
-    if (!isConnected) {
-      setScreenMode(GAME_UI_MODE.RECONNECTING);
-      return;
-    }
-
-    setScreenMode(GAME_UI_MODE.SAILING);
-  }, [hasToken, isConnected, loading, setScreenMode, user]);
+    setScreenMode(GAME_UI_MODE.LOBBY);
+  }, [hasActiveRoomState, isConnected, loading, setScreenMode]);
 
   const windowCopy = activeWindow ? WINDOW_COPY[activeWindow] : null;
 
@@ -83,30 +88,40 @@ export default function GameUiShell() {
             )}
           </div>
           <div className="game-ui-shell__actions">
-            <button type="button" onClick={handleOpenChat}>Chat</button>
-            <button type="button" onClick={() => toggleWindow(UI_WINDOW.INVENTORY)}>Inventory</button>
-            <button type="button" onClick={() => toggleWindow(UI_WINDOW.JOURNAL)}>Journal</button>
-            <button type="button" onClick={() => toggleWindow(UI_WINDOW.MAP)}>Map</button>
-            <button type="button" onClick={toggleMenu}>Menu</button>
+            {showChatAction && <button type="button" onClick={handleOpenChat}>Chat</button>}
+            {showGameplayActions && (
+              <>
+                <button type="button" onClick={() => toggleWindow(UI_WINDOW.INVENTORY)}>Inventory</button>
+                <button type="button" onClick={() => toggleWindow(UI_WINDOW.JOURNAL)}>Journal</button>
+                <button type="button" onClick={() => toggleWindow(UI_WINDOW.MAP)}>Map</button>
+                <button type="button" onClick={toggleMenu}>Menu</button>
+              </>
+            )}
           </div>
         </header>
 
-        <div className="game-ui-shell__hud game-ui-shell__hud--profile">
-          <ProfileBlock />
-        </div>
+        {showSailingHud && (
+          <div className="game-ui-shell__hud game-ui-shell__hud--profile">
+            <ProfileBlock />
+          </div>
+        )}
 
-        <div className="game-ui-shell__hud game-ui-shell__hud--state">
-          <GameStateInfo name={user?.username} />
-        </div>
+        {showSailingHud && (
+          <div className="game-ui-shell__hud game-ui-shell__hud--state">
+            <GameStateInfo name={user?.username} />
+          </div>
+        )}
 
-        <div className="game-ui-shell__hud game-ui-shell__hud--chat">
-          <ChatBlock
-            inputRef={chatInputRef}
-            isChatFocused={mode === GAME_UI_MODE.CHAT_FOCUS}
-            onChatFocus={openChat}
-            onChatBlur={returnToSailing}
-          />
-        </div>
+        {showChatHud && (
+          <div className="game-ui-shell__hud game-ui-shell__hud--chat">
+            <ChatBlock
+              inputRef={chatInputRef}
+              isChatFocused={mode === GAME_UI_MODE.CHAT_FOCUS}
+              onChatFocus={openChat}
+              onChatBlur={returnToSailing}
+            />
+          </div>
+        )}
 
         {mode === GAME_UI_MODE.MENU_OPEN && (
           <section className="game-ui-shell__panel" aria-label="Game menu">
@@ -136,12 +151,7 @@ export default function GameUiShell() {
           </section>
         )}
 
-        {mode === GAME_UI_MODE.LOBBY && (
-          <section className="game-ui-shell__notice" aria-live="polite">
-            <h2>Lobby</h2>
-            <p>Lobby mode already exists in the shell model and will receive the room list in TASK-014.</p>
-          </section>
-        )}
+        {mode === GAME_UI_MODE.LOBBY && <LobbyPanel token={token} />}
       </div>
     </>
   );
