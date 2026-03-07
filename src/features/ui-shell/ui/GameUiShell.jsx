@@ -30,6 +30,15 @@ const WINDOW_COPY = {
   },
 };
 
+const LOBBY_CHAT_SCOPE = Object.freeze({
+  key: 'group:lobby',
+  target: 'group:lobby',
+  label: 'Lobby',
+  caption: 'Lobby chat',
+  emptyState: 'No lobby messages yet. Start the conversation!',
+  placeholder: 'Message the lobby...',
+});
+
 const ROOM_JOIN_STATUS = Object.freeze({
   IDLE: 'idle',
   SUBMITTING: 'submitting',
@@ -99,6 +108,37 @@ function getRoomLoadingCopy(roomJoinState) {
   }
 }
 
+function resolveRoomMeta(payload, fallbackRoom = null) {
+  const roomId = payload?.roomId ?? payload?.id ?? fallbackRoom?.id ?? null;
+  if (!roomId) {
+    return fallbackRoom;
+  }
+
+  return {
+    id: roomId,
+    name: fallbackRoom?.name ?? payload?.name ?? payload?.roomName ?? roomId,
+  };
+}
+
+function createRoomChatScope(room) {
+  const roomId = room?.id ?? room?.roomId;
+  if (!roomId) {
+    return LOBBY_CHAT_SCOPE;
+  }
+
+  const roomName = room?.name ?? roomId;
+  const caption = roomName === roomId ? roomId : `${roomName} (${roomId})`;
+
+  return {
+    key: `group:room:${roomId}`,
+    target: `group:room:${roomId}`,
+    label: 'Room',
+    caption,
+    emptyState: `No messages in ${roomName} yet. Start with a room callout!`,
+    placeholder: `Message ${roomName}...`,
+  };
+}
+
 function ModeBadge({ mode }) {
   return (
     <div className="game-ui-shell__mode" data-mode={mode}>
@@ -114,6 +154,7 @@ export default function GameUiShell() {
   const { hasToken, isConnected, lastClose, subscribe } = useWebSocket();
   const { activeWindow, mode, openChat, returnToSailing, setScreenMode, toggleMenu, toggleWindow } = useGameUi();
   const [roomJoinState, setRoomJoinState] = useState(createInitialRoomJoinState);
+  const [activeRoomMeta, setActiveRoomMeta] = useState(null);
 
   const currentPlayerState = selectCurrentPlayerState(state, user?.username);
   const hasActiveRoomState = Boolean(currentPlayerState);
@@ -126,6 +167,7 @@ export default function GameUiShell() {
   useEffect(() => {
     if (!token) {
       setRoomJoinState(createInitialRoomJoinState());
+      setActiveRoomMeta(null);
     }
   }, [token]);
 
@@ -150,11 +192,16 @@ export default function GameUiShell() {
           return prevState;
         }
 
+        const roomMeta = resolveRoomMeta(payload, prevState.room);
+        if (roomMeta?.id) {
+          setActiveRoomMeta(roomMeta);
+        }
+
         return {
           ...prevState,
           status: ROOM_JOIN_STATUS.AWAITING_SPAWN,
           joinResponse: payload,
-          room: prevState.room ?? { id: payload?.roomId, name: payload?.roomId },
+          room: roomMeta,
           error: null,
         };
       });
@@ -218,6 +265,17 @@ export default function GameUiShell() {
 
   const windowCopy = activeWindow ? WINDOW_COPY[activeWindow] : null;
   const roomLoadingCopy = useMemo(() => getRoomLoadingCopy(roomJoinState), [roomJoinState]);
+  const currentChatScope = useMemo(() => {
+    if (isPendingRoomJoin) {
+      return createRoomChatScope(roomJoinState.room ?? roomJoinState.joinResponse);
+    }
+
+    if (hasActiveRoomState || mode === GAME_UI_MODE.RECONNECTING) {
+      return createRoomChatScope(activeRoomMeta);
+    }
+
+    return LOBBY_CHAT_SCOPE;
+  }, [activeRoomMeta, hasActiveRoomState, isPendingRoomJoin, mode, roomJoinState.joinResponse, roomJoinState.room]);
 
   const handleOpenChat = () => {
     openChat();
@@ -311,6 +369,7 @@ export default function GameUiShell() {
               isChatFocused={mode === GAME_UI_MODE.CHAT_FOCUS}
               onChatFocus={openChat}
               onChatBlur={returnToSailing}
+              chatScope={currentChatScope}
             />
           </div>
         )}

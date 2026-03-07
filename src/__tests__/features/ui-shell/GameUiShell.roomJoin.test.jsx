@@ -63,7 +63,11 @@ vi.mock('@/widgets/LobbyPanel/LobbyPanel', () => ({
 }));
 
 vi.mock('@/widgets/ChatPanel/ChatBlock', () => ({
-  default: () => <div data-testid="chat-block" />,
+  default: ({ chatScope }) => (
+    <div data-testid="chat-block">
+      {chatScope?.label} | {chatScope?.caption} | {chatScope?.target}
+    </div>
+  ),
 }));
 
 vi.mock('@/widgets/GameHud/GameStateInfo', () => ({
@@ -128,6 +132,8 @@ describe('GameUiShell room join flow', () => {
       </GameUiProvider>,
     );
 
+    expect(screen.getByTestId('chat-block')).toHaveTextContent('Lobby | Lobby chat | group:lobby');
+
     fireEvent.click(screen.getByRole('button', { name: 'Join sandbox' }));
 
     await waitFor(() => {
@@ -136,6 +142,7 @@ describe('GameUiShell room join flow', () => {
 
     expect(screen.getByText('Room admitted')).toBeInTheDocument();
     expect(screen.getByText(/Waiting for ROOM_JOINED/)).toBeInTheDocument();
+    expect(screen.getByTestId('chat-block')).toHaveTextContent('Room | Sandbox 1 (sandbox-1) | group:room:sandbox-1');
 
     await act(async () => {
       emitWsMessage(messageType.ROOM_JOINED, {
@@ -184,6 +191,7 @@ describe('GameUiShell room join flow', () => {
     await waitFor(() => {
       expect(screen.queryByText('Initializing room state')).not.toBeInTheDocument();
       expect(screen.getByTestId('profile-block')).toBeInTheDocument();
+      expect(screen.getByTestId('chat-block')).toHaveTextContent('Room | Sandbox 1 (sandbox-1) | group:room:sandbox-1');
     });
   });
 
@@ -211,5 +219,6 @@ describe('GameUiShell room join flow', () => {
     });
 
     expect(screen.queryByText('Joining room')).not.toBeInTheDocument();
+    expect(screen.getByTestId('chat-block')).toHaveTextContent('Lobby | Lobby chat | group:lobby');
   });
 });

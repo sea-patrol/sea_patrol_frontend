@@ -108,13 +108,13 @@ describe('WebSocket send regressions (chat + keyboard)', () => {
       ws.open();
     });
 
-    const input = screen.getByPlaceholderText('Type your message...');
+    const input = screen.getByPlaceholderText('Message the lobby...');
     await waitFor(() => expect(input).not.toBeDisabled());
 
     fireEvent.change(input, { target: { value: 'hello' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
-    expect(ws.sent).toContain(JSON.stringify(['CHAT_MESSAGE', { to: 'global', text: 'hello' }]));
+    expect(ws.sent).toContain(JSON.stringify(['CHAT_MESSAGE', { to: 'group:lobby', text: 'hello' }]));
     expect(warnSpy.mock.calls.some((call) => String(call[0]).includes('WebSocket send failed'))).toBe(false);
 
     warnSpy.mockRestore();

@@ -205,8 +205,10 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 
 #### `CHAT_MESSAGE`
 ```json
-["CHAT_MESSAGE", { "to": "global", "text": "hello" }]
+["CHAT_MESSAGE", { "to": "group:lobby", "text": "hello" }]
 ```
+
+Примечание: после `TASK-017B` frontend отправляет public chat только в явный active scope: `group:lobby` в лобби и `group:room:<roomId>` после входа в комнату. UI больше не использует `global` как штатный target и показывает пользователю текущий scope прямо в chat header.
 
 #### `PLAYER_INPUT`
 ```json
@@ -291,8 +293,14 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 
 `CHAT_MESSAGE`
 ```json
-["CHAT_MESSAGE", { "from": "bob", "text": "hi" }]
+["CHAT_MESSAGE", { "from": "bob", "to": "group:room:sandbox-1", "text": "hi" }]
 ```
+
+Особенности для frontend:
+- `payload.to` используется как authoritative scope key для разделения lobby и room histories внутри `ChatBlock`;
+- при `to = group:lobby` сообщение попадает только в lobby chat history;
+- при `to = group:room:<roomId>` сообщение попадает только в history соответствующей комнаты;
+- если legacy payload пришёл без `to`, frontend временно относит его к текущему видимому scope, чтобы не ломать обратную совместимость в UI.
 
 #### Уже согласованы в contract, но ещё не подключены в UI
 
@@ -307,5 +315,8 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 - Game: `INIT_GAME_STATE`, `UPDATE_GAME_STATE`, `PLAYER_JOIN`, `PLAYER_LEAVE`, `PLAYER_INPUT`
 
 ### Уже зафиксированы в contract, но не используются в UI после `TASK-017`
-- Chat control: `CHAT_JOIN`, `CHAT_LEAVE`
+- Chat control: `CHAT_JOIN`, `CHAT_LEAVE` (legacy compatibility only; lobby/room scope ими больше не переключается)
 - Room rejection: `ROOM_JOIN_REJECTED`
+
+
+
