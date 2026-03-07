@@ -42,4 +42,30 @@ describe('roomApi', () => {
       message: 'Authorization token is required',
     });
   });
+
+  it('joinRoom: returns canonical join response on success', async () => {
+    const result = await roomApi.joinRoom('test-jwt-token-valid-user', 'sandbox-1');
+
+    expect(result.ok).toBe(true);
+    expect(result.data).toEqual({
+      roomId: 'sandbox-1',
+      mapId: 'caribbean-01',
+      mapName: 'Caribbean Sea',
+      currentPlayers: 1,
+      maxPlayers: 100,
+      status: 'JOINED',
+    });
+  });
+
+  it('joinRoom: surfaces structured backend errors', async () => {
+    const result = await roomApi.joinRoom('test-jwt-token-valid-user', 'regatta-night');
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatchObject({
+      type: 'http',
+      status: 409,
+      code: 'ROOM_FULL',
+      message: 'Room is full',
+    });
+  });
 });

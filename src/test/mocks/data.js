@@ -92,6 +92,25 @@ export const mockRoomCatalogResponses = {
   },
 };
 
+export const mockRoomJoinResponses = {
+  success: {
+    roomId: 'sandbox-1',
+    mapId: 'caribbean-01',
+    mapName: 'Caribbean Sea',
+    currentPlayers: 1,
+    maxPlayers: 100,
+    status: 'JOINED',
+  },
+  roomFull: {
+    errors: [
+      {
+        code: 'ROOM_FULL',
+        message: 'Room is full',
+      },
+    ],
+  },
+};
+
 export const mockGameStates = {
   initial: {
     playerStates: {

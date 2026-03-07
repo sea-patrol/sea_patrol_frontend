@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 
-import { mockAuthResponses, mockRoomCatalogResponses, testUsers } from './data';
+import { mockAuthResponses, mockRoomCatalogResponses, mockRoomJoinResponses, testUsers } from './data';
 
 const DEFAULT_BACKEND_HOSTNAME = 'localhost';
 const DEFAULT_BACKEND_PORT = 8080;
@@ -88,5 +88,31 @@ export const handlers = [
     }
 
     return HttpResponse.json(mockRoomCatalogResponses.populated);
+  }),
+
+  http.post(`${ROOMS_API_BASE_URL}/:roomId/join`, ({ params, request }) => {
+    const authorization = request.headers.get('authorization');
+    if (!authorization?.startsWith('Bearer ')) {
+      return HttpResponse.json(
+        {
+          errors: [
+            {
+              code: 'SEAPATROL_UNAUTHORIZED',
+              message: 'Unauthorized',
+            },
+          ],
+        },
+        { status: 401 }
+      );
+    }
+
+    if (params.roomId === 'regatta-night') {
+      return HttpResponse.json(mockRoomJoinResponses.roomFull, { status: 409 });
+    }
+
+    return HttpResponse.json({
+      ...mockRoomJoinResponses.success,
+      roomId: params.roomId,
+    });
   }),
 ];

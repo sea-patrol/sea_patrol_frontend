@@ -4,8 +4,8 @@
 
 Этот документ описывает текущее API, которое использует frontend Sea Patrol:
 
-- REST (HTTP) для аутентификации и первичного lobby room catalog
-- WebSocket для real-time синхронизации игры, чата и live lobby room updates
+- REST (HTTP) для аутентификации, первичного lobby room catalog и room join
+- WebSocket для real-time синхронизации игры, чата, live lobby room updates и room init flow
 
 ## 2. Base URLs и переменные окружения
 
@@ -106,6 +106,36 @@ Response `200 OK`:
 - после первого REST snapshot lobby UI продолжает жить за счёт `ROOMS_SNAPSHOT` / `ROOMS_UPDATED` по тому же payload shape;
 - ручной refresh остаётся fallback, если lobby WebSocket временно offline.
 
+### 3.5 POST `/api/v1/rooms/{roomId}/join`
+
+Frontend `TASK-016` использует этот endpoint как единственный authoritative room join trigger.
+
+Требует заголовок:
+- `Authorization: Bearer <jwt>`
+
+Request JSON:
+```json
+{}
+```
+
+Response `200 OK`:
+```json
+{
+  "roomId": "sandbox-1",
+  "mapId": "caribbean-01",
+  "mapName": "Caribbean Sea",
+  "currentPlayers": 1,
+  "maxPlayers": 100,
+  "status": "JOINED"
+}
+```
+
+Важно для frontend:
+- `join` стартует из lobby UI кнопкой `Join room`;
+- ошибки `404` / `409` показываются пользователю через join error block в lobby;
+- после REST `200 OK` frontend переводит shell в `ROOM_LOADING` и ждёт room init flow по WebSocket;
+- клиент не должен считать room entry завершённым только по REST success.
+
 ## 4. WebSocket API
 
 Endpoint: `{{WS_BASE_URL}}/ws/game`
@@ -146,7 +176,54 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 
 ### 4.4 Входящие сообщения (backend -> frontend)
 
-#### Используются текущим UI/runtime
+#### Используются текущим lobby UI
+
+`ROOMS_SNAPSHOT`
+```json
+{ "maxRooms": 5, "maxPlayersPerRoom": 100, "rooms": [] }
+```
+
+`ROOMS_UPDATED`
+```json
+{ "maxRooms": 5, "maxPlayersPerRoom": 100, "rooms": [] }
+```
+
+Особенности для frontend:
+- `ROOMS_SNAPSHOT` приходит автоматически после lobby WebSocket connect/reconnect;
+- `ROOMS_UPDATED` трактуется как полный snapshot room catalog, а не delta-патч;
+- lobby UI подписывается на эти сообщения отдельно от room gameplay state.
+
+#### Используются текущим room join / init flow начиная с `TASK-016`
+
+`ROOM_JOINED`
+```json
+{
+  "roomId": "sandbox-1",
+  "mapId": "caribbean-01",
+  "mapName": "Caribbean Sea",
+  "currentPlayers": 1,
+  "maxPlayers": 100,
+  "status": "JOINED"
+}
+```
+
+`SPAWN_ASSIGNED`
+```json
+{
+  "roomId": "sandbox-1",
+  "reason": "INITIAL",
+  "x": 0.0,
+  "z": 0.0,
+  "angle": 0.0
+}
+```
+
+Особенности для frontend:
+- canonical room enter flow: `POST /api/v1/rooms/{roomId}/join` -> `ROOM_JOINED` -> `SPAWN_ASSIGNED` -> `INIT_GAME_STATE`;
+- frontend переводит shell в `ROOM_LOADING` после REST success и держит его там до появления current player в game state;
+- `SPAWN_ASSIGNED` используется как authoritative signal, что spawn уже назначен, но сам переход в `SAILING` происходит только после `INIT_GAME_STATE` / current player snapshot.
+
+#### Используются текущим gameplay UI/runtime
 
 `INIT_GAME_STATE`
 ```json
@@ -177,35 +254,18 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 ["CHAT_MESSAGE", { "from": "bob", "text": "hi" }]
 ```
 
-#### Используются текущим lobby UI начиная с `TASK-015`
-
-`ROOMS_SNAPSHOT`
-```json
-{ "maxRooms": 5, "maxPlayersPerRoom": 100, "rooms": [] }
-```
-
-`ROOMS_UPDATED`
-```json
-{ "maxRooms": 5, "maxPlayersPerRoom": 100, "rooms": [] }
-```
-
-Особенности для frontend:
-- `ROOMS_SNAPSHOT` приходит автоматически после lobby WebSocket connect/reconnect;
-- `ROOMS_UPDATED` трактуется как полный snapshot room catalog, а не delta-патч;
-- lobby UI подписывается на эти сообщения отдельно от room gameplay state.
-
 #### Уже согласованы в contract, но ещё не подключены в UI
 
-`ROOM_JOINED`, `ROOM_JOIN_REJECTED`, `SPAWN_ASSIGNED` уже входят в согласованный room contract, но frontend runtime ещё не обрабатывает их в UI на этой стадии roadmap.
+`ROOM_JOIN_REJECTED` уже входит в согласованный room contract, но текущий backend runtime ещё не использует его как authoritative rejection channel; фронтенд поэтому опирается на REST error response.
 
 ## 5. Список message types
 
 ### Активно используются на фронте сейчас
 - Chat: `CHAT_MESSAGE`
 - Lobby/rooms: `ROOMS_SNAPSHOT`, `ROOMS_UPDATED`
+- Room enter flow: `ROOM_JOINED`, `SPAWN_ASSIGNED`
 - Game: `INIT_GAME_STATE`, `UPDATE_GAME_STATE`, `PLAYER_JOIN`, `PLAYER_LEAVE`, `PLAYER_INPUT`
 
-### Уже зафиксированы в contract, но не используются в UI после `TASK-015`
+### Уже зафиксированы в contract, но не используются в UI после `TASK-016`
 - Chat control: `CHAT_JOIN`, `CHAT_LEAVE`
-- Room enter flow: `ROOM_JOINED`, `ROOM_JOIN_REJECTED`
-- Spawn/game init: `SPAWN_ASSIGNED`
+- Room rejection: `ROOM_JOIN_REJECTED`

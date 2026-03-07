@@ -137,11 +137,30 @@
   font-size: 30px;
 }
 
+.lobby-panel__join-error,
 .lobby-panel__state {
   padding: 24px;
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(230, 217, 178, 0.12);
+}
+
+.lobby-panel__join-error {
+  margin-bottom: 18px;
+  border-color: rgba(255, 125, 92, 0.4);
+  background: rgba(99, 27, 17, 0.24);
+}
+
+.lobby-panel__join-error strong {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.lobby-panel__join-error p {
+  margin: 0;
+  color: rgba(244, 240, 232, 0.84);
+  line-height: 1.5;
 }
 
 .lobby-panel__state--error {
@@ -170,6 +189,8 @@
 }
 
 .lobby-panel__room-card {
+  display: flex;
+  flex-direction: column;
   padding: 18px;
   border-radius: 22px;
   background:
@@ -238,6 +259,28 @@
 .lobby-panel__room-meta dd {
   margin: 8px 0 0;
   font-size: 18px;
+}
+
+.lobby-panel__join-button {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(245, 230, 189, 0.24);
+  background: rgba(244, 196, 48, 0.14);
+  color: #f4f0e8;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 160ms ease, opacity 160ms ease;
+}
+
+.lobby-panel__join-button:hover:enabled {
+  transform: translateY(-1px);
+  background: rgba(244, 196, 48, 0.22);
+}
+
+.lobby-panel__join-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 @media (max-width: 900px) {

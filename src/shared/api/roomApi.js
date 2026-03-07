@@ -38,57 +38,76 @@ const extractHttpError = (status, data) => {
   };
 };
 
+const executeAuthorizedJsonRequest = async (url, { method, token, signal, body }) => {
+  if (!token) {
+    return {
+      ok: false,
+      error: {
+        type: 'auth',
+        message: 'Authorization token is required',
+      },
+    };
+  }
+
+  let response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+      signal,
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      return {
+        ok: false,
+        error: {
+          type: 'aborted',
+          message: 'Request was aborted',
+        },
+      };
+    }
+
+    return {
+      ok: false,
+      error: {
+        type: 'network',
+        message: 'Network error occurred',
+        cause: error,
+      },
+    };
+  }
+
+  const data = await parseJsonSafely(response);
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      error: extractHttpError(response.status, data),
+    };
+  }
+
+  return { ok: true, data };
+};
+
 export const roomApi = {
   listRooms: async (token, options = {}) => {
-    if (!token) {
-      return {
-        ok: false,
-        error: {
-          type: 'auth',
-          message: 'Authorization token is required',
-        },
-      };
-    }
+    return executeAuthorizedJsonRequest(ROOMS_API_BASE_URL, {
+      method: 'GET',
+      token,
+      signal: options.signal,
+    });
+  },
 
-    let response;
-    try {
-      response = await fetch(ROOMS_API_BASE_URL, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        signal: options.signal,
-      });
-    } catch (error) {
-      if (error?.name === 'AbortError') {
-        return {
-          ok: false,
-          error: {
-            type: 'aborted',
-            message: 'Request was aborted',
-          },
-        };
-      }
-
-      return {
-        ok: false,
-        error: {
-          type: 'network',
-          message: 'Network error occurred',
-          cause: error,
-        },
-      };
-    }
-
-    const data = await parseJsonSafely(response);
-
-    if (!response.ok) {
-      return {
-        ok: false,
-        error: extractHttpError(response.status, data),
-      };
-    }
-
-    return { ok: true, data };
+  joinRoom: async (token, roomId, options = {}) => {
+    return executeAuthorizedJsonRequest(`${ROOMS_API_BASE_URL}/${encodeURIComponent(roomId)}/join`, {
+      method: 'POST',
+      token,
+      signal: options.signal,
+      body: {},
+    });
   },
 };

@@ -80,7 +80,7 @@ describe('LobbyPanel', () => {
       },
     });
 
-    render(<LobbyPanel token="test-token" />);
+    render(<LobbyPanel token="test-token" onJoinRoom={() => {}} />);
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading room catalog');
 
@@ -94,6 +94,7 @@ describe('LobbyPanel', () => {
     expect(screen.getByText('Caribbean Sea')).toBeInTheDocument();
     expect(screen.getByText('OPEN')).toBeInTheDocument();
     expect(screen.getByText('4/100')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Join room' })).toBeEnabled();
   });
 
   it('renders readable empty state when backend returns no rooms', async () => {
@@ -106,7 +107,7 @@ describe('LobbyPanel', () => {
       },
     });
 
-    render(<LobbyPanel token="test-token" />);
+    render(<LobbyPanel token="test-token" onJoinRoom={() => {}} />);
 
     await waitFor(() => {
       expect(screen.getByText('No rooms yet')).toBeInTheDocument();
@@ -123,7 +124,7 @@ describe('LobbyPanel', () => {
       },
     });
 
-    render(<LobbyPanel token="test-token" />);
+    render(<LobbyPanel token="test-token" onJoinRoom={() => {}} />);
 
     await waitFor(() => {
       expect(screen.getByText('No rooms yet')).toBeInTheDocument();
@@ -193,7 +194,7 @@ describe('LobbyPanel', () => {
         },
       });
 
-    render(<LobbyPanel token="test-token" />);
+    render(<LobbyPanel token="test-token" onJoinRoom={() => {}} />);
 
     await waitFor(() => {
       expect(screen.getByText('Unable to load rooms')).toBeInTheDocument();
@@ -207,29 +208,54 @@ describe('LobbyPanel', () => {
     });
   });
 
-  it('shows reconnect status when lobby WebSocket is offline', async () => {
-    wsState = {
-      hasToken: true,
-      isConnected: false,
-      lastClose: { code: 1006, reason: 'connection lost' },
-      subscribe: subscribeMock,
-    };
+  it('shows join error and disables other cards while room entry is pending', async () => {
+    const onJoinRoom = vi.fn();
 
     roomApi.listRooms.mockResolvedValueOnce({
       ok: true,
       data: {
         maxRooms: 5,
         maxPlayersPerRoom: 100,
-        rooms: [],
+        rooms: [
+          {
+            id: 'sandbox-1',
+            name: 'Sandbox 1',
+            mapId: 'caribbean-01',
+            mapName: 'Caribbean Sea',
+            currentPlayers: 4,
+            maxPlayers: 100,
+            status: 'OPEN',
+          },
+          {
+            id: 'regatta-night',
+            name: 'Regatta Night',
+            mapId: 'caribbean-01',
+            mapName: 'Caribbean Sea',
+            currentPlayers: 100,
+            maxPlayers: 100,
+            status: 'FULL',
+          },
+        ],
       },
     });
 
-    render(<LobbyPanel token="test-token" />);
+    render(
+      <LobbyPanel
+        token="test-token"
+        onJoinRoom={onJoinRoom}
+        joiningRoomId="sandbox-1"
+        joinError="Room is full"
+      />,
+    );
 
     await waitFor(() => {
-      expect(screen.getByText('Lobby realtime reconnecting')).toBeInTheDocument();
+      expect(screen.getByText('Sandbox 1')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Last close: 1006, connection lost/)).toBeInTheDocument();
+    expect(screen.getByText('Room join failed')).toBeInTheDocument();
+    expect(screen.getByText('Room is full')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Joining...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Room full' })).toBeDisabled();
   });
 });
+

@@ -13,7 +13,13 @@ function RoomStatusPill({ status }) {
   );
 }
 
-function RoomCard({ room }) {
+function RoomCard({ room, joiningRoomId, onJoinRoom }) {
+  const isJoinSupported = typeof onJoinRoom === 'function';
+  const isJoiningThisRoom = joiningRoomId === room.id;
+  const isJoinBusy = Boolean(joiningRoomId);
+  const isJoinDisabled = !isJoinSupported || room.status !== 'OPEN' || isJoinBusy;
+  const joinLabel = isJoiningThisRoom ? 'Joining...' : room.status === 'OPEN' ? 'Join room' : 'Room full';
+
   return (
     <li className="lobby-panel__room-card">
       <div className="lobby-panel__room-head">
@@ -35,6 +41,14 @@ function RoomCard({ room }) {
           <dd>{room.mapId}</dd>
         </div>
       </dl>
+      <button
+        type="button"
+        className="lobby-panel__join-button"
+        onClick={() => onJoinRoom?.(room)}
+        disabled={isJoinDisabled}
+      >
+        {joinLabel}
+      </button>
     </li>
   );
 }
@@ -66,7 +80,7 @@ function formatRealtimeStatus({ hasToken, isConnected, lastClose }) {
   };
 }
 
-export default function LobbyPanel({ token }) {
+export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, joinError = null }) {
   const { hasToken, isConnected, lastClose, subscribe } = useWebSocket();
   const [catalog, setCatalog] = useState(null);
   const [error, setError] = useState(null);
@@ -188,6 +202,13 @@ export default function LobbyPanel({ token }) {
         </div>
       </div>
 
+      {joinError && !isLoading && !error && (
+        <div className="lobby-panel__join-error" role="alert">
+          <strong>Room join failed</strong>
+          <p>{joinError}</p>
+        </div>
+      )}
+
       {isLoading && (
         <div className="lobby-panel__state" role="status" aria-live="polite">
           <h3>Loading room catalog</h3>
@@ -212,11 +233,10 @@ export default function LobbyPanel({ token }) {
       {!isLoading && !error && hasRooms && (
         <ol className="lobby-panel__room-list">
           {rooms.map((room) => (
-            <RoomCard key={room.id} room={room} />
+            <RoomCard key={room.id} room={room} joiningRoomId={joiningRoomId} onJoinRoom={onJoinRoom} />
           ))}
         </ol>
       )}
     </section>
   );
 }
-
