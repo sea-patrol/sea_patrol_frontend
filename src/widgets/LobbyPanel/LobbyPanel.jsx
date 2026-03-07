@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
+import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
 import { roomApi } from '@/shared/api/roomApi';
+import * as messageType from '@/shared/constants/messageType';
 import './LobbyPanel.css';
 
 function RoomStatusPill({ status }) {
@@ -37,11 +39,65 @@ function RoomCard({ room }) {
   );
 }
 
+function formatRealtimeStatus({ hasToken, isConnected, lastClose }) {
+  if (!hasToken) {
+    return {
+      tone: 'idle',
+      title: 'Lobby realtime inactive',
+      body: 'Log in to activate the lobby WebSocket for chat and live room updates.',
+      closeInfo: null,
+    };
+  }
+
+  if (isConnected) {
+    return {
+      tone: 'online',
+      title: 'Lobby realtime online',
+      body: 'Chat and room snapshots now stream through the lobby WebSocket without waiting for manual refresh.',
+      closeInfo: null,
+    };
+  }
+
+  return {
+    tone: 'offline',
+    title: 'Lobby realtime reconnecting',
+    body: 'Live room updates are temporarily unavailable. The lobby will resubscribe after reconnect, and manual refresh still works.',
+    closeInfo: lastClose?.code === undefined ? null : `${String(lastClose.code)}${lastClose.reason ? `, ${lastClose.reason}` : ''}`,
+  };
+}
+
 export default function LobbyPanel({ token }) {
+  const { hasToken, isConnected, lastClose, subscribe } = useWebSocket();
   const [catalog, setCatalog] = useState(null);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
+  const liveCatalogVersionRef = useRef(0);
+
+  useEffect(() => {
+    if (!token) {
+      return undefined;
+    }
+
+    const applyLiveCatalog = (payload) => {
+      if (!payload || !Array.isArray(payload.rooms)) {
+        return;
+      }
+
+      liveCatalogVersionRef.current += 1;
+      setCatalog(payload);
+      setError(null);
+      setIsLoading(false);
+    };
+
+    const unsubscribeSnapshot = subscribe(messageType.ROOMS_SNAPSHOT, applyLiveCatalog);
+    const unsubscribeUpdated = subscribe(messageType.ROOMS_UPDATED, applyLiveCatalog);
+
+    return () => {
+      unsubscribeSnapshot();
+      unsubscribeUpdated();
+    };
+  }, [subscribe, token]);
 
   useEffect(() => {
     if (!token) {
@@ -53,12 +109,17 @@ export default function LobbyPanel({ token }) {
 
     const controller = new AbortController();
     let isActive = true;
+    const liveCatalogVersionAtRequestStart = liveCatalogVersionRef.current;
 
     setIsLoading(true);
     setError(null);
 
     roomApi.listRooms(token, { signal: controller.signal }).then((result) => {
       if (!isActive || result.error?.type === 'aborted') {
+        return;
+      }
+
+      if (liveCatalogVersionRef.current !== liveCatalogVersionAtRequestStart) {
         return;
       }
 
@@ -80,6 +141,7 @@ export default function LobbyPanel({ token }) {
     };
   }, [reloadNonce, token]);
 
+  const realtimeStatus = formatRealtimeStatus({ hasToken, isConnected, lastClose });
   const rooms = catalog?.rooms ?? [];
   const hasRooms = rooms.length > 0;
 
@@ -90,12 +152,25 @@ export default function LobbyPanel({ token }) {
           <p className="lobby-panel__eyebrow">Harbor lobby</p>
           <h2>Choose your waters before the first sail.</h2>
           <p className="lobby-panel__lead">
-            The frontend now loads the room catalog from backend REST on page open. Live lobby WS updates will attach in the next task.
+            The lobby now starts with a REST snapshot and stays current through lobby WebSocket updates while you remain outside a game room.
           </p>
         </div>
-        <button type="button" className="lobby-panel__refresh" onClick={() => setReloadNonce((value) => value + 1)}>
-          Refresh rooms
+        <button
+          type="button"
+          className="lobby-panel__refresh"
+          onClick={() => setReloadNonce((value) => value + 1)}
+          disabled={isLoading}
+        >
+          {isLoading ? 'Refreshing...' : 'Refresh rooms'}
         </button>
+      </div>
+
+      <div className={`lobby-panel__live-status lobby-panel__live-status--${realtimeStatus.tone}`} aria-live="polite">
+        <div>
+          <strong>{realtimeStatus.title}</strong>
+          <p>{realtimeStatus.body}</p>
+        </div>
+        {realtimeStatus.closeInfo && <span className="lobby-panel__close-info">Last close: {realtimeStatus.closeInfo}</span>}
       </div>
 
       <div className="lobby-panel__summary" aria-live="polite">
@@ -130,7 +205,7 @@ export default function LobbyPanel({ token }) {
       {!isLoading && !error && !hasRooms && (
         <div className="lobby-panel__state">
           <h3>No rooms yet</h3>
-          <p>The harbor is calm. Create flow will attach later, but the page already handles the empty catalog cleanly.</p>
+          <p>The harbor is calm. Live lobby updates stay connected, so new rooms will appear here without reloading the page.</p>
         </div>
       )}
 
@@ -144,3 +219,4 @@ export default function LobbyPanel({ token }) {
     </section>
   );
 }
+

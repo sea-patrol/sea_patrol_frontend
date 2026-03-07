@@ -1,6 +1,28 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const wsSubscribers = new Map();
+const subscribeMock = vi.fn((type, callback) => {
+  if (!wsSubscribers.has(type)) {
+    wsSubscribers.set(type, new Set());
+  }
+
+  wsSubscribers.get(type).add(callback);
+  return () => {
+    wsSubscribers.get(type)?.delete(callback);
+    if (wsSubscribers.get(type)?.size === 0) {
+      wsSubscribers.delete(type);
+    }
+  };
+});
+
+let wsState = {
+  hasToken: true,
+  isConnected: true,
+  lastClose: null,
+  subscribe: subscribeMock,
+};
 
 vi.mock('@/shared/api/roomApi', () => ({
   roomApi: {
@@ -8,11 +30,37 @@ vi.mock('@/shared/api/roomApi', () => ({
   },
 }));
 
+vi.mock('@/features/realtime/model/WebSocketContext', () => ({
+  useWebSocket: () => wsState,
+}));
+
 import { roomApi } from '../../shared/api/roomApi';
+import * as messageType from '../../shared/constants/messageType';
 import LobbyPanel from '../../widgets/LobbyPanel/LobbyPanel';
 
+function emitWsMessage(type, payload) {
+  const subscribers = wsSubscribers.get(type);
+  if (!subscribers) {
+    return;
+  }
+
+  subscribers.forEach((callback) => callback(payload));
+}
+
 describe('LobbyPanel', () => {
-  it('renders room cards after initial REST load', async () => {
+  beforeEach(() => {
+    roomApi.listRooms.mockReset();
+    subscribeMock.mockClear();
+    wsSubscribers.clear();
+    wsState = {
+      hasToken: true,
+      isConnected: true,
+      lastClose: null,
+      subscribe: subscribeMock,
+    };
+  });
+
+  it('renders room cards after initial REST load and subscribes to lobby room messages', async () => {
     roomApi.listRooms.mockResolvedValueOnce({
       ok: true,
       data: {
@@ -40,6 +88,9 @@ describe('LobbyPanel', () => {
       expect(screen.getByText('Sandbox 1')).toBeInTheDocument();
     });
 
+    expect(subscribeMock).toHaveBeenCalledWith(messageType.ROOMS_SNAPSHOT, expect.any(Function));
+    expect(subscribeMock).toHaveBeenCalledWith(messageType.ROOMS_UPDATED, expect.any(Function));
+    expect(screen.getByText('Lobby realtime online')).toBeInTheDocument();
     expect(screen.getByText('Caribbean Sea')).toBeInTheDocument();
     expect(screen.getByText('OPEN')).toBeInTheDocument();
     expect(screen.getByText('4/100')).toBeInTheDocument();
@@ -59,6 +110,68 @@ describe('LobbyPanel', () => {
 
     await waitFor(() => {
       expect(screen.getByText('No rooms yet')).toBeInTheDocument();
+    });
+  });
+
+  it('applies ROOMS_SNAPSHOT and ROOMS_UPDATED as full live snapshots', async () => {
+    roomApi.listRooms.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        maxRooms: 5,
+        maxPlayersPerRoom: 100,
+        rooms: [],
+      },
+    });
+
+    render(<LobbyPanel token="test-token" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No rooms yet')).toBeInTheDocument();
+    });
+
+    await act(() => {
+      emitWsMessage(messageType.ROOMS_SNAPSHOT, {
+        maxRooms: 5,
+        maxPlayersPerRoom: 100,
+        rooms: [
+          {
+            id: 'sandbox-1',
+            name: 'Sandbox 1',
+            mapId: 'caribbean-01',
+            mapName: 'Caribbean Sea',
+            currentPlayers: 4,
+            maxPlayers: 100,
+            status: 'OPEN',
+          },
+        ],
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Sandbox 1')).toBeInTheDocument();
+    });
+
+    await act(() => {
+      emitWsMessage(messageType.ROOMS_UPDATED, {
+        maxRooms: 5,
+        maxPlayersPerRoom: 100,
+        rooms: [
+          {
+            id: 'fresh-harbor',
+            name: 'Fresh Harbor',
+            mapId: 'caribbean-01',
+            mapName: 'Caribbean Sea',
+            currentPlayers: 1,
+            maxPlayers: 100,
+            status: 'OPEN',
+          },
+        ],
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Fresh Harbor')).toBeInTheDocument();
+      expect(screen.queryByText('Sandbox 1')).not.toBeInTheDocument();
     });
   });
 
@@ -92,5 +205,31 @@ describe('LobbyPanel', () => {
     await waitFor(() => {
       expect(screen.getByText('No rooms yet')).toBeInTheDocument();
     });
+  });
+
+  it('shows reconnect status when lobby WebSocket is offline', async () => {
+    wsState = {
+      hasToken: true,
+      isConnected: false,
+      lastClose: { code: 1006, reason: 'connection lost' },
+      subscribe: subscribeMock,
+    };
+
+    roomApi.listRooms.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        maxRooms: 5,
+        maxPlayersPerRoom: 100,
+        rooms: [],
+      },
+    });
+
+    render(<LobbyPanel token="test-token" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Lobby realtime reconnecting')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/Last close: 1006, connection lost/)).toBeInTheDocument();
   });
 });

@@ -4,8 +4,8 @@
 
 Этот документ описывает текущее API, которое использует frontend Sea Patrol:
 
-- REST (HTTP) для аутентификации и загрузки lobby room catalog
-- WebSocket для real-time синхронизации игры и чата
+- REST (HTTP) для аутентификации и первичного lobby room catalog
+- WebSocket для real-time синхронизации игры, чата и live lobby room updates
 
 ## 2. Base URLs и переменные окружения
 
@@ -75,7 +75,7 @@ Response `200 OK`:
 
 ### 3.4 GET `/api/v1/rooms`
 
-Frontend `TASK-014` использует этот endpoint при открытии `/game` для первичной загрузки lobby room catalog.
+Frontend `TASK-014` / `TASK-015` использует этот endpoint как первичный snapshot lobby room catalog перед live WS-обновлениями.
 
 Требует заголовок:
 - `Authorization: Bearer <jwt>`
@@ -103,7 +103,8 @@ Response `200 OK`:
 - lobby screen делает rooms request при первом входе в `LOBBY` mode и по ручному refresh;
 - `rooms` может быть пустым массивом, и UI должен показывать понятный empty state;
 - error state должен читать `errors[0].message`, если backend вернул structured error;
-- live WS room updates пока не применяются в UI и остаются следующим frontend task.
+- после первого REST snapshot lobby UI продолжает жить за счёт `ROOMS_SNAPSHOT` / `ROOMS_UPDATED` по тому же payload shape;
+- ручной refresh остаётся fallback, если lobby WebSocket временно offline.
 
 ## 4. WebSocket API
 
@@ -176,7 +177,7 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 ["CHAT_MESSAGE", { "from": "bob", "text": "hi" }]
 ```
 
-#### Уже известны frontend contract, но ещё не подключены в UI `TASK-014`
+#### Используются текущим lobby UI начиная с `TASK-015`
 
 `ROOMS_SNAPSHOT`
 ```json
@@ -188,17 +189,23 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 { "maxRooms": 5, "maxPlayersPerRoom": 100, "rooms": [] }
 ```
 
+Особенности для frontend:
+- `ROOMS_SNAPSHOT` приходит автоматически после lobby WebSocket connect/reconnect;
+- `ROOMS_UPDATED` трактуется как полный snapshot room catalog, а не delta-патч;
+- lobby UI подписывается на эти сообщения отдельно от room gameplay state.
+
+#### Уже согласованы в contract, но ещё не подключены в UI
+
 `ROOM_JOINED`, `ROOM_JOIN_REJECTED`, `SPAWN_ASSIGNED` уже входят в согласованный room contract, но frontend runtime ещё не обрабатывает их в UI на этой стадии roadmap.
 
 ## 5. Список message types
 
 ### Активно используются на фронте сейчас
 - Chat: `CHAT_MESSAGE`
+- Lobby/rooms: `ROOMS_SNAPSHOT`, `ROOMS_UPDATED`
 - Game: `INIT_GAME_STATE`, `UPDATE_GAME_STATE`, `PLAYER_JOIN`, `PLAYER_LEAVE`, `PLAYER_INPUT`
 
-### Уже зафиксированы в contract, но не используются в UI на этапе `TASK-014`
+### Уже зафиксированы в contract, но не используются в UI после `TASK-015`
 - Chat control: `CHAT_JOIN`, `CHAT_LEAVE`
-- Lobby/rooms: `ROOMS_SNAPSHOT`, `ROOMS_UPDATED`, `ROOM_JOINED`, `ROOM_JOIN_REJECTED`
+- Room enter flow: `ROOM_JOINED`, `ROOM_JOIN_REJECTED`
 - Spawn/game init: `SPAWN_ASSIGNED`
-
-
