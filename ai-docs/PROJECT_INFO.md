@@ -101,6 +101,7 @@ src/
 
 - **Минимум зависимостей**: Только необходимые библиотеки для React/Vite/R3F
 - **Context API для глобального состояния**: Auth, WebSocket, GameState и RoomSession подняты выше роутов, а route-local `GameUi` управляет только room/game shell without Redux/Zustand
+- **Auth bootstrap восстанавливает persisted session целиком**: `AuthContext` поднимает пользователя из `localStorage` (`token` + `auth-user`) и при необходимости может восстановить `username` из JWT `sub`, поэтому home/lobby UI не расходится с уже активным WebSocket после перезагрузки страницы
 - **UI shell отдельно от 3D-сцены**: `LobbyPage` теперь HTML-first и вообще не монтирует `Canvas`, а `GamePage` поднимает 3D-сцену только когда у маршрута уже есть room context; внутри room route `GameUiShell` продолжает жить отдельно от canvas
 - **Единая UI mode model**: `GameUiContext` задаёт состояния `LOADING`, `LOBBY`, `ROOM_LOADING`, `SAILING`, `CHAT_FOCUS`, `WINDOW_FOCUS`, `MENU_OPEN`, `RECONNECTING`, `RESPAWN`
 - **Явный navigation flow `Home -> Lobby -> Game`**: домашняя страница ведёт в `/lobby`, а при уже активной room session меняет CTA на `Return to room`; отдельная `LobbyPage` показывает room catalog/create/join actions и lobby chat без загрузки gameplay scene; `Join room` стартует на lobby route, проходит через REST `POST /api/v1/rooms/{roomId}/join`, WS `ROOM_JOINED`, `SPAWN_ASSIGNED` и финальный `INIT_GAME_STATE/current player`, и только после полного init flow переводит пользователя в `/game`

@@ -87,6 +87,7 @@ describe('WebSocket send regressions (chat + keyboard)', () => {
     keyboardSubscriber = null;
     localStorage.clear();
     localStorage.setItem('token', 'test-token');
+    localStorage.setItem('auth-user', JSON.stringify({ username: 'alice' }));
     vi.stubGlobal('WebSocket', MockWebSocket);
 
     if (!Element.prototype.scrollIntoView) {
@@ -142,3 +143,4 @@ describe('WebSocket send regressions (chat + keyboard)', () => {
     warnSpy.mockRestore();
   });
 });
+

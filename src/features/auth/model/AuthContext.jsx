@@ -1,9 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 import { authApi } from '../../../shared/api/authApi';
 
 const AuthContext = createContext();
+const TOKEN_STORAGE_KEY = 'token';
+const USER_STORAGE_KEY = 'auth-user';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -25,14 +27,83 @@ const buildAuthenticatedUser = (authData) => {
   return user;
 };
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true);
+const parseStoredUser = () => {
+  const rawUser = localStorage.getItem(USER_STORAGE_KEY);
+  if (!rawUser) {
+    return null;
+  }
 
-  useEffect(() => {
-    setLoading(false);
-  }, [token]);
+  try {
+    const parsedUser = JSON.parse(rawUser);
+    return typeof parsedUser?.username === 'string' && parsedUser.username.trim()
+      ? buildAuthenticatedUser(parsedUser)
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+const decodeBase64Url = (value) => {
+  const normalizedValue = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padding = '='.repeat((4 - normalizedValue.length % 4) % 4);
+  const decoder = typeof atob === 'function'
+    ? atob
+    : (input) => Buffer.from(input, 'base64').toString('binary');
+  return decoder(`${normalizedValue}${padding}`);
+};
+
+const parseUserFromToken = (token) => {
+  if (!token || !token.includes('.')) {
+    return null;
+  }
+
+  try {
+    const [, payloadSegment] = token.split('.');
+    const payload = JSON.parse(decodeBase64Url(payloadSegment));
+    const username = payload?.sub ?? payload?.username;
+    if (typeof username !== 'string' || !username.trim()) {
+      return null;
+    }
+    return { username };
+  } catch {
+    return null;
+  }
+};
+
+const clearStoredSession = () => {
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+  localStorage.removeItem(USER_STORAGE_KEY);
+};
+
+const persistSession = (authData) => {
+  const nextUser = buildAuthenticatedUser(authData);
+  localStorage.setItem(TOKEN_STORAGE_KEY, authData.token);
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser));
+  return nextUser;
+};
+
+const restoreSession = () => {
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+  if (!token) {
+    return { token: null, user: null };
+  }
+
+  const storedUser = parseStoredUser();
+  const restoredUser = storedUser ?? parseUserFromToken(token);
+  if (!restoredUser) {
+    clearStoredSession();
+    return { token: null, user: null };
+  }
+
+  if (!storedUser) {
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(restoredUser));
+  }
+
+  return { token, user: restoredUser };
+};
+
+export const AuthProvider = ({ children }) => {
+  const [session, setSession] = useState(restoreSession);
 
   const login = async (username, password) => {
     try {
@@ -44,9 +115,8 @@ export const AuthProvider = ({ children }) => {
           return { success: false, error: 'Invalid server response' };
         }
 
-        setToken(authData.token);
-        setUser(buildAuthenticatedUser(authData));
-        localStorage.setItem('token', authData.token);
+        const nextUser = persistSession(authData);
+        setSession({ token: authData.token, user: nextUser });
         return { success: true };
       }
 
@@ -73,19 +143,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('token');
+    clearStoredSession();
+    setSession({ token: null, user: null });
   };
 
   const value = {
-    user,
-    token,
-    loading,
+    user: session.user,
+    token: session.token,
+    loading: false,
     login,
     signup,
     logout,
-    isAuthenticated: !!token && !!user
+    isAuthenticated: !!session.token && !!session.user,
   };
 
   return (
@@ -94,3 +163,4 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+

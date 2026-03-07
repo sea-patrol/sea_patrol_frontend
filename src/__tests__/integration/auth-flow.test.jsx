@@ -293,18 +293,21 @@ describe('Auth Flow Integration', () => {
   });
 
   describe('Session persistence', () => {
-    it('should restore session from localStorage on page reload', async () => {
-      // Сохраняем токен в localStorage
+    it('should restore authenticated session from localStorage on page reload', async () => {
       localStorage.setItem('token', 'test-jwt-token-valid-user');
+      localStorage.setItem('auth-user', JSON.stringify({ username: testUsers.validUser.username }));
 
       renderAuthFlow();
 
-      // Токен загружен, но пользователь еще не установлен (требуется login)
-      // AuthContext загружает токен из localStorage при инициализации
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status').textContent).toBe('authenticated');
+      });
 
-      // Проверяем, что токен в localStorage
+      expect(screen.getByTestId('username').textContent).toBe(testUsers.validUser.username);
       expect(localStorage.getItem('token')).toBe('test-jwt-token-valid-user');
+      expect(localStorage.getItem('auth-user')).toBe(JSON.stringify({ username: testUsers.validUser.username }));
     });
   });
 });
+
 
