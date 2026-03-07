@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../features/auth/model/AuthContext';
+import { selectCurrentPlayerState, useGameState } from '../../features/game/model/GameStateContext';
+import { useRoomSession } from '../../features/game/model/RoomSessionContext';
 import { useWebSocket } from '../../features/realtime/model/WebSocketContext';
 import { roomApi } from '../../shared/api/roomApi';
 import * as messageType from '../../shared/constants/messageType';
@@ -67,19 +69,19 @@ function getJoinStatusCopy(joinState) {
     case ROOM_JOIN_STATUS.SUBMITTING:
       return {
         title: 'Sending room join request',
-        body: `Requesting room admission for ${roomName}. The lobby stays active until backend assigns a spawn for the room session.`,
+        body: `Requesting room admission for ${roomName}. The lobby stays active until backend confirms room initialization for the gameplay route.`,
       };
 
     case ROOM_JOIN_STATUS.AWAITING_SPAWN:
       return {
         title: 'Room admitted',
-        body: `Backend accepted the join for ${roomName}. Waiting for authoritative spawn assignment before loading the gameplay scene.`,
+        body: `Backend accepted the join for ${roomName}. Waiting for authoritative spawn assignment before room initialization continues.`,
       };
 
     case ROOM_JOIN_STATUS.AWAITING_INIT:
       return {
-        title: 'Opening room scene',
-        body: `Spawn is assigned for ${roomName}. Transitioning from the harbor lobby into the gameplay scene.`,
+        title: 'Waiting for room initialization',
+        body: `Spawn is assigned for ${roomName}. The lobby keeps the player here until authoritative room state is fully ready.`,
       };
 
     default:
@@ -90,8 +92,13 @@ function getJoinStatusCopy(joinState) {
 export default function LobbyPage() {
   const navigate = useNavigate();
   const { user, token, loading, logout } = useAuth();
+  const { state } = useGameState();
+  const { roomSession, startRoomJoin, applyRoomJoined, applySpawnAssigned, clearRoomSession } = useRoomSession();
   const { subscribe } = useWebSocket();
   const [joinState, setJoinState] = useState(createInitialJoinState);
+
+  const currentPlayerState = selectCurrentPlayerState(state, user?.username);
+  const hasActiveRoom = Boolean(currentPlayerState && roomSession.room);
 
   useEffect(() => {
     if (!token) {
@@ -110,10 +117,13 @@ export default function LobbyPage() {
           return prevState;
         }
 
+        const room = resolveRoomMeta(payload, prevState.room);
+        applyRoomJoined(payload, room);
+
         return {
           ...prevState,
           status: ROOM_JOIN_STATUS.AWAITING_SPAWN,
-          room: resolveRoomMeta(payload, prevState.room),
+          room,
           joinResponse: payload,
           error: null,
         };
@@ -126,10 +136,13 @@ export default function LobbyPage() {
           return prevState;
         }
 
+        const room = resolveRoomMeta(payload, prevState.room);
+        applySpawnAssigned(payload, room);
+
         return {
           ...prevState,
           status: ROOM_JOIN_STATUS.AWAITING_INIT,
-          room: resolveRoomMeta(payload, prevState.room),
+          room,
           spawn: payload,
           error: null,
         };
@@ -144,6 +157,7 @@ export default function LobbyPage() {
 
         const roomId = payload?.roomId || prevState.room?.id;
         const reason = payload?.reason || 'UNKNOWN';
+        clearRoomSession();
 
         return {
           status: ROOM_JOIN_STATUS.ERROR,
@@ -160,28 +174,22 @@ export default function LobbyPage() {
       unsubscribeSpawnAssigned();
       unsubscribeJoinRejected();
     };
-  }, [subscribe, token]);
+  }, [applyRoomJoined, applySpawnAssigned, clearRoomSession, subscribe, token]);
 
   useEffect(() => {
-    if (
-      joinState.status !== ROOM_JOIN_STATUS.AWAITING_INIT
-      || !joinState.room
-      || !joinState.joinResponse
-      || !joinState.spawn
-    ) {
-      return;
-    }
-
-    navigate('/game', {
-      state: {
-        roomEntry: {
-          room: joinState.room,
-          joinResponse: joinState.joinResponse,
-          spawn: joinState.spawn,
+    if (hasActiveRoom) {
+      navigate('/game', {
+        replace: true,
+        state: {
+          roomEntry: {
+            room: roomSession.room,
+            joinResponse: roomSession.joinResponse,
+            spawn: roomSession.spawn,
+          },
         },
-      },
-    });
-  }, [joinState, navigate]);
+      });
+    }
+  }, [hasActiveRoom, navigate, roomSession]);
 
   const handleJoinRoom = async (room) => {
     if (!token) {
@@ -194,6 +202,7 @@ export default function LobbyPage() {
       return;
     }
 
+    startRoomJoin(room);
     setJoinState({
       ...createInitialJoinState(),
       status: ROOM_JOIN_STATUS.SUBMITTING,
@@ -202,6 +211,7 @@ export default function LobbyPage() {
 
     const result = await roomApi.joinRoom(token, room.id);
     if (!result.ok) {
+      clearRoomSession();
       setJoinState({
         ...createInitialJoinState(),
         status: ROOM_JOIN_STATUS.ERROR,
@@ -211,6 +221,7 @@ export default function LobbyPage() {
       return;
     }
 
+    applyRoomJoined(result.data, room);
     setJoinState({
       ...createInitialJoinState(),
       status: ROOM_JOIN_STATUS.AWAITING_SPAWN,
@@ -234,7 +245,7 @@ export default function LobbyPage() {
           <p className="lobby-page__eyebrow">Sea Patrol</p>
           <h1>Harbor Lobby</h1>
           <p className="lobby-page__lead">
-            Choose a room, open a new harbor instance and keep the lobby chat active without loading the 3D sea until room entry is confirmed.
+            This is the harbor state of the app: no gameplay scene, just rooms, chat and room-entry progress before the captain is moved into a live sea instance.
           </p>
         </div>
         <div className="lobby-page__actions">
@@ -250,6 +261,21 @@ export default function LobbyPage() {
           </button>
         </div>
       </header>
+
+      <section className="lobby-page__state-strip" aria-label="Current application state">
+        <div>
+          <span>Route state</span>
+          <strong>Lobby</strong>
+        </div>
+        <div>
+          <span>Next route</span>
+          <strong>Room</strong>
+        </div>
+        <div>
+          <span>Transition rule</span>
+          <strong>Join + init complete</strong>
+        </div>
+      </section>
 
       {joinStatusCopy && (
         <section className="lobby-page__notice" aria-live="polite">
@@ -273,7 +299,7 @@ export default function LobbyPage() {
             <div className="lobby-page__chat-copy">
               <p className="lobby-page__eyebrow">Dockside channel</p>
               <h2>Lobby chat</h2>
-              <p>Messages stay in `group:lobby` until backend confirms room admission and spawn assignment.</p>
+              <p>Messages stay in `group:lobby` until backend confirms both room admission and room initialization for the gameplay route.</p>
             </div>
             <div className="lobby-page__chat-shell">
               <ChatBlock chatScope={LOBBY_CHAT_SCOPE} />

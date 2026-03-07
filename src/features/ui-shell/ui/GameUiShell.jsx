@@ -7,6 +7,7 @@ import GameUiHotkeys from './GameUiHotkeys';
 
 import { useAuth } from '@/features/auth/model/AuthContext';
 import { selectCurrentPlayerState, useGameState } from '@/features/game/model/GameStateContext';
+import { useRoomSession } from '@/features/game/model/RoomSessionContext';
 import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
 import * as messageType from '@/shared/constants/messageType';
 import ChatBlock from '@/widgets/ChatPanel/ChatBlock';
@@ -150,6 +151,7 @@ export default function GameUiShell({ initialRoomEntry = null }) {
   const chatInputRef = useRef(null);
   const { user, token, loading } = useAuth();
   const { state } = useGameState();
+  const { roomSession, markRoomActive } = useRoomSession();
   const { hasToken, isConnected, lastClose, subscribe } = useWebSocket();
   const { activeWindow, mode, openChat, returnToSailing, setScreenMode, toggleMenu, toggleWindow } = useGameUi();
   const [roomJoinState, setRoomJoinState] = useState(() => createInitialRoomJoinState(initialRoomEntry));
@@ -171,10 +173,29 @@ export default function GameUiShell({ initialRoomEntry = null }) {
   }, [token]);
 
   useEffect(() => {
+    const sessionRoomMeta = resolveRoomMeta(roomSession.room, roomSession.room ?? null);
+    const initialRoomMeta = resolveRoomMeta(initialRoomEntry?.room ?? initialRoomEntry?.joinResponse, initialRoomEntry?.room ?? null);
+    const nextRoomMeta = sessionRoomMeta ?? initialRoomMeta;
+
+    if (!nextRoomMeta?.id) {
+      return;
+    }
+
+    setActiveRoomMeta((prevState) => {
+      if (prevState?.id === nextRoomMeta.id && prevState?.name === nextRoomMeta.name) {
+        return prevState;
+      }
+
+      return nextRoomMeta;
+    });
+  }, [initialRoomEntry, roomSession.room]);
+
+  useEffect(() => {
     if (!hasActiveRoomState) {
       return;
     }
 
+    markRoomActive();
     setRoomJoinState((prevState) => {
       if (prevState.status === ROOM_JOIN_STATUS.IDLE) {
         return prevState;
@@ -182,7 +203,7 @@ export default function GameUiShell({ initialRoomEntry = null }) {
 
       return createInitialRoomJoinState();
     });
-  }, [hasActiveRoomState]);
+  }, [hasActiveRoomState, markRoomActive]);
 
   useEffect(() => {
     const unsubscribeRoomJoined = subscribe(messageType.ROOM_JOINED, (payload) => {
@@ -270,11 +291,11 @@ export default function GameUiShell({ initialRoomEntry = null }) {
     }
 
     if (hasActiveRoomState || mode === GAME_UI_MODE.RECONNECTING) {
-      return createRoomChatScope(activeRoomMeta);
+      return createRoomChatScope(activeRoomMeta ?? roomSession.room);
     }
 
     return LOBBY_CHAT_SCOPE;
-  }, [activeRoomMeta, hasActiveRoomState, isPendingRoomJoin, mode, roomJoinState.joinResponse, roomJoinState.room]);
+  }, [activeRoomMeta, hasActiveRoomState, isPendingRoomJoin, mode, roomJoinState.joinResponse, roomJoinState.room, roomSession.room]);
 
   const handleOpenChat = () => {
     openChat();

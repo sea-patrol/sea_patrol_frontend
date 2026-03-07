@@ -172,9 +172,9 @@ Response `200 OK`:
 Важно для frontend:
 - `join` стартует из отдельной HTML-first lobby page кнопкой `Join room`;
 - ошибки `404` / `409` показываются пользователю прямо на lobby route;
-- после REST `200 OK` lobby page остаётся активной и ждёт authoritative `SPAWN_ASSIGNED`;
-- переход на `/game` и монтирование gameplay scene происходят только после получения spawn assignment;
-- room shell внутри `/game` продолжает ждать `INIT_GAME_STATE/current player`, поэтому клиент не считает room entry завершённым только по REST success.
+- после REST `200 OK` lobby page остаётся активной и ждёт полный authoritative init flow: `ROOM_JOINED` -> `SPAWN_ASSIGNED` -> `INIT_GAME_STATE/current player`;
+- переход на `/game` и монтирование gameplay scene происходят только после появления current player snapshot, а не только после spawn assignment;
+- metadata room entry хранится в `RoomSessionContext`, поэтому пользователь может безопасно вернуться на `/game` с домашней страницы, пока room session остаётся активной.
 
 ## 4. WebSocket API
 
@@ -187,7 +187,8 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 `/ws/game?token=<jwt>`
 
 Дополнение по текущей frontend архитектуре:
-- `WebSocketProvider` живёт выше маршрутов, поэтому SPA-переход `/lobby -> /game` не рвёт WS-сессию;
+- `WebSocketProvider` живёт выше маршрутов, поэтому SPA-переходы `Home -> Lobby -> Game` не рвут WS-сессию;
+- `RoomSessionProvider` хранит room metadata поверх маршрутов и позволяет повторно открыть `/game`, не теряя active room context;
 - room/game state подписки тоже подняты выше страницы сцены, чтобы не потерять ранние room init сообщения во время route transition.
 
 ### 4.2 Формат сообщений
@@ -267,8 +268,8 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 
 Особенности для frontend:
 - canonical room enter flow: `POST /api/v1/rooms/{roomId}/join` -> `ROOM_JOINED` -> `SPAWN_ASSIGNED` -> `INIT_GAME_STATE`;
-- frontend переводит shell в `ROOM_LOADING` после REST success и держит его там до появления current player в game state;
-- `SPAWN_ASSIGNED` используется как authoritative signal, что spawn уже назначен, но сам переход в `SAILING` происходит только после `INIT_GAME_STATE` / current player snapshot.
+- frontend держит пользователя на `/lobby` после REST success и переключает маршрут на `/game` только после появления current player в game state;
+- `SPAWN_ASSIGNED` используется как authoritative signal, что spawn уже назначен, но сам переход в room route и последующий `SAILING` происходят только после `INIT_GAME_STATE` / current player snapshot.
 
 #### Используются текущим gameplay UI/runtime
 

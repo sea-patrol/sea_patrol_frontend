@@ -78,7 +78,7 @@ src/
 ├── features/             # Фичи (ui + model)
 │   ├── auth/             # AuthContext + формы
 │   ├── realtime/         # WebSocketContext
-│   ├── game/             # GameStateContext + global realtime bridge
+│   ├── game/             # GameStateContext + RoomSessionContext + global realtime bridge
 │   ├── player-controls/  # KeyPress c проверкой UI mode
 │   ├── ui-shell/         # GameUiContext + GameUiShell + централизованные hotkeys
 │   └── ships/            # Ship UI + interpolation
@@ -100,11 +100,11 @@ src/
 ### 3.3 Architecture Decisions
 
 - **Минимум зависимостей**: Только необходимые библиотеки для React/Vite/R3F
-- **Context API для глобального состояния**: Auth, WebSocket и GameState подняты выше роутов, а route-local `GameUi` управляет только room/game shell without Redux/Zustand
+- **Context API для глобального состояния**: Auth, WebSocket, GameState и RoomSession подняты выше роутов, а route-local `GameUi` управляет только room/game shell without Redux/Zustand
 - **UI shell отдельно от 3D-сцены**: `LobbyPage` теперь HTML-first и вообще не монтирует `Canvas`, а `GamePage` поднимает 3D-сцену только когда у маршрута уже есть room context; внутри room route `GameUiShell` продолжает жить отдельно от canvas
 - **Единая UI mode model**: `GameUiContext` задаёт состояния `LOADING`, `LOBBY`, `ROOM_LOADING`, `SAILING`, `CHAT_FOCUS`, `WINDOW_FOCUS`, `MENU_OPEN`, `RECONNECTING`, `RESPAWN`
-- **Явный navigation flow `Home -> Lobby -> Game`**: домашняя страница ведёт в `/lobby`, отдельная `LobbyPage` показывает room catalog/create/join actions и lobby chat без загрузки gameplay scene; `Join room` стартует на lobby route, вызывает REST `POST /api/v1/rooms/{roomId}/join`, ждёт WS `SPAWN_ASSIGNED` и только потом переводит пользователя в `/game`, где room shell ждёт `INIT_GAME_STATE/current player` перед переходом в `SAILING`
-- **Глобальный realtime bridge поверх роутов**: `WebSocketProvider`, `GameStateProvider` и `GameRealtimeBridge` живут выше страниц, поэтому переход `Lobby -> Game` не рвёт WS-сессию и не теряет ранние room init сообщения
+- **Явный navigation flow `Home -> Lobby -> Game`**: домашняя страница ведёт в `/lobby`, а при уже активной room session меняет CTA на `Return to room`; отдельная `LobbyPage` показывает room catalog/create/join actions и lobby chat без загрузки gameplay scene; `Join room` стартует на lobby route, проходит через REST `POST /api/v1/rooms/{roomId}/join`, WS `ROOM_JOINED`, `SPAWN_ASSIGNED` и финальный `INIT_GAME_STATE/current player`, и только после полного init flow переводит пользователя в `/game`
+- **Глобальный realtime bridge и room session поверх роутов**: `WebSocketProvider`, `GameStateProvider`, `RoomSessionProvider` и `GameRealtimeBridge` живут выше страниц, поэтому переходы `Home -> Lobby -> Game` не рвут WS-сессию, не теряют ранние room init сообщения и позволяют безопасно открыть `/game` повторно после возврата на домашний экран
 - **Scoped chat UI**: `LobbyPage` использует `ChatBlock` как standalone lobby chat widget для `group:lobby`, а `GameUiShell` держит room-scoped chat для `group:room:<roomId>`; истории lobby/room сообщений по-прежнему разделены по `payload.to`, без смешивания между комнатами
 - **Централизованные UI hotkeys**: `Enter`, `Esc`, `I`, `J`, `M` обрабатываются в одном слое (`GameUiHotkeys`), а gameplay input учитывает текущий UI mode
 - **Client-side prediction**: Интерполяция позиций кораблей между обновлениями сервера для плавности
@@ -165,9 +165,9 @@ src/
 - `npm run test:coverage` — запуск с отчётом о покрытии
 
 **Текущее покрытие**:
-- 20 тестовых файлов
-- 102 теста (все проходят ✅)
-- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init flow, LobbyPage route join/navigation, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
+- 21 тестовый файл
+- 105 тестов (все проходят ✅)
+- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
 
 ## 4. Working Commands
 
@@ -186,7 +186,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 20 файлов, 102 теста (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init flow, LobbyPage route join/navigation, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
+**Текущее покрытие**: 21 файл, 105 тестов (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.

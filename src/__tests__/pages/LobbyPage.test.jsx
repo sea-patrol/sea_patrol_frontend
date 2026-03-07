@@ -28,6 +28,52 @@ let authState = {
   logout: logoutMock,
 };
 
+let mockGameState = {
+  state: { playerStates: {} },
+};
+
+function createInitialRoomSessionState() {
+  return {
+    phase: 'idle',
+    room: null,
+    joinResponse: null,
+    spawn: null,
+  };
+}
+
+let mockRoomSessionState = createInitialRoomSessionState();
+
+const startRoomJoinMock = vi.fn((room) => {
+  mockRoomSessionState = {
+    phase: 'joining',
+    room: room ? { id: room.id, name: room.name ?? room.id } : null,
+    joinResponse: null,
+    spawn: null,
+  };
+});
+
+const applyRoomJoinedMock = vi.fn((payload, fallbackRoom = null) => {
+  mockRoomSessionState = {
+    phase: 'joined',
+    room: fallbackRoom ?? mockRoomSessionState.room,
+    joinResponse: payload,
+    spawn: mockRoomSessionState.spawn,
+  };
+});
+
+const applySpawnAssignedMock = vi.fn((payload, fallbackRoom = null) => {
+  mockRoomSessionState = {
+    phase: 'spawned',
+    room: fallbackRoom ?? mockRoomSessionState.room,
+    joinResponse: mockRoomSessionState.joinResponse,
+    spawn: payload,
+  };
+});
+
+const clearRoomSessionMock = vi.fn(() => {
+  mockRoomSessionState = createInitialRoomSessionState();
+});
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
@@ -38,6 +84,21 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('@/features/auth/model/AuthContext', () => ({
   useAuth: () => authState,
+}));
+
+vi.mock('@/features/game/model/GameStateContext', () => ({
+  useGameState: () => mockGameState,
+  selectCurrentPlayerState: (state, currentPlayerName) => state?.playerStates?.[currentPlayerName],
+}));
+
+vi.mock('@/features/game/model/RoomSessionContext', () => ({
+  useRoomSession: () => ({
+    roomSession: mockRoomSessionState,
+    startRoomJoin: startRoomJoinMock,
+    applyRoomJoined: applyRoomJoinedMock,
+    applySpawnAssigned: applySpawnAssignedMock,
+    clearRoomSession: clearRoomSessionMock,
+  }),
 }));
 
 vi.mock('@/features/realtime/model/WebSocketContext', () => ({
@@ -85,16 +146,24 @@ describe('LobbyPage', () => {
     logoutMock.mockReset();
     subscribeMock.mockClear();
     wsSubscribers.clear();
+    startRoomJoinMock.mockClear();
+    applyRoomJoinedMock.mockClear();
+    applySpawnAssignedMock.mockClear();
+    clearRoomSessionMock.mockClear();
     authState = {
       user: { username: 'alice' },
       token: 'test-token',
       loading: false,
       logout: logoutMock,
     };
+    mockGameState = {
+      state: { playerStates: {} },
+    };
+    mockRoomSessionState = createInitialRoomSessionState();
     roomApi.joinRoom.mockReset();
   });
 
-  it('renders a html-first lobby and moves to /game only after spawn assignment', async () => {
+  it('renders a html-first lobby and moves to /game only after current player init is ready', async () => {
     const user = userEvent.setup();
 
     roomApi.joinRoom.mockResolvedValueOnce({
@@ -109,7 +178,7 @@ describe('LobbyPage', () => {
       },
     });
 
-    const { container } = render(
+    const { container, rerender } = render(
       <MemoryRouter>
         <LobbyPage />
       </MemoryRouter>,
@@ -144,8 +213,26 @@ describe('LobbyPage', () => {
       });
     });
 
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(screen.getByText('Waiting for room initialization')).toBeInTheDocument();
+
+    mockGameState = {
+      state: {
+        playerStates: {
+          alice: { name: 'alice', x: 0, z: 0, angle: 0 },
+        },
+      },
+    };
+
+    rerender(
+      <MemoryRouter>
+        <LobbyPage />
+      </MemoryRouter>,
+    );
+
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith('/game', {
+        replace: true,
         state: {
           roomEntry: {
             room: { id: 'sandbox-1', name: 'Sandbox 1' },

@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../../features/auth/model/AuthContext';
 import { selectCurrentPlayerState, useGameState } from '../../features/game/model/GameStateContext';
+import { useRoomSession } from '../../features/game/model/RoomSessionContext';
 import { GameUiProvider } from '../../features/ui-shell/model/GameUiContext';
 import GameUiShell from '../../features/ui-shell/ui/GameUiShell';
 import GameMainScene from '../../scene/GameMainScene';
@@ -23,10 +25,22 @@ function GamePage() {
   const location = useLocation();
   const { user, token, loading } = useAuth();
   const { state } = useGameState();
+  const { roomSession, hydrateRoomEntry } = useRoomSession();
 
-  const initialRoomEntry = normalizeRoomEntry(location.state?.roomEntry);
+  const locationRoomEntry = normalizeRoomEntry(location.state?.roomEntry);
+  const effectiveRoomEntry = locationRoomEntry ?? (roomSession.room ? {
+    room: roomSession.room,
+    joinResponse: roomSession.joinResponse,
+    spawn: roomSession.spawn,
+  } : null);
   const currentPlayerState = selectCurrentPlayerState(state, user?.username);
-  const hasRoomContext = Boolean(initialRoomEntry || currentPlayerState);
+  const hasRoomContext = Boolean(effectiveRoomEntry?.room || currentPlayerState);
+
+  useEffect(() => {
+    if (locationRoomEntry) {
+      hydrateRoomEntry(locationRoomEntry);
+    }
+  }, [hydrateRoomEntry, locationRoomEntry]);
 
   if (!loading && !token) {
     return <Navigate to="/" replace />;
@@ -48,10 +62,15 @@ function GamePage() {
       <div className="game-page game-page--guard">
         <section className="game-page__guard-card" aria-live="polite">
           <h1>No active room session</h1>
-          <p>Open the harbor lobby first, then join a room before loading the gameplay scene.</p>
-          <Link className="game-page__guard-link" to="/lobby">
-            Return to lobby
-          </Link>
+          <p>This route is reserved for the room state. Open the harbor lobby and finish room join initialization first.</p>
+          <div className="game-page__guard-actions">
+            <Link className="game-page__guard-link" to="/lobby">
+              Return to lobby
+            </Link>
+            <Link className="game-page__ghost-link" to="/">
+              Home
+            </Link>
+          </div>
         </section>
       </div>
     );
@@ -62,7 +81,7 @@ function GamePage() {
       <GameUiProvider>
         <div className="game-page__viewport">
           <GameMainScene />
-          <GameUiShell initialRoomEntry={initialRoomEntry} />
+          <GameUiShell initialRoomEntry={effectiveRoomEntry} />
         </div>
       </GameUiProvider>
     </div>

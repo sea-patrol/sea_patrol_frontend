@@ -11,6 +11,24 @@ let mockGameState = {
   state: { playerStates: {} },
 };
 
+function createInitialRoomSessionState() {
+  return {
+    phase: 'idle',
+    room: null,
+    joinResponse: null,
+    spawn: null,
+  };
+}
+
+let mockRoomSessionState = createInitialRoomSessionState();
+
+const markRoomActiveMock = vi.fn(() => {
+  mockRoomSessionState = {
+    ...mockRoomSessionState,
+    phase: mockRoomSessionState.room ? 'active' : mockRoomSessionState.phase,
+  };
+});
+
 const wsSubscribers = new Map();
 const subscribeMock = vi.fn((type, callback) => {
   if (!wsSubscribers.has(type)) {
@@ -40,6 +58,13 @@ vi.mock('@/features/auth/model/AuthContext', () => ({
 vi.mock('@/features/game/model/GameStateContext', () => ({
   useGameState: () => mockGameState,
   selectCurrentPlayerState: (state, currentPlayerName) => state?.playerStates?.[currentPlayerName],
+}));
+
+vi.mock('@/features/game/model/RoomSessionContext', () => ({
+  useRoomSession: () => ({
+    roomSession: mockRoomSessionState,
+    markRoomActive: markRoomActiveMock,
+  }),
 }));
 
 vi.mock('@/features/realtime/model/WebSocketContext', () => ({
@@ -85,6 +110,8 @@ describe('GameUiShell room init flow', () => {
     mockGameState = {
       state: { playerStates: {} },
     };
+    mockRoomSessionState = createInitialRoomSessionState();
+    markRoomActiveMock.mockClear();
     mockWsState = {
       hasToken: true,
       isConnected: true,
@@ -150,6 +177,7 @@ describe('GameUiShell room init flow', () => {
       expect(screen.queryByText('Initializing room state')).not.toBeInTheDocument();
       expect(screen.getByTestId('profile-block')).toBeInTheDocument();
       expect(screen.getByTestId('chat-block')).toHaveTextContent('Room | Sandbox 1 (sandbox-1) | group:room:sandbox-1');
+      expect(markRoomActiveMock).toHaveBeenCalled();
     });
   });
 
@@ -182,6 +210,47 @@ describe('GameUiShell room init flow', () => {
     await waitFor(() => {
       expect(screen.getByText('Room entry failed')).toBeInTheDocument();
       expect(screen.getByText('Room join rejected for sandbox-1: FULL')).toBeInTheDocument();
+    });
+  });
+
+  it('uses persisted room session metadata when the room route is reopened without route state', async () => {
+    mockRoomSessionState = {
+      phase: 'spawned',
+      room: { id: 'sandbox-2', name: 'Sandbox 2' },
+      joinResponse: {
+        roomId: 'sandbox-2',
+        mapId: 'caribbean-01',
+        mapName: 'Caribbean Sea',
+        currentPlayers: 1,
+        maxPlayers: 100,
+        status: 'JOINED',
+      },
+      spawn: {
+        roomId: 'sandbox-2',
+        reason: 'INITIAL',
+        x: 4,
+        z: 8,
+        angle: 0,
+      },
+    };
+    mockGameState = {
+      state: {
+        playerStates: {
+          alice: { name: 'alice', x: 4, z: 8, angle: 0 },
+        },
+      },
+    };
+
+    render(
+      <GameUiProvider>
+        <GameUiShell />
+      </GameUiProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-block')).toBeInTheDocument();
+      expect(screen.getByTestId('chat-block')).toHaveTextContent('Room | Sandbox 2 (sandbox-2) | group:room:sandbox-2');
+      expect(markRoomActiveMock).toHaveBeenCalled();
     });
   });
 });
