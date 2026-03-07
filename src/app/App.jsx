@@ -1,20 +1,30 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 
 import { AuthProvider } from '../features/auth/model/AuthContext';
+import GameRealtimeBridge from '../features/game/model/GameRealtimeBridge';
+import { GameStateProvider } from '../features/game/model/GameStateContext';
+import { WebSocketProvider } from '../features/realtime/model/WebSocketContext';
 import GamePage from '../pages/GamePage';
 import HomePage from '../pages/HomePage';
+import LobbyPage from '../pages/LobbyPage';
 import './App.css';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="app">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/game" element={<GamePage />} />
-          </Routes>
-        </div>
+        <WebSocketProvider>
+          <GameStateProvider>
+            <GameRealtimeBridge />
+            <div className="app">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/lobby" element={<LobbyPage />} />
+                <Route path="/game" element={<GamePage />} />
+              </Routes>
+            </div>
+          </GameStateProvider>
+        </WebSocketProvider>
       </Router>
     </AuthProvider>
   );

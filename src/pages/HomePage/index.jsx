@@ -10,11 +10,11 @@ function HomePage() {
   const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
-  const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
+  const [authMode, setAuthMode] = useState('login');
 
   const handlePlay = () => {
     if (isAuthenticated) {
-      navigate('/game');
+      navigate('/lobby');
     } else {
       setShowAuth(true);
       setAuthMode('login');
@@ -23,12 +23,11 @@ function HomePage() {
 
   const handleLoginSuccess = () => {
     setShowAuth(false);
-    navigate('/game');
+    navigate('/lobby');
   };
 
   const handleSignupSuccess = () => {
     setAuthMode('login');
-    // Could also automatically log them in or show a success message
   };
 
   const handleLogout = () => {
@@ -43,12 +42,12 @@ function HomePage() {
     <div className="home-page">
       <div className="content">
         <h1>Sea Patrol</h1>
-        
+
         {isAuthenticated ? (
           <div className="user-info">
             <p>Welcome, {user?.username}!</p>
             <button className="play-button" onClick={handlePlay}>
-              Play
+              Enter lobby
             </button>
             <button className="logout-button" onClick={handleLogout}>
               Logout
@@ -57,9 +56,9 @@ function HomePage() {
         ) : (
           <div className="guest-actions">
             <button className="play-button" onClick={handlePlay}>
-              Play
+              Enter lobby
             </button>
-            <p className="login-hint">You need to login to play the game</p>
+            <p className="login-hint">You need to login to reach the harbor lobby</p>
           </div>
         )}
       </div>

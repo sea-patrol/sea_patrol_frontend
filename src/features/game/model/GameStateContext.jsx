@@ -1,10 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
-// GameStateContext.js
 import { createContext, useContext, useMemo, useReducer, useRef } from 'react';
 
 import * as messageType from '../../../shared/constants/messageType';
 
-// Создаем контекст
 const GameStateContext = createContext();
 
 export const initialGameState = Object.freeze({
@@ -67,6 +65,9 @@ function applyDefinedPatch(prev, patch) {
 
 export function gameStateReducer(state, action) {
   switch (action?.type) {
+    case 'RESET_STATE':
+      return initialGameState;
+
     case messageType.INIT_GAME_STATE: {
       const players = action?.payload?.players ?? [];
 
@@ -142,7 +143,6 @@ export function gameStateReducer(state, action) {
   }
 }
 
-// Провайдер для gameState
 export function GameStateProvider({ children }) {
   const [state, dispatch] = useReducer(gameStateReducer, initialGameState);
 
@@ -158,7 +158,6 @@ export function GameStateProvider({ children }) {
   );
 }
 
-// Хук для использования gameState
 export function useGameState() {
   const context = useContext(GameStateContext);
   if (!context) {

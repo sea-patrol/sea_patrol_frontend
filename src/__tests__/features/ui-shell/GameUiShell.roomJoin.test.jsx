@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockAuthState = {
@@ -46,22 +46,6 @@ vi.mock('@/features/realtime/model/WebSocketContext', () => ({
   useWebSocket: () => mockWsState,
 }));
 
-vi.mock('@/shared/api/roomApi', () => ({
-  roomApi: {
-    joinRoom: vi.fn(),
-  },
-}));
-
-vi.mock('@/widgets/LobbyPanel/LobbyPanel', () => ({
-  default: ({ onJoinRoom, joiningRoomId, joinError }) => (
-    <section>
-      <button type="button" onClick={() => onJoinRoom?.({ id: 'sandbox-1', name: 'Sandbox 1' })}>Join sandbox</button>
-      <div data-testid="joining-room">{joiningRoomId ?? 'none'}</div>
-      {joinError && <div data-testid="join-error">{joinError}</div>}
-    </section>
-  ),
-}));
-
 vi.mock('@/widgets/ChatPanel/ChatBlock', () => ({
   default: ({ chatScope }) => (
     <div data-testid="chat-block">
@@ -80,7 +64,6 @@ vi.mock('@/widgets/GameHud/ProfileBlock', () => ({
 
 import { GameUiProvider } from '../../../features/ui-shell/model/GameUiContext';
 import GameUiShell from '../../../features/ui-shell/ui/GameUiShell';
-import { roomApi } from '../../../shared/api/roomApi';
 import * as messageType from '../../../shared/constants/messageType';
 
 function emitWsMessage(type, payload) {
@@ -92,7 +75,7 @@ function emitWsMessage(type, payload) {
   subscribers.forEach((callback) => callback(payload));
 }
 
-describe('GameUiShell room join flow', () => {
+describe('GameUiShell room init flow', () => {
   beforeEach(() => {
     mockAuthState = {
       user: { username: 'alice' },
@@ -108,15 +91,14 @@ describe('GameUiShell room join flow', () => {
       lastClose: null,
       subscribe: subscribeMock,
     };
-    roomApi.joinRoom.mockReset();
     subscribeMock.mockClear();
     wsSubscribers.clear();
   });
 
-  it('moves from lobby join into room loading and then sailing after room init arrives', async () => {
-    roomApi.joinRoom.mockResolvedValueOnce({
-      ok: true,
-      data: {
+  it('keeps room loading until current player snapshot arrives', async () => {
+    const initialRoomEntry = {
+      room: { id: 'sandbox-1', name: 'Sandbox 1' },
+      joinResponse: {
         roomId: 'sandbox-1',
         mapId: 'caribbean-01',
         mapName: 'Caribbean Sea',
@@ -124,40 +106,16 @@ describe('GameUiShell room join flow', () => {
         maxPlayers: 100,
         status: 'JOINED',
       },
-    });
+    };
 
     const { rerender } = render(
       <GameUiProvider>
-        <GameUiShell />
+        <GameUiShell initialRoomEntry={initialRoomEntry} />
       </GameUiProvider>,
     );
 
-    expect(screen.getByTestId('chat-block')).toHaveTextContent('Lobby | Lobby chat | group:lobby');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Join sandbox' }));
-
-    await waitFor(() => {
-      expect(roomApi.joinRoom).toHaveBeenCalledWith('test-token', 'sandbox-1');
-    });
-
-    expect(screen.getByText('Room admitted')).toBeInTheDocument();
-    expect(screen.getByText(/Waiting for ROOM_JOINED/)).toBeInTheDocument();
+    expect(screen.getByText('Assigning spawn')).toBeInTheDocument();
     expect(screen.getByTestId('chat-block')).toHaveTextContent('Room | Sandbox 1 (sandbox-1) | group:room:sandbox-1');
-
-    await act(async () => {
-      emitWsMessage(messageType.ROOM_JOINED, {
-        roomId: 'sandbox-1',
-        mapId: 'caribbean-01',
-        mapName: 'Caribbean Sea',
-        currentPlayers: 1,
-        maxPlayers: 100,
-        status: 'JOINED',
-      });
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText('Assigning spawn')).toBeInTheDocument();
-    });
 
     await act(async () => {
       emitWsMessage(messageType.SPAWN_ASSIGNED, {
@@ -184,7 +142,7 @@ describe('GameUiShell room join flow', () => {
 
     rerender(
       <GameUiProvider>
-        <GameUiShell />
+        <GameUiShell initialRoomEntry={initialRoomEntry} />
       </GameUiProvider>,
     );
 
@@ -195,30 +153,35 @@ describe('GameUiShell room join flow', () => {
     });
   });
 
-  it('returns join errors back to lobby UI', async () => {
-    roomApi.joinRoom.mockResolvedValueOnce({
-      ok: false,
-      error: {
-        type: 'http',
-        status: 409,
-        code: 'ROOM_FULL',
-        message: 'Room is full',
+  it('shows room entry error if backend rejects the pending room session', async () => {
+    const initialRoomEntry = {
+      room: { id: 'sandbox-1', name: 'Sandbox 1' },
+      joinResponse: {
+        roomId: 'sandbox-1',
+        mapId: 'caribbean-01',
+        mapName: 'Caribbean Sea',
+        currentPlayers: 1,
+        maxPlayers: 100,
+        status: 'JOINED',
       },
-    });
+    };
 
     render(
       <GameUiProvider>
-        <GameUiShell />
+        <GameUiShell initialRoomEntry={initialRoomEntry} />
       </GameUiProvider>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Join sandbox' }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('join-error')).toHaveTextContent('Room is full');
+    await act(async () => {
+      emitWsMessage(messageType.ROOM_JOIN_REJECTED, {
+        roomId: 'sandbox-1',
+        reason: 'FULL',
+      });
     });
 
-    expect(screen.queryByText('Joining room')).not.toBeInTheDocument();
-    expect(screen.getByTestId('chat-block')).toHaveTextContent('Lobby | Lobby chat | group:lobby');
+    await waitFor(() => {
+      expect(screen.getByText('Room entry failed')).toBeInTheDocument();
+      expect(screen.getByText('Room join rejected for sandbox-1: FULL')).toBeInTheDocument();
+    });
   });
 });

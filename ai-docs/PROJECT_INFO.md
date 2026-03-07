@@ -69,6 +69,7 @@ src/
 │   └── main.jsx
 ├── pages/                # Страницы
 │   ├── HomePage/
+│   ├── LobbyPage/
 │   └── GamePage/
 ├── widgets/              # UI-виджеты (сборки UI)
 │   ├── ChatPanel/
@@ -77,7 +78,7 @@ src/
 ├── features/             # Фичи (ui + model)
 │   ├── auth/             # AuthContext + формы
 │   ├── realtime/         # WebSocketContext
-│   ├── game/             # GameStateContext + ws→dispatch hook
+│   ├── game/             # GameStateContext + global realtime bridge
 │   ├── player-controls/  # KeyPress c проверкой UI mode
 │   ├── ui-shell/         # GameUiContext + GameUiShell + централизованные hotkeys
 │   └── ships/            # Ship UI + interpolation
@@ -99,11 +100,12 @@ src/
 ### 3.3 Architecture Decisions
 
 - **Минимум зависимостей**: Только необходимые библиотеки для React/Vite/R3F
-- **Context API для глобального состояния**: Auth, WebSocket, GameState и GameUi — без Redux/Zustand
-- **UI shell отдельно от 3D-сцены**: `GamePage` оркестрирует providers, scene и `GameUiShell`, а HUD/окна/notice overlays больше не живут внутри canvas
+- **Context API для глобального состояния**: Auth, WebSocket и GameState подняты выше роутов, а route-local `GameUi` управляет только room/game shell without Redux/Zustand
+- **UI shell отдельно от 3D-сцены**: `LobbyPage` теперь HTML-first и вообще не монтирует `Canvas`, а `GamePage` поднимает 3D-сцену только когда у маршрута уже есть room context; внутри room route `GameUiShell` продолжает жить отдельно от canvas
 - **Единая UI mode model**: `GameUiContext` задаёт состояния `LOADING`, `LOBBY`, `ROOM_LOADING`, `SAILING`, `CHAT_FOCUS`, `WINDOW_FOCUS`, `MENU_OPEN`, `RECONNECTING`, `RESPAWN`
-- **Lobby-first `/game` flow**: пока у текущего пользователя нет active room state, `GameUiShell` остаётся в `LOBBY`, рендерит `LobbyPanel`, делает первичный `GET /api/v1/rooms` и затем держит каталог актуальным через `ROOMS_SNAPSHOT` / `ROOMS_UPDATED`; `LobbyPanel` теперь совмещает room catalog, create room form и `Join room`; create flow вызывает REST `POST /api/v1/rooms`, поддерживает default map или custom `mapId`, а успешное создание сразу отражается в UI и затем синхронизируется через `ROOMS_UPDATED`; `Join room` вызывает REST `POST /api/v1/rooms/{roomId}/join`, переводит shell в `ROOM_LOADING` и ждёт `ROOM_JOINED` -> `SPAWN_ASSIGNED` -> `INIT_GAME_STATE/current player` перед переходом в `SAILING`
-- **Scoped chat UI**: `GameUiShell` теперь явно передаёт в `ChatBlock` текущий chat scope (`group:lobby` или `group:room:<roomId>`), сам виджет показывает пользователю активный scope и держит раздельные истории lobby/room сообщений по `payload.to`, без смешивания между комнатами
+- **Явный navigation flow `Home -> Lobby -> Game`**: домашняя страница ведёт в `/lobby`, отдельная `LobbyPage` показывает room catalog/create/join actions и lobby chat без загрузки gameplay scene; `Join room` стартует на lobby route, вызывает REST `POST /api/v1/rooms/{roomId}/join`, ждёт WS `SPAWN_ASSIGNED` и только потом переводит пользователя в `/game`, где room shell ждёт `INIT_GAME_STATE/current player` перед переходом в `SAILING`
+- **Глобальный realtime bridge поверх роутов**: `WebSocketProvider`, `GameStateProvider` и `GameRealtimeBridge` живут выше страниц, поэтому переход `Lobby -> Game` не рвёт WS-сессию и не теряет ранние room init сообщения
+- **Scoped chat UI**: `LobbyPage` использует `ChatBlock` как standalone lobby chat widget для `group:lobby`, а `GameUiShell` держит room-scoped chat для `group:room:<roomId>`; истории lobby/room сообщений по-прежнему разделены по `payload.to`, без смешивания между комнатами
 - **Централизованные UI hotkeys**: `Enter`, `Esc`, `I`, `J`, `M` обрабатываются в одном слое (`GameUiHotkeys`), а gameplay input учитывает текущий UI mode
 - **Client-side prediction**: Интерполяция позиций кораблей между обновлениями сервера для плавности
 - **WebSocket reconnect**: экспоненциальный backoff (1s/2s/4s/8s), лимит попыток, cleanup таймеров при logout/unmount; `LobbyPanel` показывает отдельный realtime status и после reconnect повторно получает `ROOMS_SNAPSHOT`
@@ -163,9 +165,9 @@ src/
 - `npm run test:coverage` — запуск с отчётом о покрытии
 
 **Текущее покрытие**:
-- 19 тестовых файлов
-- 101 тест (все проходят ✅)
-- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room join flow, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
+- 20 тестовых файлов
+- 102 теста (все проходят ✅)
+- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init flow, LobbyPage route join/navigation, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
 
 ## 4. Working Commands
 
@@ -184,7 +186,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 19 файлов, 101 тест (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room join flow, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
+**Текущее покрытие**: 20 файлов, 102 теста (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init flow, LobbyPage route join/navigation, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.
@@ -210,6 +212,7 @@ src/
 - Для публикации требуется корректный `base` в `vite.config.js` (под имя репозитория).
 - Основная команда проверки перед деплоем: `npm run build`.
 - PWA-функциональность включается только в production-режиме (devOptions: { enabled: false }).
+
 
 
 

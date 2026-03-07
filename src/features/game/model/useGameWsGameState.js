@@ -9,7 +9,7 @@ export function useGameWsGameState({ subscribe, dispatch, setPlayerNames }) {
     const unsubscribeInitGameInfo = subscribe(messageType.INIT_GAME_STATE, (payload) => {
       const action = wsMessageToGameAction(messageType.INIT_GAME_STATE, payload);
       if (action) dispatch(action);
-      setPlayerNames(payload.players.map((p) => p.name));
+      setPlayerNames?.(payload.players.map((player) => player.name));
     });
 
     const unsubscribeUpdateGameInfo = subscribe(messageType.UPDATE_GAME_STATE, (payload) => {
@@ -21,7 +21,7 @@ export function useGameWsGameState({ subscribe, dispatch, setPlayerNames }) {
       const action = wsMessageToGameAction(messageType.PLAYER_JOIN, payload);
       if (action) dispatch(action);
 
-      setPlayerNames((prevNames) => [...prevNames, payload.name]);
+      setPlayerNames?.((prevNames) => [...prevNames, payload.name]);
     });
 
     const unsubscribePlayerLeave = subscribe(messageType.PLAYER_LEAVE, (payload) => {
@@ -30,7 +30,7 @@ export function useGameWsGameState({ subscribe, dispatch, setPlayerNames }) {
 
       const username = typeof payload === 'string' ? payload : payload?.username ?? payload?.name;
       if (!username) return;
-      setPlayerNames((prevNames) => prevNames.filter((name) => name !== username));
+      setPlayerNames?.((prevNames) => prevNames.filter((name) => name !== username));
     });
 
     return () => {

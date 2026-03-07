@@ -1,31 +1,26 @@
 import { KeyboardControls } from '@react-three/drei';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 import GameDebugOverlay from './GameDebugOverlay';
 import GameSceneCanvas from './GameSceneCanvas';
 
 import { useAuth } from '@/features/auth/model/AuthContext';
-import { useGameState } from '@/features/game/model/GameStateContext';
-import { useGameWsGameState } from '@/features/game/model/useGameWsGameState';
+import { selectPlayerNames, useGameState } from '@/features/game/model/GameStateContext';
 import KeyPress from '@/features/player-controls/ui/KeyPress';
-import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
 import { preloadAllModels } from '@/shared/assets/models';
 
 function GameMainScene() {
   const { user } = useAuth();
-  const { subscribe } = useWebSocket();
-  const [playerNames, setPlayerNames] = useState([]);
   const currentPlayerShipRef = useRef(null);
   const currentPlayerName = user?.username ?? null;
-  const { stateRef, dispatch } = useGameState();
+  const { state, stateRef } = useGameState();
+  const playerNames = selectPlayerNames(state);
 
   useEffect(() => {
     preloadAllModels().catch((error) => {
       console.error('Failed to preload models', error);
     });
   }, []);
-
-  useGameWsGameState({ subscribe, dispatch, setPlayerNames });
 
   return (
     <GameDebugOverlay>

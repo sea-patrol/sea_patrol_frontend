@@ -100,7 +100,7 @@ Response `200 OK`:
 ```
 
 Важно для frontend:
-- lobby screen делает rooms request при первом входе в `LOBBY` mode и по ручному refresh;
+- отдельная `LobbyPage` на маршруте `/lobby` делает rooms request при первом входе и по ручному refresh, не монтируя gameplay scene;
 - `rooms` может быть пустым массивом, и UI должен показывать понятный empty state;
 - error state должен читать `errors[0].message`, если backend вернул structured error;
 - после первого REST snapshot lobby UI продолжает жить за счёт `ROOMS_SNAPSHOT` / `ROOMS_UPDATED` по тому же payload shape;
@@ -170,10 +170,11 @@ Response `200 OK`:
 ```
 
 Важно для frontend:
-- `join` стартует из lobby UI кнопкой `Join room`;
-- ошибки `404` / `409` показываются пользователю через join error block в lobby;
-- после REST `200 OK` frontend переводит shell в `ROOM_LOADING` и ждёт room init flow по WebSocket;
-- клиент не должен считать room entry завершённым только по REST success.
+- `join` стартует из отдельной HTML-first lobby page кнопкой `Join room`;
+- ошибки `404` / `409` показываются пользователю прямо на lobby route;
+- после REST `200 OK` lobby page остаётся активной и ждёт authoritative `SPAWN_ASSIGNED`;
+- переход на `/game` и монтирование gameplay scene происходят только после получения spawn assignment;
+- room shell внутри `/game` продолжает ждать `INIT_GAME_STATE/current player`, поэтому клиент не считает room entry завершённым только по REST success.
 
 ## 4. WebSocket API
 
@@ -184,6 +185,10 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 Фронтенд подключается с query-параметром:
 
 `/ws/game?token=<jwt>`
+
+Дополнение по текущей frontend архитектуре:
+- `WebSocketProvider` живёт выше маршрутов, поэтому SPA-переход `/lobby -> /game` не рвёт WS-сессию;
+- room/game state подписки тоже подняты выше страницы сцены, чтобы не потерять ранние room init сообщения во время route transition.
 
 ### 4.2 Формат сообщений
 
@@ -317,6 +322,9 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 ### Уже зафиксированы в contract, но не используются в UI после `TASK-017`
 - Chat control: `CHAT_JOIN`, `CHAT_LEAVE` (legacy compatibility only; lobby/room scope ими больше не переключается)
 - Room rejection: `ROOM_JOIN_REJECTED`
+
+
+
 
 
 

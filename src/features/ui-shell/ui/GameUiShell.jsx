@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { GAME_UI_MODE, UI_WINDOW, useGameUi } from '../model/GameUiContext';
 
@@ -8,12 +8,10 @@ import GameUiHotkeys from './GameUiHotkeys';
 import { useAuth } from '@/features/auth/model/AuthContext';
 import { selectCurrentPlayerState, useGameState } from '@/features/game/model/GameStateContext';
 import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
-import { roomApi } from '@/shared/api/roomApi';
 import * as messageType from '@/shared/constants/messageType';
 import ChatBlock from '@/widgets/ChatPanel/ChatBlock';
 import GameStateInfo from '@/widgets/GameHud/GameStateInfo';
 import ProfileBlock from '@/widgets/GameHud/ProfileBlock';
-import LobbyPanel from '@/widgets/LobbyPanel/LobbyPanel';
 
 const WINDOW_COPY = {
   [UI_WINDOW.INVENTORY]: {
@@ -41,50 +39,57 @@ const LOBBY_CHAT_SCOPE = Object.freeze({
 
 const ROOM_JOIN_STATUS = Object.freeze({
   IDLE: 'idle',
-  SUBMITTING: 'submitting',
-  AWAITING_ROOM_JOINED: 'awaiting-room-joined',
   AWAITING_SPAWN: 'awaiting-spawn',
   AWAITING_INIT: 'awaiting-init',
   ERROR: 'error',
 });
 
-const createInitialRoomJoinState = () => ({
-  status: ROOM_JOIN_STATUS.IDLE,
-  room: null,
-  joinResponse: null,
-  spawn: null,
-  error: null,
-});
+function resolveRoomMeta(payload, fallbackRoom = null) {
+  const roomId = payload?.roomId ?? payload?.id ?? fallbackRoom?.id ?? null;
+  if (!roomId) {
+    return fallbackRoom;
+  }
+
+  return {
+    id: roomId,
+    name: fallbackRoom?.name ?? payload?.name ?? payload?.roomName ?? roomId,
+  };
+}
+
+function createInitialRoomJoinState(initialRoomEntry = null) {
+  if (!initialRoomEntry) {
+    return {
+      status: ROOM_JOIN_STATUS.IDLE,
+      room: null,
+      joinResponse: null,
+      spawn: null,
+      error: null,
+    };
+  }
+
+  const room = resolveRoomMeta(initialRoomEntry.room ?? initialRoomEntry.joinResponse, initialRoomEntry.room ?? null);
+
+  return {
+    status: initialRoomEntry.spawn ? ROOM_JOIN_STATUS.AWAITING_INIT : ROOM_JOIN_STATUS.AWAITING_SPAWN,
+    room,
+    joinResponse: initialRoomEntry.joinResponse ?? null,
+    spawn: initialRoomEntry.spawn ?? null,
+    error: null,
+  };
+}
 
 function isRoomJoinPending(status) {
-  return [
-    ROOM_JOIN_STATUS.SUBMITTING,
-    ROOM_JOIN_STATUS.AWAITING_ROOM_JOINED,
-    ROOM_JOIN_STATUS.AWAITING_SPAWN,
-    ROOM_JOIN_STATUS.AWAITING_INIT,
-  ].includes(status);
+  return [ROOM_JOIN_STATUS.AWAITING_SPAWN, ROOM_JOIN_STATUS.AWAITING_INIT].includes(status);
 }
 
 function getRoomLoadingCopy(roomJoinState) {
   const roomName = roomJoinState.room?.name || roomJoinState.joinResponse?.roomId || 'Selected room';
 
   switch (roomJoinState.status) {
-    case ROOM_JOIN_STATUS.SUBMITTING:
-      return {
-        title: 'Joining room',
-        body: `Sending REST join request for ${roomName}. The client stays outside gameplay until backend confirms room admission.`,
-      };
-
-    case ROOM_JOIN_STATUS.AWAITING_ROOM_JOINED:
-      return {
-        title: 'Room admitted',
-        body: `Backend accepted the join request for ${roomName}. Waiting for ROOM_JOINED over the active WebSocket session.`,
-      };
-
     case ROOM_JOIN_STATUS.AWAITING_SPAWN:
       return {
         title: 'Assigning spawn',
-        body: `Room join is confirmed for ${roomName}. Waiting for authoritative SPAWN_ASSIGNED before gameplay starts.`,
+        body: `Backend accepted the room admission for ${roomName}. Waiting for authoritative SPAWN_ASSIGNED before gameplay starts.`,
       };
 
     case ROOM_JOIN_STATUS.AWAITING_INIT: {
@@ -100,24 +105,18 @@ function getRoomLoadingCopy(roomJoinState) {
       };
     }
 
+    case ROOM_JOIN_STATUS.ERROR:
+      return {
+        title: 'Room entry failed',
+        body: roomJoinState.error ?? 'Room entry could not be completed.',
+      };
+
     default:
       return {
-        title: 'Joining room',
-        body: 'Preparing room entry flow.',
+        title: 'Preparing room session',
+        body: 'Waiting for room session context.',
       };
   }
-}
-
-function resolveRoomMeta(payload, fallbackRoom = null) {
-  const roomId = payload?.roomId ?? payload?.id ?? fallbackRoom?.id ?? null;
-  if (!roomId) {
-    return fallbackRoom;
-  }
-
-  return {
-    id: roomId,
-    name: fallbackRoom?.name ?? payload?.name ?? payload?.roomName ?? roomId,
-  };
 }
 
 function createRoomChatScope(room) {
@@ -147,22 +146,22 @@ function ModeBadge({ mode }) {
   );
 }
 
-export default function GameUiShell() {
+export default function GameUiShell({ initialRoomEntry = null }) {
   const chatInputRef = useRef(null);
   const { user, token, loading } = useAuth();
   const { state } = useGameState();
   const { hasToken, isConnected, lastClose, subscribe } = useWebSocket();
   const { activeWindow, mode, openChat, returnToSailing, setScreenMode, toggleMenu, toggleWindow } = useGameUi();
-  const [roomJoinState, setRoomJoinState] = useState(createInitialRoomJoinState);
-  const [activeRoomMeta, setActiveRoomMeta] = useState(null);
+  const [roomJoinState, setRoomJoinState] = useState(() => createInitialRoomJoinState(initialRoomEntry));
+  const [activeRoomMeta, setActiveRoomMeta] = useState(() => resolveRoomMeta(initialRoomEntry?.room ?? initialRoomEntry?.joinResponse, null));
 
   const currentPlayerState = selectCurrentPlayerState(state, user?.username);
   const hasActiveRoomState = Boolean(currentPlayerState);
   const isPendingRoomJoin = isRoomJoinPending(roomJoinState.status);
-  const showSailingHud = ![GAME_UI_MODE.LOBBY, GAME_UI_MODE.LOADING, GAME_UI_MODE.ROOM_LOADING].includes(mode);
+  const showSailingHud = ![GAME_UI_MODE.LOADING, GAME_UI_MODE.ROOM_LOADING].includes(mode);
   const showChatHud = mode !== GAME_UI_MODE.LOADING;
   const showChatAction = mode !== GAME_UI_MODE.LOADING;
-  const showGameplayActions = ![GAME_UI_MODE.LOBBY, GAME_UI_MODE.LOADING, GAME_UI_MODE.ROOM_LOADING].includes(mode);
+  const showGameplayActions = ![GAME_UI_MODE.LOADING, GAME_UI_MODE.ROOM_LOADING].includes(mode);
 
   useEffect(() => {
     if (!token) {
@@ -188,18 +187,18 @@ export default function GameUiShell() {
   useEffect(() => {
     const unsubscribeRoomJoined = subscribe(messageType.ROOM_JOINED, (payload) => {
       setRoomJoinState((prevState) => {
-        if (!isRoomJoinPending(prevState.status)) {
-          return prevState;
-        }
-
         const roomMeta = resolveRoomMeta(payload, prevState.room);
         if (roomMeta?.id) {
           setActiveRoomMeta(roomMeta);
         }
 
+        if (!isRoomJoinPending(prevState.status)) {
+          return prevState;
+        }
+
         return {
           ...prevState,
-          status: ROOM_JOIN_STATUS.AWAITING_SPAWN,
+          status: prevState.spawn ? ROOM_JOIN_STATUS.AWAITING_INIT : ROOM_JOIN_STATUS.AWAITING_SPAWN,
           joinResponse: payload,
           room: roomMeta,
           error: null,
@@ -255,19 +254,19 @@ export default function GameUiShell() {
       return;
     }
 
-    if (isPendingRoomJoin) {
+    if (isPendingRoomJoin || roomJoinState.status === ROOM_JOIN_STATUS.ERROR) {
       setScreenMode(GAME_UI_MODE.ROOM_LOADING);
       return;
     }
 
-    setScreenMode(GAME_UI_MODE.LOBBY);
-  }, [hasActiveRoomState, isConnected, isPendingRoomJoin, loading, setScreenMode]);
+    setScreenMode(GAME_UI_MODE.LOADING);
+  }, [hasActiveRoomState, isConnected, isPendingRoomJoin, loading, roomJoinState.status, setScreenMode]);
 
   const windowCopy = activeWindow ? WINDOW_COPY[activeWindow] : null;
   const roomLoadingCopy = useMemo(() => getRoomLoadingCopy(roomJoinState), [roomJoinState]);
   const currentChatScope = useMemo(() => {
     if (isPendingRoomJoin) {
-      return createRoomChatScope(roomJoinState.room ?? roomJoinState.joinResponse);
+      return createRoomChatScope(roomJoinState.room ?? roomJoinState.joinResponse ?? activeRoomMeta);
     }
 
     if (hasActiveRoomState || mode === GAME_UI_MODE.RECONNECTING) {
@@ -281,45 +280,6 @@ export default function GameUiShell() {
     openChat();
     chatInputRef.current?.focus();
   };
-
-  const handleJoinRoom = useCallback(async (room) => {
-    if (!token) {
-      setRoomJoinState({
-        ...createInitialRoomJoinState(),
-        status: ROOM_JOIN_STATUS.ERROR,
-        room,
-        error: 'Login required to join a room.',
-      });
-      return;
-    }
-
-    setRoomJoinState({
-      ...createInitialRoomJoinState(),
-      status: ROOM_JOIN_STATUS.SUBMITTING,
-      room,
-    });
-
-    const result = await roomApi.joinRoom(token, room.id);
-    if (!result.ok) {
-      setRoomJoinState({
-        ...createInitialRoomJoinState(),
-        status: ROOM_JOIN_STATUS.ERROR,
-        room,
-        error: result.error?.message || 'Failed to join room.',
-      });
-      return;
-    }
-
-    setRoomJoinState({
-      ...createInitialRoomJoinState(),
-      status: ROOM_JOIN_STATUS.AWAITING_ROOM_JOINED,
-      room,
-      joinResponse: result.data,
-    });
-  }, [token]);
-
-  const joinError = roomJoinState.status === ROOM_JOIN_STATUS.ERROR ? roomJoinState.error : null;
-  const joiningRoomId = isPendingRoomJoin ? roomJoinState.room?.id ?? null : null;
 
   return (
     <>
@@ -398,7 +358,7 @@ export default function GameUiShell() {
         {mode === GAME_UI_MODE.LOADING && (
           <section className="game-ui-shell__notice" aria-live="polite">
             <h2>Loading</h2>
-            <p>UI shell is waiting for auth and scene initialization.</p>
+            <p>Waiting for room session context and gameplay state.</p>
           </section>
         )}
 
@@ -407,15 +367,6 @@ export default function GameUiShell() {
             <h2>{roomLoadingCopy.title}</h2>
             <p>{roomLoadingCopy.body}</p>
           </section>
-        )}
-
-        {mode === GAME_UI_MODE.LOBBY && (
-          <LobbyPanel
-            token={token}
-            onJoinRoom={handleJoinRoom}
-            joiningRoomId={joiningRoomId}
-            joinError={joinError}
-          />
         )}
       </div>
     </>
