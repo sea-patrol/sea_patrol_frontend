@@ -4,7 +4,7 @@
 
 Этот документ описывает текущее API, которое использует frontend Sea Patrol:
 
-- REST (HTTP) для аутентификации, первичного lobby room catalog и room join
+- REST (HTTP) для аутентификации, room catalog, create room и room join
 - WebSocket для real-time синхронизации игры, чата, live lobby room updates и room init flow
 
 ## 2. Base URLs и переменные окружения
@@ -75,7 +75,7 @@ Response `200 OK`:
 
 ### 3.4 GET `/api/v1/rooms`
 
-Frontend `TASK-014` / `TASK-015` использует этот endpoint как первичный snapshot lobby room catalog перед live WS-обновлениями.
+Frontend использует этот endpoint как первичный snapshot lobby room catalog перед live WS-обновлениями.
 
 Требует заголовок:
 - `Authorization: Bearer <jwt>`
@@ -106,7 +106,46 @@ Response `200 OK`:
 - после первого REST snapshot lobby UI продолжает жить за счёт `ROOMS_SNAPSHOT` / `ROOMS_UPDATED` по тому же payload shape;
 - ручной refresh остаётся fallback, если lobby WebSocket временно offline.
 
-### 3.5 POST `/api/v1/rooms/{roomId}/join`
+### 3.5 POST `/api/v1/rooms`
+
+Frontend `TASK-017` использует этот endpoint для create room flow в lobby.
+
+Требует заголовок:
+- `Authorization: Bearer <jwt>`
+
+Request JSON:
+```json
+{ "name": "Sandbox 3", "mapId": "caribbean-01" }
+```
+
+Все поля опциональны, но для текущего frontend flow:
+- `name` может быть пустым, тогда backend генерирует `Sandbox N`;
+- default map mode отправляет `mapId = caribbean-01`;
+- custom map mode отправляет пользовательский `mapId` и может получить validation error.
+
+Response `201 Created`:
+```json
+{
+  "id": "sandbox-3",
+  "name": "Sandbox 3",
+  "mapId": "caribbean-01",
+  "mapName": "Caribbean Sea",
+  "currentPlayers": 0,
+  "maxPlayers": 100,
+  "status": "OPEN"
+}
+```
+
+Важно для frontend:
+- create form живёт прямо в lobby UI;
+- после success frontend обновляет локальный catalog и затем продолжает принимать `ROOMS_UPDATED` как authoritative source;
+- backend сейчас принимает только `caribbean-01`, поэтому custom `mapId` режим нужен для честного surfacing validation errors.
+
+Ошибки:
+- `400` -> `{ "errors": [{ "code": "INVALID_MAP_ID", "message": "Unknown mapId" }] }`
+- `409` -> `{ "errors": [{ "code": "MAX_ROOMS_REACHED", "message": "Maximum number of rooms reached" }] }`
+
+### 3.6 POST `/api/v1/rooms/{roomId}/join`
 
 Frontend `TASK-016` использует этот endpoint как единственный authoritative room join trigger.
 
@@ -191,9 +230,10 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 Особенности для frontend:
 - `ROOMS_SNAPSHOT` приходит автоматически после lobby WebSocket connect/reconnect;
 - `ROOMS_UPDATED` трактуется как полный snapshot room catalog, а не delta-патч;
-- lobby UI подписывается на эти сообщения отдельно от room gameplay state.
+- lobby UI подписывается на эти сообщения отдельно от room gameplay state;
+- после create room frontend всё равно считает `ROOMS_UPDATED` authoritative update source.
 
-#### Используются текущим room join / init flow начиная с `TASK-016`
+#### Используются текущим room join / init flow
 
 `ROOM_JOINED`
 ```json
@@ -266,6 +306,6 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 - Room enter flow: `ROOM_JOINED`, `SPAWN_ASSIGNED`
 - Game: `INIT_GAME_STATE`, `UPDATE_GAME_STATE`, `PLAYER_JOIN`, `PLAYER_LEAVE`, `PLAYER_INPUT`
 
-### Уже зафиксированы в contract, но не используются в UI после `TASK-016`
+### Уже зафиксированы в contract, но не используются в UI после `TASK-017`
 - Chat control: `CHAT_JOIN`, `CHAT_LEAVE`
 - Room rejection: `ROOM_JOIN_REJECTED`

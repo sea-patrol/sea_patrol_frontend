@@ -5,6 +5,12 @@ import { roomApi } from '@/shared/api/roomApi';
 import * as messageType from '@/shared/constants/messageType';
 import './LobbyPanel.css';
 
+const DEFAULT_MAP_ID = 'caribbean-01';
+const CREATE_MAP_MODE = Object.freeze({
+  DEFAULT: 'default',
+  CUSTOM: 'custom',
+});
+
 function RoomStatusPill({ status }) {
   return (
     <span className={`lobby-panel__status lobby-panel__status--${String(status).toLowerCase()}`}>
@@ -80,12 +86,33 @@ function formatRealtimeStatus({ hasToken, isConnected, lastClose }) {
   };
 }
 
+function upsertRoomSummary(catalog, roomSummary) {
+  if (!catalog || !roomSummary?.id) {
+    return catalog;
+  }
+
+  const dedupedRooms = [
+    ...catalog.rooms.filter((room) => room.id !== roomSummary.id),
+    roomSummary,
+  ].sort((left, right) => left.id.localeCompare(right.id));
+
+  return {
+    ...catalog,
+    rooms: dedupedRooms,
+  };
+}
+
 export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, joinError = null }) {
   const { hasToken, isConnected, lastClose, subscribe } = useWebSocket();
   const [catalog, setCatalog] = useState(null);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
+  const [roomName, setRoomName] = useState('');
+  const [mapMode, setMapMode] = useState(CREATE_MAP_MODE.DEFAULT);
+  const [customMapId, setCustomMapId] = useState('');
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [createError, setCreateError] = useState(null);
   const liveCatalogVersionRef = useRef(0);
 
   useEffect(() => {
@@ -155,6 +182,54 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
     };
   }, [reloadNonce, token]);
 
+  const handleCreateRoom = async (event) => {
+    event.preventDefault();
+
+    if (!token) {
+      setCreateError('Login required to create a room.');
+      return;
+    }
+
+    const draft = {};
+    const trimmedName = roomName.trim();
+    if (trimmedName) {
+      draft.name = trimmedName;
+    }
+
+    if (mapMode === CREATE_MAP_MODE.CUSTOM) {
+      const trimmedMapId = customMapId.trim();
+      if (!trimmedMapId) {
+        setCreateError('Custom mapId is required when custom map mode is selected.');
+        return;
+      }
+
+      draft.mapId = trimmedMapId;
+    } else {
+      draft.mapId = DEFAULT_MAP_ID;
+    }
+
+    setIsCreatingRoom(true);
+    setCreateError(null);
+
+    const result = await roomApi.createRoom(token, draft);
+    if (!result.ok) {
+      setCreateError(result.error?.message || 'Failed to create room.');
+      setIsCreatingRoom(false);
+      return;
+    }
+
+    setCatalog((prevCatalog) => upsertRoomSummary(prevCatalog, result.data));
+    setRoomName('');
+    setMapMode(CREATE_MAP_MODE.DEFAULT);
+    setCustomMapId('');
+    setCreateError(null);
+    setIsCreatingRoom(false);
+
+    if (!isConnected) {
+      setReloadNonce((value) => value + 1);
+    }
+  };
+
   const realtimeStatus = formatRealtimeStatus({ hasToken, isConnected, lastClose });
   const rooms = catalog?.rooms ?? [];
   const hasRooms = rooms.length > 0;
@@ -186,6 +261,61 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
         </div>
         {realtimeStatus.closeInfo && <span className="lobby-panel__close-info">Last close: {realtimeStatus.closeInfo}</span>}
       </div>
+
+      <form className="lobby-panel__create-form" onSubmit={handleCreateRoom}>
+        <div className="lobby-panel__create-head">
+          <div>
+            <p className="lobby-panel__eyebrow">Open a room</p>
+            <h3>Create a harbor room</h3>
+          </div>
+          <button type="submit" className="lobby-panel__create-button" disabled={isCreatingRoom}>
+            {isCreatingRoom ? 'Creating...' : 'Create room'}
+          </button>
+        </div>
+
+        <div className="lobby-panel__create-grid">
+          <label>
+            <span>Room name</span>
+            <input
+              type="text"
+              value={roomName}
+              onChange={(event) => setRoomName(event.target.value)}
+              placeholder="Optional. Backend will generate Sandbox N if empty."
+            />
+          </label>
+
+          <label>
+            <span>Map source</span>
+            <select value={mapMode} onChange={(event) => setMapMode(event.target.value)}>
+              <option value={CREATE_MAP_MODE.DEFAULT}>MVP default map ({DEFAULT_MAP_ID})</option>
+              <option value={CREATE_MAP_MODE.CUSTOM}>Custom mapId</option>
+            </select>
+          </label>
+
+          {mapMode === CREATE_MAP_MODE.CUSTOM && (
+            <label className="lobby-panel__create-grid--wide">
+              <span>Custom mapId</span>
+              <input
+                type="text"
+                value={customMapId}
+                onChange={(event) => setCustomMapId(event.target.value)}
+                placeholder="Example: caribbean-01"
+              />
+            </label>
+          )}
+        </div>
+
+        <p className="lobby-panel__create-note">
+          Backend currently accepts only `caribbean-01`. Custom mapId mode is here to match the agreed contract and surface validation errors honestly.
+        </p>
+
+        {createError && (
+          <div className="lobby-panel__create-error" role="alert">
+            <strong>Room creation failed</strong>
+            <p>{createError}</p>
+          </div>
+        )}
+      </form>
 
       <div className="lobby-panel__summary" aria-live="polite">
         <div>
@@ -226,7 +356,7 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
       {!isLoading && !error && !hasRooms && (
         <div className="lobby-panel__state">
           <h3>No rooms yet</h3>
-          <p>The harbor is calm. Live lobby updates stay connected, so new rooms will appear here without reloading the page.</p>
+          <p>The harbor is calm. Use the create form above, and live lobby updates will keep the catalog current.</p>
         </div>
       )}
 

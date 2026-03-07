@@ -1,6 +1,12 @@
 import { http, HttpResponse } from 'msw';
 
-import { mockAuthResponses, mockRoomCatalogResponses, mockRoomJoinResponses, testUsers } from './data';
+import {
+  mockAuthResponses,
+  mockRoomCatalogResponses,
+  mockRoomCreateResponses,
+  mockRoomJoinResponses,
+  testUsers,
+} from './data';
 
 const DEFAULT_BACKEND_HOSTNAME = 'localhost';
 const DEFAULT_BACKEND_PORT = 8080;
@@ -88,6 +94,37 @@ export const handlers = [
     }
 
     return HttpResponse.json(mockRoomCatalogResponses.populated);
+  }),
+
+  http.post(ROOMS_API_BASE_URL, async ({ request }) => {
+    const authorization = request.headers.get('authorization');
+    if (!authorization?.startsWith('Bearer ')) {
+      return HttpResponse.json(
+        {
+          errors: [
+            {
+              code: 'SEAPATROL_UNAUTHORIZED',
+              message: 'Unauthorized',
+            },
+          ],
+        },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    if (body?.mapId && body.mapId !== 'caribbean-01') {
+      return HttpResponse.json(mockRoomCreateResponses.invalidMapId, { status: 400 });
+    }
+
+    return HttpResponse.json(
+      {
+        ...mockRoomCreateResponses.success,
+        ...(body?.name ? { name: body.name, id: body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'sandbox-3' } : {}),
+        ...(body?.mapId ? { mapId: body.mapId } : {}),
+      },
+      { status: 201 },
+    );
   }),
 
   http.post(`${ROOMS_API_BASE_URL}/:roomId/join`, ({ params, request }) => {

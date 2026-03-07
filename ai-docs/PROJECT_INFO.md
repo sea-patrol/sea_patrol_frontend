@@ -102,7 +102,7 @@ src/
 - **Context API для глобального состояния**: Auth, WebSocket, GameState и GameUi — без Redux/Zustand
 - **UI shell отдельно от 3D-сцены**: `GamePage` оркестрирует providers, scene и `GameUiShell`, а HUD/окна/notice overlays больше не живут внутри canvas
 - **Единая UI mode model**: `GameUiContext` задаёт состояния `LOADING`, `LOBBY`, `ROOM_LOADING`, `SAILING`, `CHAT_FOCUS`, `WINDOW_FOCUS`, `MENU_OPEN`, `RECONNECTING`, `RESPAWN`
-- **Lobby-first `/game` flow**: пока у текущего пользователя нет active room state, `GameUiShell` остаётся в `LOBBY`, рендерит `LobbyPanel`, делает первичный `GET /api/v1/rooms` и затем держит каталог актуальным через `ROOMS_SNAPSHOT` / `ROOMS_UPDATED`; `Join room` вызывает REST `POST /api/v1/rooms/{roomId}/join`, переводит shell в `ROOM_LOADING` и ждёт `ROOM_JOINED` -> `SPAWN_ASSIGNED` -> `INIT_GAME_STATE/current player` перед переходом в `SAILING`
+- **Lobby-first `/game` flow**: пока у текущего пользователя нет active room state, `GameUiShell` остаётся в `LOBBY`, рендерит `LobbyPanel`, делает первичный `GET /api/v1/rooms` и затем держит каталог актуальным через `ROOMS_SNAPSHOT` / `ROOMS_UPDATED`; `LobbyPanel` теперь совмещает room catalog, create room form и `Join room`; create flow вызывает REST `POST /api/v1/rooms`, поддерживает default map или custom `mapId`, а успешное создание сразу отражается в UI и затем синхронизируется через `ROOMS_UPDATED`; `Join room` вызывает REST `POST /api/v1/rooms/{roomId}/join`, переводит shell в `ROOM_LOADING` и ждёт `ROOM_JOINED` -> `SPAWN_ASSIGNED` -> `INIT_GAME_STATE/current player` перед переходом в `SAILING`
 - **Централизованные UI hotkeys**: `Enter`, `Esc`, `I`, `J`, `M` обрабатываются в одном слое (`GameUiHotkeys`), а gameplay input учитывает текущий UI mode
 - **Client-side prediction**: Интерполяция позиций кораблей между обновлениями сервера для плавности
 - **WebSocket reconnect**: экспоненциальный backoff (1s/2s/4s/8s), лимит попыток, cleanup таймеров при logout/unmount; `LobbyPanel` показывает отдельный realtime status и после reconnect повторно получает `ROOMS_SNAPSHOT`
@@ -162,9 +162,9 @@ src/
 - `npm run test:coverage` — запуск с отчётом о покрытии
 
 **Текущее покрытие**:
-- 17 тестовых файлов
-- 90 тестов (все проходят ✅)
-- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + live WS updates), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
+- 18 тестовых файлов
+- 98 тестов (все проходят ✅)
+- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room join flow, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
 
 ## 4. Working Commands
 
@@ -183,7 +183,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 18 файлов, 94 теста (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room join flow, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
+**Текущее покрытие**: 18 файлов, 98 тестов (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room join flow, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.
@@ -209,6 +209,9 @@ src/
 - Для публикации требуется корректный `base` в `vite.config.js` (под имя репозитория).
 - Основная команда проверки перед деплоем: `npm run build`.
 - PWA-функциональность включается только в production-режиме (devOptions: { enabled: false }).
+
+
+
 
 
 

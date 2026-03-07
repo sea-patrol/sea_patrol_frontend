@@ -102,6 +102,25 @@ export const roomApi = {
     });
   },
 
+  createRoom: async (token, roomDraft = {}, options = {}) => {
+    const payload = {};
+
+    if (typeof roomDraft.name === 'string' && roomDraft.name.trim()) {
+      payload.name = roomDraft.name.trim();
+    }
+
+    if (typeof roomDraft.mapId === 'string' && roomDraft.mapId.trim()) {
+      payload.mapId = roomDraft.mapId.trim();
+    }
+
+    return executeAuthorizedJsonRequest(ROOMS_API_BASE_URL, {
+      method: 'POST',
+      token,
+      signal: options.signal,
+      body: payload,
+    });
+  },
+
   joinRoom: async (token, roomId, options = {}) => {
     return executeAuthorizedJsonRequest(`${ROOMS_API_BASE_URL}/${encodeURIComponent(roomId)}/join`, {
       method: 'POST',

@@ -92,6 +92,26 @@ export const mockRoomCatalogResponses = {
   },
 };
 
+export const mockRoomCreateResponses = {
+  success: {
+    id: 'sandbox-3',
+    name: 'Sandbox 3',
+    mapId: 'caribbean-01',
+    mapName: 'Caribbean Sea',
+    currentPlayers: 0,
+    maxPlayers: 100,
+    status: 'OPEN',
+  },
+  invalidMapId: {
+    errors: [
+      {
+        code: 'INVALID_MAP_ID',
+        message: 'Unknown mapId',
+      },
+    ],
+  },
+};
+
 export const mockRoomJoinResponses = {
   success: {
     roomId: 'sandbox-1',

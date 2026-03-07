@@ -27,6 +27,7 @@ let wsState = {
 vi.mock('@/shared/api/roomApi', () => ({
   roomApi: {
     listRooms: vi.fn(),
+    createRoom: vi.fn(),
   },
 }));
 
@@ -50,6 +51,7 @@ function emitWsMessage(type, payload) {
 describe('LobbyPanel', () => {
   beforeEach(() => {
     roomApi.listRooms.mockReset();
+    roomApi.createRoom.mockReset();
     subscribeMock.mockClear();
     wsSubscribers.clear();
     wsState = {
@@ -95,6 +97,88 @@ describe('LobbyPanel', () => {
     expect(screen.getByText('OPEN')).toBeInTheDocument();
     expect(screen.getByText('4/100')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Join room' })).toBeEnabled();
+  });
+
+  it('creates a room from the lobby form and updates the catalog', async () => {
+    const user = userEvent.setup();
+
+    roomApi.listRooms.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        maxRooms: 5,
+        maxPlayersPerRoom: 100,
+        rooms: [],
+      },
+    });
+
+    roomApi.createRoom.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        id: 'storm-run',
+        name: 'Storm Run',
+        mapId: 'caribbean-01',
+        mapName: 'Caribbean Sea',
+        currentPlayers: 0,
+        maxPlayers: 100,
+        status: 'OPEN',
+      },
+    });
+
+    render(<LobbyPanel token="test-token" onJoinRoom={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No rooms yet')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText('Room name'), 'Storm Run');
+    await user.click(screen.getByRole('button', { name: 'Create room' }));
+
+    await waitFor(() => {
+      expect(roomApi.createRoom).toHaveBeenCalledWith('test-token', {
+        name: 'Storm Run',
+        mapId: 'caribbean-01',
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Storm Run')).toBeInTheDocument();
+      expect(screen.getByText('OPEN')).toBeInTheDocument();
+    });
+  });
+
+  it('shows create error when backend rejects custom mapId', async () => {
+    const user = userEvent.setup();
+
+    roomApi.listRooms.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        maxRooms: 5,
+        maxPlayersPerRoom: 100,
+        rooms: [],
+      },
+    });
+
+    roomApi.createRoom.mockResolvedValueOnce({
+      ok: false,
+      error: {
+        message: 'Unknown mapId',
+      },
+    });
+
+    render(<LobbyPanel token="test-token" onJoinRoom={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No rooms yet')).toBeInTheDocument();
+    });
+
+    await user.selectOptions(screen.getByLabelText('Map source'), 'custom');
+    await user.type(screen.getByLabelText('Custom mapId'), 'atlantic-void');
+    await user.click(screen.getByRole('button', { name: 'Create room' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Room creation failed')).toBeInTheDocument();
+      expect(screen.getByText('Unknown mapId')).toBeInTheDocument();
+    });
   });
 
   it('renders readable empty state when backend returns no rooms', async () => {
@@ -258,4 +342,3 @@ describe('LobbyPanel', () => {
     expect(screen.getByRole('button', { name: 'Room full' })).toBeDisabled();
   });
 });
-
