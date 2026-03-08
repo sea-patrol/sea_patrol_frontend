@@ -1,14 +1,15 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth/model/AuthContext';
 import { createWsClient } from '@/shared/ws/wsClient';
-
 
 const WebSocketContext = createContext();
 
 const DEFAULT_BACKEND_HOSTNAME = 'localhost';
 const DEFAULT_BACKEND_PORT = 8080;
+const REALTIME_ENABLED_ROUTES = new Set(['/lobby', '/game']);
 
 const trimTrailingSlashes = (value) => value.replace(/\/+$/, '');
 
@@ -18,6 +19,8 @@ const getDefaultWsBaseUrl = () => {
   const hostname = location?.hostname || DEFAULT_BACKEND_HOSTNAME;
   return `${protocol}//${hostname}:${DEFAULT_BACKEND_PORT}`;
 };
+
+const isRealtimeRoute = (pathname) => REALTIME_ENABLED_ROUTES.has(pathname);
 
 const WS_BASE_URL = trimTrailingSlashes(import.meta.env.VITE_WS_BASE_URL || getDefaultWsBaseUrl());
 const WS_URL = `${WS_BASE_URL}/ws/game`;
@@ -33,6 +36,7 @@ export const useWebSocket = () => {
 export const WebSocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const { token } = useAuth();
+  const { pathname } = useLocation();
   const [lastClose, setLastClose] = useState(null);
 
   const clientRef = useRef(null);
@@ -63,7 +67,6 @@ export const WebSocketProvider = ({ children }) => {
         setLastClose(null);
       },
       onClose: (event) => {
-        // CloseEvent есть в браузере, но в тестовой среде может быть undefined
         const code = event?.code;
         const reason = event?.reason;
         setLastClose({ code, reason });
@@ -94,8 +97,10 @@ export const WebSocketProvider = ({ children }) => {
     return clientRef.current.subscribe(type, callback);
   }, []);
 
+  const shouldConnect = Boolean(token) && isRealtimeRoute(pathname);
+
   useEffect(() => {
-    if (token) {
+    if (shouldConnect) {
       connectWebSocket();
     } else {
       disconnectWebSocket();
@@ -104,7 +109,7 @@ export const WebSocketProvider = ({ children }) => {
     return () => {
       disconnectWebSocket();
     };
-  }, [connectWebSocket, disconnectWebSocket, token]);
+  }, [connectWebSocket, disconnectWebSocket, shouldConnect]);
 
   const value = useMemo(() => {
     return {

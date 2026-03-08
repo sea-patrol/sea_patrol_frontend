@@ -1,9 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const navigateMock = vi.fn();
 const logoutMock = vi.fn();
+let mockLocation = { state: null };
 
 let mockAuthState = {
   user: { username: 'alice' },
@@ -27,6 +28,7 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual,
     useNavigate: () => navigateMock,
+    useLocation: () => mockLocation,
   };
 });
 
@@ -59,6 +61,7 @@ describe('HomePage navigation flow', () => {
   beforeEach(() => {
     navigateMock.mockReset();
     logoutMock.mockReset();
+    mockLocation = { state: null };
     mockAuthState = {
       user: { username: 'alice' },
       logout: logoutMock,
@@ -112,5 +115,24 @@ describe('HomePage navigation flow', () => {
     await user.click(screen.getByRole('button', { name: 'Return to room' }));
 
     expect(navigateMock).toHaveBeenCalledWith('/game');
+  });
+
+  it('opens login modal when the route explicitly requests auth', async () => {
+    mockLocation = {
+      state: {
+        openAuth: 'login',
+      },
+    };
+    mockAuthState = {
+      user: null,
+      logout: logoutMock,
+      isAuthenticated: false,
+    };
+
+    render(<HomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Login form')).toBeInTheDocument();
+    });
   });
 });

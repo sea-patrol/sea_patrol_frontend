@@ -52,22 +52,39 @@ const decodeBase64Url = (value) => {
   return decoder(`${normalizedValue}${padding}`);
 };
 
-const parseUserFromToken = (token) => {
+const parseTokenPayload = (token) => {
   if (!token || !token.includes('.')) {
     return null;
   }
 
   try {
     const [, payloadSegment] = token.split('.');
-    const payload = JSON.parse(decodeBase64Url(payloadSegment));
-    const username = payload?.sub ?? payload?.username;
-    if (typeof username !== 'string' || !username.trim()) {
-      return null;
-    }
-    return { username };
+    return JSON.parse(decodeBase64Url(payloadSegment));
   } catch {
     return null;
   }
+};
+
+const isTokenExpired = (payload) => {
+  if (typeof payload?.exp !== 'number') {
+    return false;
+  }
+
+  return payload.exp * 1000 <= Date.now();
+};
+
+const parseUserFromPayload = (payload) => {
+  const username = payload?.sub ?? payload?.username;
+  if (typeof username !== 'string' || !username.trim()) {
+    return null;
+  }
+
+  return { username };
+};
+
+const parseUserFromToken = (token) => {
+  const payload = parseTokenPayload(token);
+  return payload ? parseUserFromPayload(payload) : null;
 };
 
 const clearStoredSession = () => {
@@ -88,8 +105,14 @@ const restoreSession = () => {
     return { token: null, user: null };
   }
 
+  const tokenPayload = parseTokenPayload(token);
+  if (!tokenPayload || isTokenExpired(tokenPayload)) {
+    clearStoredSession();
+    return { token: null, user: null };
+  }
+
   const storedUser = parseStoredUser();
-  const restoredUser = storedUser ?? parseUserFromToken(token);
+  const restoredUser = storedUser ?? parseUserFromPayload(tokenPayload) ?? parseUserFromToken(token);
   if (!restoredUser) {
     clearStoredSession();
     return { token: null, user: null };
@@ -163,4 +186,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-

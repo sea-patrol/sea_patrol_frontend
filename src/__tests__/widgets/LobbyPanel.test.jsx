@@ -292,6 +292,26 @@ describe('LobbyPanel', () => {
     });
   });
 
+  it('redirects auth flow when backend responds with unauthorized', async () => {
+    const onUnauthorized = vi.fn();
+
+    roomApi.listRooms.mockResolvedValueOnce({
+      ok: false,
+      error: {
+        status: 401,
+        message: 'Unauthorized',
+      },
+    });
+
+    render(<LobbyPanel token="expired-token" onJoinRoom={() => {}} onUnauthorized={onUnauthorized} />);
+
+    await waitFor(() => {
+      expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    });
+
+    expect(screen.queryByText('Unable to load rooms')).not.toBeInTheDocument();
+  });
+
   it('shows join error and disables other cards while room entry is pending', async () => {
     const onJoinRoom = vi.fn();
 

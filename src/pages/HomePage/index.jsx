@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../features/auth/model/AuthContext';
 import Login from '../../features/auth/ui/Login';
@@ -9,6 +9,7 @@ import { useRoomSession } from '../../features/game/model/RoomSessionContext';
 import './HomePage.css';
 
 function HomePage() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useAuth();
   const { state } = useGameState();
@@ -22,6 +23,13 @@ function HomePage() {
   const primaryHint = hasActiveRoom
     ? `Captain ${user?.username} already has an active room session in ${roomSession.room?.name ?? roomSession.room?.id}.`
     : 'You need to login to reach the harbor lobby';
+
+  useEffect(() => {
+    if (!isAuthenticated && location.state?.openAuth === 'login') {
+      setShowAuth(true);
+      setAuthMode('login');
+    }
+  }, [isAuthenticated, location.state]);
 
   const handlePlay = () => {
     if (isAuthenticated) {

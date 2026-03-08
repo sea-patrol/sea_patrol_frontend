@@ -102,7 +102,7 @@ function upsertRoomSummary(catalog, roomSummary) {
   };
 }
 
-export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, joinError = null }) {
+export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, joinError = null, onUnauthorized = null }) {
   const { hasToken, isConnected, lastClose, subscribe } = useWebSocket();
   const [catalog, setCatalog] = useState(null);
   const [error, setError] = useState(null);
@@ -165,6 +165,11 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
       }
 
       if (!result.ok) {
+        if (result.error?.status === 401) {
+          onUnauthorized?.();
+          return;
+        }
+
         setCatalog(null);
         setError(result.error?.message || 'Failed to load rooms.');
         setIsLoading(false);
@@ -180,7 +185,7 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
       isActive = false;
       controller.abort();
     };
-  }, [reloadNonce, token]);
+  }, [onUnauthorized, reloadNonce, token]);
 
   const handleCreateRoom = async (event) => {
     event.preventDefault();
@@ -213,6 +218,12 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
 
     const result = await roomApi.createRoom(token, draft);
     if (!result.ok) {
+      if (result.error?.status === 401) {
+        setIsCreatingRoom(false);
+        onUnauthorized?.();
+        return;
+      }
+
       setCreateError(result.error?.message || 'Failed to create room.');
       setIsCreatingRoom(false);
       return;

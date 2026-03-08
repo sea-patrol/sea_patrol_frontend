@@ -191,6 +191,18 @@ export default function LobbyPage() {
     }
   }, [hasActiveRoom, navigate, roomSession]);
 
+  const handleUnauthorized = () => {
+    clearRoomSession();
+    setJoinState(createInitialJoinState());
+    logout();
+    navigate('/', {
+      replace: true,
+      state: {
+        openAuth: 'login',
+      },
+    });
+  };
+
   const handleJoinRoom = async (room) => {
     if (!token) {
       setJoinState({
@@ -211,6 +223,11 @@ export default function LobbyPage() {
 
     const result = await roomApi.joinRoom(token, room.id);
     if (!result.ok) {
+      if (result.error?.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
       clearRoomSession();
       setJoinState({
         ...createInitialJoinState(),
@@ -235,7 +252,7 @@ export default function LobbyPage() {
   const joinError = joinState.status === ROOM_JOIN_STATUS.ERROR ? joinState.error : null;
 
   if (!loading && !token) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/" replace state={{ openAuth: 'login' }} />;
   }
 
   return (
@@ -291,6 +308,7 @@ export default function LobbyPage() {
             onJoinRoom={handleJoinRoom}
             joiningRoomId={joiningRoomId}
             joinError={joinError}
+            onUnauthorized={handleUnauthorized}
           />
         </div>
 

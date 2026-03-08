@@ -1,5 +1,6 @@
 import { act, render, screen } from '@testing-library/react';
 import { useEffect } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockToken = 'test-token';
@@ -45,6 +46,14 @@ vi.mock('@/shared/ws/wsClient', () => {
 
 import { WebSocketProvider, useWebSocket } from '../../features/realtime/model/WebSocketContext';
 
+function renderWithRoute(route, children) {
+  return render(
+    <MemoryRouter initialEntries={[route]}>
+      <WebSocketProvider>{children}</WebSocketProvider>
+    </MemoryRouter>,
+  );
+}
+
 function StatusConsumer() {
   const { isConnected, hasToken, lastClose } = useWebSocket();
   const closeText = lastClose?.code === undefined ? 'none' : `${String(lastClose.code)}:${lastClose.reason ?? ''}`;
@@ -78,11 +87,10 @@ describe('WebSocketContext', () => {
     vi.restoreAllMocks();
   });
 
-  it('connects on mount when token exists and exposes connection state', async () => {
-    render(
-      <WebSocketProvider>
-        <StatusConsumer />
-      </WebSocketProvider>,
+  it('connects on lobby route when token exists and exposes connection state', async () => {
+    renderWithRoute(
+      '/lobby',
+      <StatusConsumer />,
     );
 
     expect(lastClient).not.toBeNull();
@@ -97,11 +105,22 @@ describe('WebSocketContext', () => {
     expect(screen.getByTestId('isConnected')).toHaveTextContent('true');
   });
 
+  it('does not connect on home route even when token exists', () => {
+    renderWithRoute(
+      '/',
+      <StatusConsumer />,
+    );
+
+    expect(lastClient).not.toBeNull();
+    expect(lastClient.connect).not.toHaveBeenCalled();
+    expect(screen.getByTestId('hasToken')).toHaveTextContent('true');
+    expect(screen.getByTestId('isConnected')).toHaveTextContent('false');
+  });
+
   it('disconnects when token is removed and disconnects on unmount', async () => {
-    const { rerender, unmount } = render(
-      <WebSocketProvider>
-        <StatusConsumer />
-      </WebSocketProvider>,
+    const { rerender, unmount } = renderWithRoute(
+      '/lobby',
+      <StatusConsumer />,
     );
 
     await act(() => lastConnectOptions.onConnectionChange(true));
@@ -109,9 +128,11 @@ describe('WebSocketContext', () => {
 
     mockToken = null;
     rerender(
-      <WebSocketProvider>
-        <StatusConsumer />
-      </WebSocketProvider>,
+      <MemoryRouter initialEntries={['/lobby']}>
+        <WebSocketProvider>
+          <StatusConsumer />
+        </WebSocketProvider>
+      </MemoryRouter>,
     );
 
     expect(lastClient.disconnect).toHaveBeenCalled();
@@ -125,10 +146,9 @@ describe('WebSocketContext', () => {
   it('updates lastClose when client triggers onClose', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    render(
-      <WebSocketProvider>
-        <StatusConsumer />
-      </WebSocketProvider>,
+    renderWithRoute(
+      '/lobby',
+      <StatusConsumer />,
     );
 
     expect(screen.getByTestId('lastClose')).toHaveTextContent('none');
@@ -141,16 +161,14 @@ describe('WebSocketContext', () => {
 
   it('subscribe passes through to wsClient and supports unsubscribe on unmount', async () => {
     const onMessage = vi.fn();
-    const { unmount } = render(
-      <WebSocketProvider>
-        <SubscribeOnMount type="TEST_TYPE" onMessage={onMessage} />
-      </WebSocketProvider>,
+    const { unmount } = renderWithRoute(
+      '/lobby',
+      <SubscribeOnMount type="TEST_TYPE" onMessage={onMessage} />,
     );
 
     expect(lastClient.subscribe).toHaveBeenCalledWith('TEST_TYPE', onMessage);
     expect(subscribersByType.get('TEST_TYPE')?.size).toBe(1);
 
-    // simulate message dispatch from ws client
     for (const cb of subscribersByType.get('TEST_TYPE')) cb({ ok: true });
     expect(onMessage).toHaveBeenCalledWith({ ok: true });
 
@@ -175,10 +193,9 @@ describe('WebSocketContext', () => {
       );
     }
 
-    render(
-      <WebSocketProvider>
-        <Sender />
-      </WebSocketProvider>,
+    renderWithRoute(
+      '/lobby',
+      <Sender />,
     );
 
     lastClient.send.mockReturnValueOnce({ ok: false, error: { type: 'state', message: 'not open' } });

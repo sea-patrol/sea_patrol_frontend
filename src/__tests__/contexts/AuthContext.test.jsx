@@ -61,22 +61,33 @@ describe('AuthContext', () => {
     });
 
     it('should restore token and stored user on mount', () => {
-      localStorage.setItem('token', 'existing-token');
+      localStorage.setItem('token', createJwt({ sub: 'captain', exp: Math.floor(Date.now() / 1000) + 3600 }));
       localStorage.setItem('auth-user', JSON.stringify({ username: 'captain' }));
       renderWithAuthProvider();
 
-      expect(screen.getByTestId('token')).toHaveTextContent('existing-token');
       expect(screen.getByTestId('user')).toHaveTextContent('captain');
       expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('true');
     });
 
     it('should restore username from JWT subject when only token is stored', () => {
-      localStorage.setItem('token', createJwt({ sub: 'user1' }));
+      localStorage.setItem('token', createJwt({ sub: 'user1', exp: Math.floor(Date.now() / 1000) + 3600 }));
       renderWithAuthProvider();
 
       expect(screen.getByTestId('user')).toHaveTextContent('user1');
       expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('true');
       expect(localStorage.getItem('auth-user')).toBe(JSON.stringify({ username: 'user1' }));
+    });
+
+    it('should clear expired JWT from storage on mount', () => {
+      localStorage.setItem('token', createJwt({ sub: 'user1', exp: Math.floor(Date.now() / 1000) - 60 }));
+      localStorage.setItem('auth-user', JSON.stringify({ username: 'user1' }));
+      renderWithAuthProvider();
+
+      expect(screen.getByTestId('token')).toHaveTextContent('null');
+      expect(screen.getByTestId('user')).toHaveTextContent('null');
+      expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('false');
+      expect(localStorage.getItem('token')).toBeNull();
+      expect(localStorage.getItem('auth-user')).toBeNull();
     });
 
     it('should clear invalid stored token when user cannot be restored', () => {
