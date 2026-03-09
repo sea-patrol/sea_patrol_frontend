@@ -27,7 +27,8 @@
 .connection-status {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
+    gap: 12px;
     padding: 10px 12px;
     background: rgba(255, 255, 255, 0.06);
     border-bottom: 1px solid rgba(244, 240, 232, 0.08);
@@ -35,9 +36,47 @@
     color: #d8e6f0;
 }
 
+.connection-status__realtime {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
 .connection-close-info {
     margin-left: 8px;
     opacity: 0.8;
+}
+
+.chat-scope {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    justify-content: flex-end;
+}
+
+.chat-scope__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(217, 164, 65, 0.18);
+    border: 1px solid rgba(217, 164, 65, 0.3);
+    color: #f7d27a;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    flex: 0 0 auto;
+}
+
+.chat-scope__caption {
+    color: rgba(216, 230, 240, 0.82);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .status-indicator {
@@ -152,4 +191,15 @@
 
 .messages-container::-webkit-scrollbar-thumb:hover {
     background: rgba(244, 240, 232, 0.32);
+}
+
+@media (max-width: 768px) {
+    .connection-status {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .chat-scope {
+        justify-content: flex-start;
+    }
 }

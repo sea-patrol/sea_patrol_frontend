@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useEffect } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthProvider } from '../../features/auth/model/AuthContext';
@@ -9,6 +10,18 @@ import { GameUiProvider, GAME_UI_MODE, useGameUi } from '../../features/ui-shell
 import ChatBlock from '../../widgets/ChatPanel/ChatBlock';
 
 let keyboardSubscriber = null;
+
+const createJwt = (payload) => {
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+  const body = btoa(JSON.stringify(payload))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+  return `${header}.${body}.signature`;
+};
 
 vi.mock('@react-three/drei', () => {
   return {
@@ -69,14 +82,16 @@ function SailingUiHarness({ children }) {
   return children;
 }
 
-const renderWithProviders = (ui) => {
+const renderWithProviders = (route, ui) => {
   return render(
     <AuthProvider>
-      <WebSocketProvider>
-        <GameUiProvider>
-          <SailingUiHarness>{ui}</SailingUiHarness>
-        </GameUiProvider>
-      </WebSocketProvider>
+      <MemoryRouter initialEntries={[route]}>
+        <WebSocketProvider>
+          <GameUiProvider>
+            <SailingUiHarness>{ui}</SailingUiHarness>
+          </GameUiProvider>
+        </WebSocketProvider>
+      </MemoryRouter>
     </AuthProvider>,
   );
 };
@@ -86,7 +101,8 @@ describe('WebSocket send regressions (chat + keyboard)', () => {
     MockWebSocket.instances = [];
     keyboardSubscriber = null;
     localStorage.clear();
-    localStorage.setItem('token', 'test-token');
+    localStorage.setItem('token', createJwt({ sub: 'alice', exp: Math.floor(Date.now() / 1000) + 3600 }));
+    localStorage.setItem('auth-user', JSON.stringify({ username: 'alice' }));
     vi.stubGlobal('WebSocket', MockWebSocket);
 
     if (!Element.prototype.scrollIntoView) {
@@ -101,20 +117,20 @@ describe('WebSocket send regressions (chat + keyboard)', () => {
   it('ChatBlock: sends tuple message to WebSocket when connected', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    renderWithProviders(<ChatBlock />);
+    renderWithProviders('/lobby', <ChatBlock />);
 
     const ws = MockWebSocket.instances[0];
     await act(() => {
       ws.open();
     });
 
-    const input = screen.getByPlaceholderText('Type your message...');
+    const input = screen.getByPlaceholderText('Message the lobby...');
     await waitFor(() => expect(input).not.toBeDisabled());
 
     fireEvent.change(input, { target: { value: 'hello' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
-    expect(ws.sent).toContain(JSON.stringify(['CHAT_MESSAGE', { to: 'global', text: 'hello' }]));
+    expect(ws.sent).toContain(JSON.stringify(['CHAT_MESSAGE', { to: 'group:lobby', text: 'hello' }]));
     expect(warnSpy.mock.calls.some((call) => String(call[0]).includes('WebSocket send failed'))).toBe(false);
 
     warnSpy.mockRestore();
@@ -123,7 +139,7 @@ describe('WebSocket send regressions (chat + keyboard)', () => {
   it('KeyPress: sends PLAYER_INPUT tuple to WebSocket when connected', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    renderWithProviders(<KeyPress />);
+    renderWithProviders('/game', <KeyPress />);
 
     const ws = MockWebSocket.instances[0];
     await act(() => {

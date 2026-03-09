@@ -1,6 +1,7 @@
 export const GAME_UI_MODE = Object.freeze({
   LOADING: 'LOADING',
   LOBBY: 'LOBBY',
+  ROOM_LOADING: 'ROOM_LOADING',
   SAILING: 'SAILING',
   CHAT_FOCUS: 'CHAT_FOCUS',
   WINDOW_FOCUS: 'WINDOW_FOCUS',
@@ -40,6 +41,7 @@ export function gameUiReducer(state, action) {
       const shouldResetOverlay = [
         GAME_UI_MODE.LOADING,
         GAME_UI_MODE.LOBBY,
+        GAME_UI_MODE.ROOM_LOADING,
         GAME_UI_MODE.RECONNECTING,
         GAME_UI_MODE.RESPAWN,
       ].includes(nextScreenMode);
@@ -90,7 +92,7 @@ export function gameUiReducer(state, action) {
       };
 
     case 'RETURN_TO_SAILING':
-      if (state.screenMode !== GAME_UI_MODE.SAILING) return state;
+      if (state.screenMode !== GAME_UI_MODE.SAILING && state.screenMode !== GAME_UI_MODE.LOBBY) return state;
 
       return {
         ...state,

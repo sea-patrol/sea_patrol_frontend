@@ -1,6 +1,12 @@
 import { http, HttpResponse } from 'msw';
 
-import { testUsers, mockAuthResponses } from './data';
+import {
+  mockAuthResponses,
+  mockRoomCatalogResponses,
+  mockRoomCreateResponses,
+  mockRoomJoinResponses,
+  testUsers,
+} from './data';
 
 const DEFAULT_BACKEND_HOSTNAME = 'localhost';
 const DEFAULT_BACKEND_PORT = 8080;
@@ -16,6 +22,7 @@ const getDefaultApiBaseUrl = () => {
 
 const API_BASE_URL = trimTrailingSlashes(import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl());
 const AUTH_API_BASE_URL = `${API_BASE_URL}/api/v1/auth`;
+const ROOMS_API_BASE_URL = `${API_BASE_URL}/api/v1/rooms`;
 
 export const handlers = [
   http.post(`${AUTH_API_BASE_URL}/login`, async ({ request }) => {
@@ -68,5 +75,81 @@ export const handlers = [
     }
 
     return HttpResponse.json({ username });
+  }),
+
+  http.get(ROOMS_API_BASE_URL, ({ request }) => {
+    const authorization = request.headers.get('authorization');
+    if (!authorization?.startsWith('Bearer ')) {
+      return HttpResponse.json(
+        {
+          errors: [
+            {
+              code: 'SEAPATROL_UNAUTHORIZED',
+              message: 'Unauthorized',
+            },
+          ],
+        },
+        { status: 401 }
+      );
+    }
+
+    return HttpResponse.json(mockRoomCatalogResponses.populated);
+  }),
+
+  http.post(ROOMS_API_BASE_URL, async ({ request }) => {
+    const authorization = request.headers.get('authorization');
+    if (!authorization?.startsWith('Bearer ')) {
+      return HttpResponse.json(
+        {
+          errors: [
+            {
+              code: 'SEAPATROL_UNAUTHORIZED',
+              message: 'Unauthorized',
+            },
+          ],
+        },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    if (body?.mapId && body.mapId !== 'caribbean-01') {
+      return HttpResponse.json(mockRoomCreateResponses.invalidMapId, { status: 400 });
+    }
+
+    return HttpResponse.json(
+      {
+        ...mockRoomCreateResponses.success,
+        ...(body?.name ? { name: body.name, id: body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'sandbox-3' } : {}),
+        ...(body?.mapId ? { mapId: body.mapId } : {}),
+      },
+      { status: 201 },
+    );
+  }),
+
+  http.post(`${ROOMS_API_BASE_URL}/:roomId/join`, ({ params, request }) => {
+    const authorization = request.headers.get('authorization');
+    if (!authorization?.startsWith('Bearer ')) {
+      return HttpResponse.json(
+        {
+          errors: [
+            {
+              code: 'SEAPATROL_UNAUTHORIZED',
+              message: 'Unauthorized',
+            },
+          ],
+        },
+        { status: 401 }
+      );
+    }
+
+    if (params.roomId === 'regatta-night') {
+      return HttpResponse.json(mockRoomJoinResponses.roomFull, { status: 409 });
+    }
+
+    return HttpResponse.json({
+      ...mockRoomJoinResponses.success,
+      roomId: params.roomId,
+    });
   }),
 ];

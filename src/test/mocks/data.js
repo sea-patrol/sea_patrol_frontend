@@ -60,6 +60,77 @@ export const mockAuthResponses = {
   },
 };
 
+export const mockRoomCatalogResponses = {
+  populated: {
+    maxRooms: 5,
+    maxPlayersPerRoom: 100,
+    rooms: [
+      {
+        id: 'sandbox-1',
+        name: 'Sandbox 1',
+        mapId: 'caribbean-01',
+        mapName: 'Caribbean Sea',
+        currentPlayers: 4,
+        maxPlayers: 100,
+        status: 'OPEN',
+      },
+      {
+        id: 'regatta-night',
+        name: 'Regatta Night',
+        mapId: 'caribbean-01',
+        mapName: 'Caribbean Sea',
+        currentPlayers: 100,
+        maxPlayers: 100,
+        status: 'FULL',
+      },
+    ],
+  },
+  empty: {
+    maxRooms: 5,
+    maxPlayersPerRoom: 100,
+    rooms: [],
+  },
+};
+
+export const mockRoomCreateResponses = {
+  success: {
+    id: 'sandbox-3',
+    name: 'Sandbox 3',
+    mapId: 'caribbean-01',
+    mapName: 'Caribbean Sea',
+    currentPlayers: 0,
+    maxPlayers: 100,
+    status: 'OPEN',
+  },
+  invalidMapId: {
+    errors: [
+      {
+        code: 'INVALID_MAP_ID',
+        message: 'Unknown mapId',
+      },
+    ],
+  },
+};
+
+export const mockRoomJoinResponses = {
+  success: {
+    roomId: 'sandbox-1',
+    mapId: 'caribbean-01',
+    mapName: 'Caribbean Sea',
+    currentPlayers: 1,
+    maxPlayers: 100,
+    status: 'JOINED',
+  },
+  roomFull: {
+    errors: [
+      {
+        code: 'ROOM_FULL',
+        message: 'Room is full',
+      },
+    ],
+  },
+};
+
 export const mockGameStates = {
   initial: {
     playerStates: {

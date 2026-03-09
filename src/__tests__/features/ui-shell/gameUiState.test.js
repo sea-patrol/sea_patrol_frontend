@@ -38,8 +38,23 @@ describe('gameUiState reducer', () => {
     state = gameUiReducer(state, { type: 'TOGGLE_MENU' });
     expect(selectGameUiMode(state)).toBe(GAME_UI_MODE.MENU_OPEN);
 
+    state = gameUiReducer(state, { type: 'SET_SCREEN_MODE', payload: GAME_UI_MODE.ROOM_LOADING });
+    expect(selectGameUiMode(state)).toBe(GAME_UI_MODE.ROOM_LOADING);
+    expect(state.activeWindow).toBeNull();
+    expect(isGameplayInputAllowed(state)).toBe(false);
+
     state = gameUiReducer(state, { type: 'SET_SCREEN_MODE', payload: GAME_UI_MODE.RECONNECTING });
     expect(selectGameUiMode(state)).toBe(GAME_UI_MODE.RECONNECTING);
     expect(state.activeWindow).toBeNull();
+  });
+
+  it('allows chat focus to return back to lobby screen mode', () => {
+    let state = gameUiReducer(initialGameUiState, { type: 'SET_SCREEN_MODE', payload: GAME_UI_MODE.LOBBY });
+
+    state = gameUiReducer(state, { type: 'OPEN_CHAT' });
+    expect(selectGameUiMode(state)).toBe(GAME_UI_MODE.CHAT_FOCUS);
+
+    state = gameUiReducer(state, { type: 'RETURN_TO_SAILING' });
+    expect(selectGameUiMode(state)).toBe(GAME_UI_MODE.LOBBY);
   });
 });

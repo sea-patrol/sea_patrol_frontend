@@ -1,0 +1,330 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+
+import { useAuth } from '../../features/auth/model/AuthContext';
+import { selectCurrentPlayerState, useGameState } from '../../features/game/model/GameStateContext';
+import { useRoomSession } from '../../features/game/model/RoomSessionContext';
+import { useWebSocket } from '../../features/realtime/model/WebSocketContext';
+import { roomApi } from '../../shared/api/roomApi';
+import * as messageType from '../../shared/constants/messageType';
+import ChatBlock from '../../widgets/ChatPanel/ChatBlock';
+import LobbyPanel from '../../widgets/LobbyPanel/LobbyPanel';
+import './LobbyPage.css';
+
+const LOBBY_CHAT_SCOPE = Object.freeze({
+  key: 'group:lobby',
+  target: 'group:lobby',
+  label: 'Lobby',
+  caption: 'Lobby chat',
+  emptyState: 'No lobby messages yet. Start the conversation!',
+  placeholder: 'Message the lobby...',
+});
+
+const ROOM_JOIN_STATUS = Object.freeze({
+  IDLE: 'idle',
+  SUBMITTING: 'submitting',
+  AWAITING_SPAWN: 'awaiting-spawn',
+  AWAITING_INIT: 'awaiting-init',
+  ERROR: 'error',
+});
+
+function createInitialJoinState() {
+  return {
+    status: ROOM_JOIN_STATUS.IDLE,
+    room: null,
+    joinResponse: null,
+    spawn: null,
+    error: null,
+  };
+}
+
+function isJoinPending(status) {
+  return [ROOM_JOIN_STATUS.SUBMITTING, ROOM_JOIN_STATUS.AWAITING_SPAWN, ROOM_JOIN_STATUS.AWAITING_INIT].includes(status);
+}
+
+function matchesPendingRoom(payload, room) {
+  if (!room?.id || !payload?.roomId) {
+    return true;
+  }
+
+  return payload.roomId === room.id;
+}
+
+function resolveRoomMeta(payload, fallbackRoom = null) {
+  const roomId = payload?.roomId ?? payload?.id ?? fallbackRoom?.id ?? null;
+  if (!roomId) {
+    return fallbackRoom;
+  }
+
+  return {
+    id: roomId,
+    name: fallbackRoom?.name ?? payload?.name ?? payload?.roomName ?? roomId,
+  };
+}
+
+function getJoinStatusCopy(joinState) {
+  const roomName = joinState.room?.name ?? joinState.joinResponse?.roomId ?? 'Selected room';
+
+  switch (joinState.status) {
+    case ROOM_JOIN_STATUS.SUBMITTING:
+      return {
+        title: 'Sending room join request',
+        body: `Requesting room admission for ${roomName}. The lobby stays active until backend confirms room initialization for the gameplay route.`,
+      };
+
+    case ROOM_JOIN_STATUS.AWAITING_SPAWN:
+      return {
+        title: 'Room admitted',
+        body: `Backend accepted the join for ${roomName}. Waiting for authoritative spawn assignment before room initialization continues.`,
+      };
+
+    case ROOM_JOIN_STATUS.AWAITING_INIT:
+      return {
+        title: 'Waiting for room initialization',
+        body: `Spawn is assigned for ${roomName}. The lobby keeps the player here until authoritative room state is fully ready.`,
+      };
+
+    default:
+      return null;
+  }
+}
+
+export default function LobbyPage() {
+  const navigate = useNavigate();
+  const { user, token, loading, logout } = useAuth();
+  const { state } = useGameState();
+  const { roomSession, startRoomJoin, applyRoomJoined, applySpawnAssigned, clearRoomSession } = useRoomSession();
+  const { subscribe } = useWebSocket();
+  const [joinState, setJoinState] = useState(createInitialJoinState);
+
+  const currentPlayerState = selectCurrentPlayerState(state, user?.username);
+  const hasActiveRoom = Boolean(currentPlayerState && roomSession.room);
+
+  useEffect(() => {
+    if (!token) {
+      setJoinState(createInitialJoinState());
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      return undefined;
+    }
+
+    const unsubscribeRoomJoined = subscribe(messageType.ROOM_JOINED, (payload) => {
+      setJoinState((prevState) => {
+        if (!isJoinPending(prevState.status) || !matchesPendingRoom(payload, prevState.room)) {
+          return prevState;
+        }
+
+        const room = resolveRoomMeta(payload, prevState.room);
+        applyRoomJoined(payload, room);
+
+        return {
+          ...prevState,
+          status: ROOM_JOIN_STATUS.AWAITING_SPAWN,
+          room,
+          joinResponse: payload,
+          error: null,
+        };
+      });
+    });
+
+    const unsubscribeSpawnAssigned = subscribe(messageType.SPAWN_ASSIGNED, (payload) => {
+      setJoinState((prevState) => {
+        if (!isJoinPending(prevState.status) || !matchesPendingRoom(payload, prevState.room)) {
+          return prevState;
+        }
+
+        const room = resolveRoomMeta(payload, prevState.room);
+        applySpawnAssigned(payload, room);
+
+        return {
+          ...prevState,
+          status: ROOM_JOIN_STATUS.AWAITING_INIT,
+          room,
+          spawn: payload,
+          error: null,
+        };
+      });
+    });
+
+    const unsubscribeJoinRejected = subscribe(messageType.ROOM_JOIN_REJECTED, (payload) => {
+      setJoinState((prevState) => {
+        if (!isJoinPending(prevState.status) || !matchesPendingRoom(payload, prevState.room)) {
+          return prevState;
+        }
+
+        const roomId = payload?.roomId || prevState.room?.id;
+        const reason = payload?.reason || 'UNKNOWN';
+        clearRoomSession();
+
+        return {
+          status: ROOM_JOIN_STATUS.ERROR,
+          room: prevState.room,
+          joinResponse: prevState.joinResponse,
+          spawn: null,
+          error: roomId ? `Room join rejected for ${roomId}: ${reason}` : `Room join rejected: ${reason}`,
+        };
+      });
+    });
+
+    return () => {
+      unsubscribeRoomJoined();
+      unsubscribeSpawnAssigned();
+      unsubscribeJoinRejected();
+    };
+  }, [applyRoomJoined, applySpawnAssigned, clearRoomSession, subscribe, token]);
+
+  useEffect(() => {
+    if (hasActiveRoom) {
+      navigate('/game', {
+        replace: true,
+        state: {
+          roomEntry: {
+            room: roomSession.room,
+            joinResponse: roomSession.joinResponse,
+            spawn: roomSession.spawn,
+          },
+        },
+      });
+    }
+  }, [hasActiveRoom, navigate, roomSession]);
+
+  const handleUnauthorized = () => {
+    clearRoomSession();
+    setJoinState(createInitialJoinState());
+    logout();
+    navigate('/', {
+      replace: true,
+      state: {
+        openAuth: 'login',
+      },
+    });
+  };
+
+  const handleJoinRoom = async (room) => {
+    if (!token) {
+      setJoinState({
+        ...createInitialJoinState(),
+        status: ROOM_JOIN_STATUS.ERROR,
+        room,
+        error: 'Login required to join a room.',
+      });
+      return;
+    }
+
+    startRoomJoin(room);
+    setJoinState({
+      ...createInitialJoinState(),
+      status: ROOM_JOIN_STATUS.SUBMITTING,
+      room,
+    });
+
+    const result = await roomApi.joinRoom(token, room.id);
+    if (!result.ok) {
+      if (result.error?.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      clearRoomSession();
+      setJoinState({
+        ...createInitialJoinState(),
+        status: ROOM_JOIN_STATUS.ERROR,
+        room,
+        error: result.error?.message || 'Failed to join room.',
+      });
+      return;
+    }
+
+    applyRoomJoined(result.data, room);
+    setJoinState({
+      ...createInitialJoinState(),
+      status: ROOM_JOIN_STATUS.AWAITING_SPAWN,
+      room,
+      joinResponse: result.data,
+    });
+  };
+
+  const joinStatusCopy = useMemo(() => getJoinStatusCopy(joinState), [joinState]);
+  const joiningRoomId = isJoinPending(joinState.status) ? joinState.room?.id ?? null : null;
+  const joinError = joinState.status === ROOM_JOIN_STATUS.ERROR ? joinState.error : null;
+
+  if (!loading && !token) {
+    return <Navigate to="/" replace state={{ openAuth: 'login' }} />;
+  }
+
+  return (
+    <div className="lobby-page">
+      <header className="lobby-page__header">
+        <div>
+          <p className="lobby-page__eyebrow">Sea Patrol</p>
+          <h1>Harbor Lobby</h1>
+          <p className="lobby-page__lead">
+            This is the harbor state of the app: no gameplay scene, just rooms, chat and room-entry progress before the captain is moved into a live sea instance.
+          </p>
+        </div>
+        <div className="lobby-page__actions">
+          <div className="lobby-page__captain-card">
+            <span>Captain</span>
+            <strong>{user?.username ?? 'Authenticated sailor'}</strong>
+          </div>
+          <Link className="lobby-page__ghost-button" to="/">
+            Home
+          </Link>
+          <button type="button" className="lobby-page__ghost-button" onClick={logout}>
+            Logout
+          </button>
+        </div>
+      </header>
+
+      <section className="lobby-page__state-strip" aria-label="Current application state">
+        <div>
+          <span>Route state</span>
+          <strong>Lobby</strong>
+        </div>
+        <div>
+          <span>Next route</span>
+          <strong>Room</strong>
+        </div>
+        <div>
+          <span>Transition rule</span>
+          <strong>Join + init complete</strong>
+        </div>
+      </section>
+
+      {joinStatusCopy && (
+        <section className="lobby-page__notice" aria-live="polite">
+          <strong>{joinStatusCopy.title}</strong>
+          <p>{joinStatusCopy.body}</p>
+        </section>
+      )}
+
+      <main className="lobby-page__layout">
+        <div className="lobby-page__catalog">
+          <LobbyPanel
+            token={token}
+            onJoinRoom={handleJoinRoom}
+            joiningRoomId={joiningRoomId}
+            joinError={joinError}
+            onUnauthorized={handleUnauthorized}
+          />
+        </div>
+
+        <aside className="lobby-page__chat-column">
+          <div className="lobby-page__chat-card">
+            <div className="lobby-page__chat-copy">
+              <p className="lobby-page__eyebrow">Dockside channel</p>
+              <h2>Lobby chat</h2>
+              <p>Messages stay in `group:lobby` until backend confirms both room admission and room initialization for the gameplay route.</p>
+            </div>
+            <div className="lobby-page__chat-shell">
+              <ChatBlock chatScope={LOBBY_CHAT_SCOPE} />
+            </div>
+          </div>
+        </aside>
+      </main>
+    </div>
+  );
+}

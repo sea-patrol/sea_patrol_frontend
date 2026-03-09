@@ -69,14 +69,16 @@ src/
 │   └── main.jsx
 ├── pages/                # Страницы
 │   ├── HomePage/
+│   ├── LobbyPage/
 │   └── GamePage/
 ├── widgets/              # UI-виджеты (сборки UI)
 │   ├── ChatPanel/
-│   └── GameHud/
+│   ├── GameHud/
+│   └── LobbyPanel/
 ├── features/             # Фичи (ui + model)
 │   ├── auth/             # AuthContext + формы
 │   ├── realtime/         # WebSocketContext
-│   ├── game/             # GameStateContext + ws→dispatch hook
+│   ├── game/             # GameStateContext + RoomSessionContext + global realtime bridge
 │   ├── player-controls/  # KeyPress c проверкой UI mode
 │   ├── ui-shell/         # GameUiContext + GameUiShell + централизованные hotkeys
 │   └── ships/            # Ship UI + interpolation
@@ -98,12 +100,16 @@ src/
 ### 3.3 Architecture Decisions
 
 - **Минимум зависимостей**: Только необходимые библиотеки для React/Vite/R3F
-- **Context API для глобального состояния**: Auth, WebSocket, GameState и GameUi — без Redux/Zustand
-- **UI shell отдельно от 3D-сцены**: `GamePage` оркестрирует providers, scene и `GameUiShell`, а HUD/окна/notice overlays больше не живут внутри canvas
-- **Единая UI mode model**: `GameUiContext` задаёт состояния `LOADING`, `LOBBY`, `SAILING`, `CHAT_FOCUS`, `WINDOW_FOCUS`, `MENU_OPEN`, `RECONNECTING`, `RESPAWN`
+- **Context API для глобального состояния**: Auth, WebSocket, GameState и RoomSession подняты выше роутов, а route-local `GameUi` управляет только room/game shell without Redux/Zustand
+- **Auth bootstrap восстанавливает persisted session целиком**: `AuthContext` поднимает пользователя из `localStorage` (`token` + `auth-user`), может восстановить `username` из JWT `sub` и сразу отбрасывает просроченный/битый JWT, поэтому home/lobby UI не показывает ложный logged-in state при expired token
+- **UI shell отдельно от 3D-сцены**: `LobbyPage` теперь HTML-first и вообще не монтирует `Canvas`, а `GamePage` поднимает 3D-сцену только когда у маршрута уже есть room context; внутри room route `GameUiShell` продолжает жить отдельно от canvas
+- **Единая UI mode model**: `GameUiContext` задаёт состояния `LOADING`, `LOBBY`, `ROOM_LOADING`, `SAILING`, `CHAT_FOCUS`, `WINDOW_FOCUS`, `MENU_OPEN`, `RECONNECTING`, `RESPAWN`
+- **Явный navigation flow `Home -> Lobby -> Game`**: домашняя страница ведёт в `/lobby`, а при уже активной room session меняет CTA на `Return to room`; отдельная `LobbyPage` показывает room catalog/create/join actions и lobby chat без загрузки gameplay scene; `Join room` стартует на lobby route, проходит через REST `POST /api/v1/rooms/{roomId}/join`, WS `ROOM_JOINED`, `SPAWN_ASSIGNED` и финальный `INIT_GAME_STATE/current player`, и только после полного init flow переводит пользователя в `/game`
+- **Глобальный realtime bridge и room session поверх роутов**: `WebSocketProvider`, `GameStateProvider`, `RoomSessionProvider` и `GameRealtimeBridge` живут выше страниц, поэтому переходы `Home -> Lobby -> Game` не рвут WS-сессию, не теряют ранние room init сообщения и позволяют безопасно открыть `/game` повторно после возврата на домашний экран
+- **Scoped chat UI**: `LobbyPage` использует `ChatBlock` как standalone lobby chat widget для `group:lobby`, а `GameUiShell` держит room-scoped chat для `group:room:<roomId>`; истории lobby/room сообщений по-прежнему разделены по `payload.to`, без смешивания между комнатами
 - **Централизованные UI hotkeys**: `Enter`, `Esc`, `I`, `J`, `M` обрабатываются в одном слое (`GameUiHotkeys`), а gameplay input учитывает текущий UI mode
 - **Client-side prediction**: Интерполяция позиций кораблей между обновлениями сервера для плавности
-- **WebSocket reconnect**: экспоненциальный backoff (1s/2s/4s/8s), лимит попыток, cleanup таймеров при logout/unmount
+- **WebSocket reconnect**: экспоненциальный backoff (1s/2s/4s/8s), лимит попыток, cleanup таймеров при logout/unmount; `WebSocketProvider` открывает `/ws/game` только на маршрутах `/lobby` и `/game`, поэтому домашняя страница не держит лишнюю realtime-сессию, а `LobbyPanel` показывает отдельный realtime status и после reconnect повторно получает `ROOMS_SNAPSHOT`
 - **PWA для офлайн-кэширования**: 3D-модели (.glb) кэшируются через Service Worker
 - **Слоистая структура `src/`**: app/pages/widgets/features/scene/shared для контроля зависимостей и упрощения роста проекта
 - **Модульная загрузка моделей**: Централизованная предзагрузка через `useGLTF.preload()`
@@ -160,9 +166,9 @@ src/
 - `npm run test:coverage` — запуск с отчётом о покрытии
 
 **Текущее покрытие**:
-- 15 тестовых файлов
-- 82 теста (все проходят ✅)
-- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, Login, Signup, PlayerSailShip, auth-flow, game-state-flow, authApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
+- 21 тестовый файл
+- 109 тестов (все проходят ✅)
+- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
 
 ## 4. Working Commands
 
@@ -181,7 +187,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 15 файлов, 82 теста (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, Login, Signup, PlayerSailShip, auth-flow, game-state-flow, authApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
+**Текущее покрытие**: 21 файл, 109 тестов (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.
@@ -207,6 +213,19 @@ src/
 - Для публикации требуется корректный `base` в `vite.config.js` (под имя репозитория).
 - Основная команда проверки перед деплоем: `npm run build`.
 - PWA-функциональность включается только в production-режиме (devOptions: { enabled: false }).
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

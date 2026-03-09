@@ -8,17 +8,26 @@ import Login from '../../features/auth/ui/Login';
 import Signup from '../../features/auth/ui/Signup';
 import { testUsers } from '../../test/mocks/data';
 
-// Компонент-обертка для тестирования полного потока аутентификации
+const createJwt = (payload) => {
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+  const body = btoa(JSON.stringify(payload))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+  return `${header}.${body}.signature`;
+};
+
 const AuthFlowTest = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const [showLogin, setShowLogin] = useState(true);
 
   const handleLoginSuccess = () => {
-    // Успешный вход
   };
 
   const handleSignupSuccess = () => {
-    // Переключаемся на логин после регистрации
     setShowLogin(true);
   };
 
@@ -26,7 +35,7 @@ const AuthFlowTest = () => {
     <div data-testid="auth-flow">
       <span data-testid="auth-status">{isAuthenticated ? 'authenticated' : 'not-authenticated'}</span>
       <span data-testid="username">{user?.username || ''}</span>
-      
+
       {showLogin ? (
         <Login
           onSwitchToSignup={() => setShowLogin(false)}
@@ -67,29 +76,22 @@ describe('Auth Flow Integration', () => {
       const user = userEvent.setup();
       renderAuthFlow();
 
-      // Начальное состояние - не аутентифицирован
       expect(screen.getByTestId('auth-status').textContent).toBe('not-authenticated');
 
-      // Заполняем форму логина
       const usernameInput = screen.getByLabelText(/username:/i);
       const passwordInput = screen.getByLabelText(/password:/i);
 
       await user.type(usernameInput, testUsers.validUser.username);
       await user.type(passwordInput, testUsers.validUser.password);
 
-      // Отправляем форму
       const submitButton = screen.getByRole('button', { name: /login/i });
       await user.click(submitButton);
 
-      // Ждем успешной аутентификации
       await waitFor(() => {
         expect(screen.getByTestId('auth-status').textContent).toBe('authenticated');
       });
 
-      // Проверяем, что пользователь установлен
       expect(screen.getByTestId('username').textContent).toBe(testUsers.validUser.username);
-
-      // Проверяем, что токен сохранен в localStorage
       expect(localStorage.getItem('token')).toBe('test-jwt-token-valid-user');
     });
 
@@ -97,23 +99,19 @@ describe('Auth Flow Integration', () => {
       const user = userEvent.setup();
       renderAuthFlow();
 
-      // Заполняем форму с неверными данными
       const usernameInput = screen.getByLabelText(/username:/i);
       const passwordInput = screen.getByLabelText(/password:/i);
 
       await user.type(usernameInput, 'testuser');
       await user.type(passwordInput, 'wrongpassword');
 
-      // Отправляем форму
       const submitButton = screen.getByRole('button', { name: /login/i });
       await user.click(submitButton);
 
-      // Ждем появления ошибки
       await waitFor(() => {
         expect(screen.getByText(/invalid password/i)).toBeInTheDocument();
       });
 
-      // Состояние не должно измениться
       expect(screen.getByTestId('auth-status').textContent).toBe('not-authenticated');
     });
 
@@ -121,7 +119,6 @@ describe('Auth Flow Integration', () => {
       const user = userEvent.setup();
       renderAuthFlow();
 
-      // Логинимся
       const usernameInput = screen.getByLabelText(/username:/i);
       const passwordInput = screen.getByLabelText(/password:/i);
 
@@ -135,16 +132,13 @@ describe('Auth Flow Integration', () => {
         expect(screen.getByTestId('auth-status').textContent).toBe('authenticated');
       });
 
-      // Выходим
       const logoutBtn = screen.getByTestId('logout-btn');
       await user.click(logoutBtn);
 
-      // Проверяем, что вышли
       await waitFor(() => {
         expect(screen.getByTestId('auth-status').textContent).toBe('not-authenticated');
       });
 
-      // Токен должен быть удален
       expect(localStorage.getItem('token')).toBeNull();
     });
   });
@@ -154,11 +148,9 @@ describe('Auth Flow Integration', () => {
       const user = userEvent.setup();
       renderAuthFlow();
 
-      // Переключаемся на регистрацию
       const switchToSignupBtn = screen.getByRole('button', { name: /sign up/i });
       await user.click(switchToSignupBtn);
 
-      // Заполняем форму регистрации
       const usernameInput = screen.getByLabelText(/username:/i);
       const emailInput = screen.getByLabelText(/email:/i);
       const passwordInput = screen.getAllByLabelText(/password:/i)[0];
@@ -169,16 +161,13 @@ describe('Auth Flow Integration', () => {
       await user.type(passwordInput, 'password123');
       await user.type(confirmPasswordInput, 'password123');
 
-      // Отправляем форму
       const submitButton = screen.getByRole('button', { name: /sign up/i });
       await user.click(submitButton);
 
-      // После успешной регистрации переключаемся на логин
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
       });
 
-      // Состояние - не аутентифицирован (signup не логинит автоматически)
       expect(screen.getByTestId('auth-status').textContent).toBe('not-authenticated');
     });
 
@@ -186,11 +175,9 @@ describe('Auth Flow Integration', () => {
       const user = userEvent.setup();
       renderAuthFlow();
 
-      // Переключаемся на регистрацию
       const switchToSignupBtn = screen.getByRole('button', { name: /sign up/i });
       await user.click(switchToSignupBtn);
 
-      // Заполняем форму с существующим username
       const usernameInput = screen.getByLabelText(/username:/i);
       const emailInput = screen.getByLabelText(/email:/i);
       const passwordInput = screen.getAllByLabelText(/password:/i)[0];
@@ -201,11 +188,9 @@ describe('Auth Flow Integration', () => {
       await user.type(passwordInput, 'password123');
       await user.type(confirmPasswordInput, 'password123');
 
-      // Отправляем форму
       const submitButton = screen.getByRole('button', { name: /sign up/i });
       await user.click(submitButton);
 
-      // Ждем появления ошибки
       await waitFor(() => {
         expect(screen.getByText(/username already exists/i)).toBeInTheDocument();
       });
@@ -215,11 +200,9 @@ describe('Auth Flow Integration', () => {
       const user = userEvent.setup();
       renderAuthFlow();
 
-      // Переключаемся на регистрацию
       const switchToSignupBtn = screen.getByRole('button', { name: /sign up/i });
       await user.click(switchToSignupBtn);
 
-      // Заполняем форму с несовпадающими паролями
       const usernameInput = screen.getByLabelText(/username:/i);
       const emailInput = screen.getByLabelText(/email:/i);
       const passwordInput = screen.getAllByLabelText(/password:/i)[0];
@@ -230,16 +213,13 @@ describe('Auth Flow Integration', () => {
       await user.type(passwordInput, 'password123');
       await user.type(confirmPasswordInput, 'password456');
 
-      // Отправляем форму
       const submitButton = screen.getByRole('button', { name: /sign up/i });
       await user.click(submitButton);
 
-      // Ошибка должна появиться сразу, без запроса к API
       await waitFor(() => {
         expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
       });
 
-      // Запрос к API не должен был произойти
       expect(screen.getByTestId('auth-status').textContent).toBe('not-authenticated');
     });
   });
@@ -249,16 +229,13 @@ describe('Auth Flow Integration', () => {
       const user = userEvent.setup();
       renderAuthFlow();
 
-      // Начальное состояние - Login
       expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
 
-      // Переключаемся на Signup
       const switchToSignupBtn = screen.getByRole('button', { name: /sign up/i });
       await user.click(switchToSignupBtn);
 
       expect(screen.getByRole('heading', { name: /sign up/i })).toBeInTheDocument();
 
-      // Переключаемся обратно на Login
       const switchToLoginBtn = screen.getByRole('button', { name: /login/i });
       await user.click(switchToLoginBtn);
 
@@ -269,7 +246,6 @@ describe('Auth Flow Integration', () => {
       const user = userEvent.setup();
       renderAuthFlow();
 
-      // Пытаемся войти с неверными данными
       const usernameInput = screen.getByLabelText(/username:/i);
       const passwordInput = screen.getByLabelText(/password:/i);
 
@@ -283,28 +259,32 @@ describe('Auth Flow Integration', () => {
         expect(screen.getByText(/invalid password/i)).toBeInTheDocument();
       });
 
-      // Переключаемся на Signup
       const switchToSignupBtn = screen.getByRole('button', { name: /sign up/i });
       await user.click(switchToSignupBtn);
 
-      // Ошибка должна исчезнуть
       expect(screen.queryByText(/invalid password/i)).not.toBeInTheDocument();
     });
   });
 
   describe('Session persistence', () => {
-    it('should restore session from localStorage on page reload', async () => {
-      // Сохраняем токен в localStorage
-      localStorage.setItem('token', 'test-jwt-token-valid-user');
+    it('should restore authenticated session from localStorage on page reload', async () => {
+      const persistedToken = createJwt({
+        sub: testUsers.validUser.username,
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      });
+
+      localStorage.setItem('token', persistedToken);
+      localStorage.setItem('auth-user', JSON.stringify({ username: testUsers.validUser.username }));
 
       renderAuthFlow();
 
-      // Токен загружен, но пользователь еще не установлен (требуется login)
-      // AuthContext загружает токен из localStorage при инициализации
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status').textContent).toBe('authenticated');
+      });
 
-      // Проверяем, что токен в localStorage
-      expect(localStorage.getItem('token')).toBe('test-jwt-token-valid-user');
+      expect(screen.getByTestId('username').textContent).toBe(testUsers.validUser.username);
+      expect(localStorage.getItem('token')).toBe(persistedToken);
+      expect(localStorage.getItem('auth-user')).toBe(JSON.stringify({ username: testUsers.validUser.username }));
     });
   });
 });
-
