@@ -188,7 +188,7 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 
 Дополнение по текущей frontend архитектуре:
 - `WebSocketProvider` живёт выше маршрутов, поэтому SPA-переходы `Home -> Lobby -> Game` не рвут WS-сессию;
-- `RoomSessionProvider` хранит room metadata поверх маршрутов и позволяет повторно открыть `/game`, не теряя active room context;
+- `RoomSessionProvider` хранит room metadata поверх маршрутов и в `localStorage`, поэтому после полного reload домашняя страница всё ещё знает текущий room resume target и может вести `Play` сразу в `/game`;
 - room/game state подписки тоже подняты выше страницы сцены, чтобы не потерять ранние room init сообщения во время route transition.
 
 ### 4.2 Формат сообщений
@@ -329,6 +329,7 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 ### Уже зафиксированы в contract, но не используются в UI после `TASK-017`
 - Chat control: `CHAT_JOIN`, `CHAT_LEAVE` (legacy compatibility only; lobby/room scope ими больше не переключается)
 - Room rejection: `ROOM_JOIN_REJECTED`
+
 
 
 

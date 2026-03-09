@@ -191,6 +191,29 @@ describe('GamePage reconnect flow', () => {
     });
   });
 
+  it('starts reconnect flow immediately on fresh room resume when only persisted room metadata exists', async () => {
+    mockGameState = {
+      state: { playerStates: {} },
+      dispatch: dispatchMock,
+    };
+    mockWsState = {
+      isConnected: false,
+      lastClose: null,
+      reconnectState: { phase: 'connecting', attempt: 0, delayMs: null },
+      subscribe: subscribeMock,
+    };
+
+    render(
+      <MemoryRouter>
+        <GamePage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('game-ui-shell')).toHaveTextContent('waiting-socket:sandbox-1');
+    });
+  });
+
   it('returns the player to lobby when backend resumes the ws in lobby scope instead of the room', async () => {
     const { rerender } = render(
       <MemoryRouter>
@@ -262,4 +285,3 @@ describe('GamePage reconnect flow', () => {
     }
   });
 });
-

@@ -104,8 +104,8 @@ src/
 - **Auth bootstrap восстанавливает persisted session целиком**: `AuthContext` поднимает пользователя из `localStorage` (`token` + `auth-user`), может восстановить `username` из JWT `sub` и сразу отбрасывает просроченный/битый JWT, поэтому home/lobby UI не показывает ложный logged-in state при expired token
 - **UI shell отдельно от 3D-сцены**: `LobbyPage` теперь HTML-first и вообще не монтирует `Canvas`, а `GamePage` поднимает 3D-сцену только когда у маршрута уже есть room context; внутри room route `GameUiShell` продолжает жить отдельно от canvas
 - **Единая UI mode model**: `GameUiContext` задаёт состояния `LOADING`, `LOBBY`, `ROOM_LOADING`, `SAILING`, `CHAT_FOCUS`, `WINDOW_FOCUS`, `MENU_OPEN`, `RECONNECTING`, `RESPAWN`
-- **Явный navigation flow `Home -> Lobby -> Game`**: домашняя страница ведёт в `/lobby`, а при уже активной room session меняет CTA на `Return to room`; отдельная `LobbyPage` показывает room catalog/create/join actions и lobby chat без загрузки gameplay scene; `Join room` стартует на lobby route, проходит через REST `POST /api/v1/rooms/{roomId}/join`, WS `ROOM_JOINED`, `SPAWN_ASSIGNED` и финальный `INIT_GAME_STATE/current player`, и только после полного init flow переводит пользователя в `/game`
-- **Глобальный realtime bridge и room session поверх роутов**: `WebSocketProvider`, `GameStateProvider`, `RoomSessionProvider` и `GameRealtimeBridge` живут выше страниц, поэтому переходы `Home -> Lobby -> Game` не рвут WS-сессию, не теряют ранние room init сообщения и позволяют безопасно открыть `/game` повторно после возврата на домашний экран
+- **Явный navigation flow `Home -> Lobby -> Game` с room resume-first входом**: домашняя страница снова использует CTA `Play`; если у пользователя уже есть сохранённая room session, `Play` ведёт сразу на `/game`, где стартует reconnect/resume flow, а если room session нет или backend её уже не восстановил, пользователь попадает в обычный `/lobby`; `Join room` по-прежнему стартует на lobby route, проходит через REST `POST /api/v1/rooms/{roomId}/join`, WS `ROOM_JOINED`, `SPAWN_ASSIGNED` и финальный `INIT_GAME_STATE/current player`, и только после полного init flow переводит пользователя в `/game`
+- **Глобальный realtime bridge и room session поверх роутов**: `WebSocketProvider`, `GameStateProvider`, `RoomSessionProvider` и `GameRealtimeBridge` живут выше страниц, поэтому переходы `Home -> Lobby -> Game` не рвут WS-сессию, не теряют ранние room init сообщения и позволяют безопасно открыть `/game` повторно после возврата на домашний экран; `RoomSessionProvider` дополнительно сохраняет room metadata в `localStorage`, чтобы full page reload не лишал пользователя room resume target в пределах backend reconnect grace
 - **Scoped chat UI**: `LobbyPage` использует `ChatBlock` как standalone lobby chat widget для `group:lobby`, а `GameUiShell` держит room-scoped chat для `group:room:<roomId>`; истории lobby/room сообщений по-прежнему разделены по `payload.to`, без смешивания между комнатами
 - **Централизованные UI hotkeys**: `Enter`, `Esc`, `I`, `J`, `M` обрабатываются в одном слое (`GameUiHotkeys`), а gameplay input учитывает текущий UI mode
 - **Authoritative spawn snap поверх interpolation**: `GameStateContext` принимает `SPAWN_ASSIGNED` для current player как authoritative patch, а `useShipInterpolation` мгновенно snap'ает локальный корабль при смене `spawnRevision`, чтобы respawn не выглядел как медленный перелёт из старой точки
@@ -167,9 +167,9 @@ src/
 - `npm run test:coverage` — запуск с отчётом о покрытии
 
 **Текущее покрытие**:
-- 21 тестовый файл
-- 111 тестов (все проходят ✅)
-- Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
+- 23 тестовых файла
+- 121 тест (все проходят ✅)
+- Протестированы: AuthContext, RoomSessionContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init/reconnect flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, отдельный GamePage reconnect flow, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
 
 ## 4. Working Commands
 
@@ -188,7 +188,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 22 файла, 117 тестов (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init/reconnect flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, отдельный GamePage reconnect flow, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
+**Текущее покрытие**: 23 файла, 121 тест (AuthContext, RoomSessionContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init/reconnect flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, отдельный GamePage reconnect flow, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.
@@ -214,6 +214,9 @@ src/
 - Для публикации требуется корректный `base` в `vite.config.js` (под имя репозитория).
 - Основная команда проверки перед деплоем: `npm run build`.
 - PWA-функциональность включается только в production-режиме (devOptions: { enabled: false }).
+
+
+
 
 
 

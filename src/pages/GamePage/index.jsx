@@ -40,6 +40,14 @@ function createInitialReconnectSession() {
   };
 }
 
+function createReconnectSession(roomId, isConnected) {
+  return {
+    status: isConnected ? RECONNECT_STATUS.WAITING_ROOM : RECONNECT_STATUS.WAITING_SOCKET,
+    roomId,
+    deadlineAt: Date.now() + RECONNECT_GRACE_PERIOD_MS,
+  };
+}
+
 function isReconnectPending(status) {
   return status !== RECONNECT_STATUS.IDLE;
 }
@@ -117,28 +125,47 @@ function GamePage() {
 
     const wasConnected = previousConnectionRef.current;
     if (wasConnected && !isConnected) {
-      setReconnectSession({
-        status: RECONNECT_STATUS.WAITING_SOCKET,
-        roomId,
-        deadlineAt: Date.now() + RECONNECT_GRACE_PERIOD_MS,
-      });
+      setReconnectSession(createReconnectSession(roomId, false));
+      previousConnectionRef.current = isConnected;
+      return;
     }
 
-    if (isConnected) {
+    if (currentPlayerState) {
       setReconnectSession((prevState) => {
-        if (prevState.status !== RECONNECT_STATUS.WAITING_SOCKET) {
+        if (!isReconnectPending(prevState.status)) {
           return prevState;
         }
 
+        if (isConnected && prevState.status === RECONNECT_STATUS.WAITING_SOCKET) {
+          return {
+            ...prevState,
+            status: RECONNECT_STATUS.WAITING_ROOM,
+          };
+        }
+
+        return prevState;
+      });
+      previousConnectionRef.current = isConnected;
+      return;
+    }
+
+    setReconnectSession((prevState) => {
+      if (!isReconnectPending(prevState.status) || prevState.roomId !== roomId) {
+        return createReconnectSession(roomId, isConnected);
+      }
+
+      if (isConnected && prevState.status === RECONNECT_STATUS.WAITING_SOCKET) {
         return {
           ...prevState,
           status: RECONNECT_STATUS.WAITING_ROOM,
         };
-      });
-    }
+      }
+
+      return prevState;
+    });
 
     previousConnectionRef.current = isConnected;
-  }, [isConnected, roomId, resetReconnectSession]);
+  }, [currentPlayerState, isConnected, roomId, resetReconnectSession]);
 
   useEffect(() => {
     if (!isReconnectPending(reconnectSession.status)) {
@@ -287,3 +314,4 @@ function GamePage() {
 }
 
 export default GamePage;
+

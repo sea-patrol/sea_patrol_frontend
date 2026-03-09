@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/model/AuthContext';
 
 const RoomSessionContext = createContext();
+const ROOM_SESSION_STORAGE_KEY = 'room-session';
 
 function resolveRoomMeta(payload, fallbackRoom = null) {
   const roomId = payload?.roomId ?? payload?.id ?? fallbackRoom?.id ?? null;
@@ -26,15 +27,91 @@ function createInitialRoomSessionState() {
   };
 }
 
+function clearStoredRoomSession() {
+  localStorage.removeItem(ROOM_SESSION_STORAGE_KEY);
+}
+
+function normalizeStoredRoomSession(rawSession) {
+  if (!rawSession || typeof rawSession !== 'object') {
+    return createInitialRoomSessionState();
+  }
+
+  const room = resolveRoomMeta(rawSession.room ?? rawSession.joinResponse, rawSession.room ?? null);
+  if (!room?.id) {
+    return createInitialRoomSessionState();
+  }
+
+  const phase = rawSession.phase === 'active'
+    ? 'active'
+    : rawSession.spawn
+      ? 'spawned'
+      : rawSession.joinResponse
+        ? 'joined'
+        : 'joining';
+
+  return {
+    phase,
+    room,
+    joinResponse: rawSession.joinResponse ?? null,
+    spawn: rawSession.spawn ?? null,
+  };
+}
+
+function restoreStoredRoomSession() {
+  const rawSession = localStorage.getItem(ROOM_SESSION_STORAGE_KEY);
+  if (!rawSession) {
+    return createInitialRoomSessionState();
+  }
+
+  try {
+    return normalizeStoredRoomSession(JSON.parse(rawSession));
+  } catch {
+    clearStoredRoomSession();
+    return createInitialRoomSessionState();
+  }
+}
+
+function persistRoomSession(roomSession) {
+  if (!roomSession?.room?.id) {
+    clearStoredRoomSession();
+    return;
+  }
+
+  localStorage.setItem(ROOM_SESSION_STORAGE_KEY, JSON.stringify({
+    phase: roomSession.phase,
+    room: roomSession.room,
+    joinResponse: roomSession.joinResponse,
+    spawn: roomSession.spawn,
+  }));
+}
+
 export function RoomSessionProvider({ children }) {
   const { token } = useAuth();
-  const [roomSession, setRoomSession] = useState(createInitialRoomSessionState);
+  const [roomSession, setRoomSession] = useState(() => (token ? restoreStoredRoomSession() : createInitialRoomSessionState()));
 
   useEffect(() => {
     if (!token) {
+      clearStoredRoomSession();
       setRoomSession(createInitialRoomSessionState());
+      return;
     }
+
+    setRoomSession((prevSession) => {
+      if (prevSession.room?.id) {
+        return prevSession;
+      }
+
+      return restoreStoredRoomSession();
+    });
   }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    persistRoomSession(roomSession);
+  }, [roomSession, token]);
 
   const value = useMemo(() => ({
     roomSession,
@@ -67,12 +144,12 @@ export function RoomSessionProvider({ children }) {
         return;
       }
 
-      setRoomSession({
-        phase: roomEntry.spawn ? 'spawned' : roomEntry.joinResponse ? 'joined' : 'joining',
-        room: resolveRoomMeta(roomEntry.room ?? roomEntry.joinResponse, roomEntry.room ?? null),
-        joinResponse: roomEntry.joinResponse ?? null,
-        spawn: roomEntry.spawn ?? null,
-      });
+      setRoomSession(normalizeStoredRoomSession({
+        phase: roomEntry.phase,
+        room: roomEntry.room,
+        joinResponse: roomEntry.joinResponse,
+        spawn: roomEntry.spawn,
+      }));
     },
     markRoomActive: () => {
       setRoomSession((prevSession) => ({
@@ -81,6 +158,7 @@ export function RoomSessionProvider({ children }) {
       }));
     },
     clearRoomSession: () => {
+      clearStoredRoomSession();
       setRoomSession(createInitialRoomSessionState());
     },
   }), [roomSession]);

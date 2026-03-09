@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/model/AuthContext';
 import Login from '../../features/auth/ui/Login';
 import Signup from '../../features/auth/ui/Signup';
-import { selectCurrentPlayerState, useGameState } from '../../features/game/model/GameStateContext';
 import { useRoomSession } from '../../features/game/model/RoomSessionContext';
 import './HomePage.css';
 
@@ -12,17 +11,15 @@ function HomePage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useAuth();
-  const { state } = useGameState();
   const { roomSession } = useRoomSession();
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
 
-  const currentPlayerState = selectCurrentPlayerState(state, user?.username);
-  const hasActiveRoom = Boolean(currentPlayerState && roomSession.room);
-  const primaryActionLabel = hasActiveRoom ? 'Return to room' : 'Enter lobby';
-  const primaryHint = hasActiveRoom
-    ? `Captain ${user?.username} already has an active room session in ${roomSession.room?.name ?? roomSession.room?.id}.`
-    : 'You need to login to reach the harbor lobby';
+  const hasKnownRoomSession = Boolean(roomSession.room);
+  const primaryActionLabel = 'Play';
+  const primaryHint = hasKnownRoomSession
+    ? `Captain ${user?.username} can continue the room session in ${roomSession.room?.name ?? roomSession.room?.id}.`
+    : 'Login to enter the harbor lobby and start a new room session.';
 
   useEffect(() => {
     if (!isAuthenticated && location.state?.openAuth === 'login') {
@@ -33,16 +30,17 @@ function HomePage() {
 
   const handlePlay = () => {
     if (isAuthenticated) {
-      navigate(hasActiveRoom ? '/game' : '/lobby');
-    } else {
-      setShowAuth(true);
-      setAuthMode('login');
+      navigate(hasKnownRoomSession ? '/game' : '/lobby');
+      return;
     }
+
+    setShowAuth(true);
+    setAuthMode('login');
   };
 
   const handleLoginSuccess = () => {
     setShowAuth(false);
-    navigate('/lobby');
+    navigate(roomSession.room ? '/game' : '/lobby');
   };
 
   const handleSignupSuccess = () => {
