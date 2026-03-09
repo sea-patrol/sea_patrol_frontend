@@ -272,7 +272,10 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 - `SPAWN_ASSIGNED` используется как authoritative signal, что spawn уже назначен, но сам переход в room route и последующий `SAILING` происходят только после `INIT_GAME_STATE` / current player snapshot;
 - backend вычисляет initial spawn сам и держит его в MVP bounds `x/z in [-30.0, 30.0]`, поэтому клиент не должен рандомить эти координаты локально;
 - тот же payload shape используется и для будущего respawn с `reason=RESPAWN`, поэтому frontend должен ориентироваться на `reason`, а не на предположение, что `SPAWN_ASSIGNED` бывает только один раз за room session.
-
+- reconnect в пределах `game.room.reconnect-grace-period` (MVP default: `15s`) теперь возвращает пользователя в ту же комнату: backend повторно шлёт `ROOM_JOINED` и `INIT_GAME_STATE`, но не делает новый `SPAWN_ASSIGNED`.
+- после `TASK-022` frontend на `/game` входит в явный `RECONNECTING` flow, ждёт `ROOM_JOINED`, затем fresh `INIT_GAME_STATE` и только после этого считает room session восстановленной.
+- если backend вместо room resume возвращает `ROOMS_SNAPSHOT` / `ROOMS_UPDATED`, frontend трактует это как lobby fallback, очищает stale room/game state и переводит пользователя обратно на `/lobby` с warning notice.
+- если окно grace истекло и room resume так и не пришёл, frontend завершает reconnect flow через локальный `15s` timeout, очищает room/game state и переводит пользователя в новый lobby session flow.
 - после `TASK-020` frontend применяет `SPAWN_ASSIGNED` к runtime state текущего игрока как authoritative spawn patch и при наличии active ship делает snap к новым координатам, а не плавный lerp из предыдущей позиции.
 #### Используются текущим gameplay UI/runtime
 
@@ -326,6 +329,11 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 ### Уже зафиксированы в contract, но не используются в UI после `TASK-017`
 - Chat control: `CHAT_JOIN`, `CHAT_LEAVE` (legacy compatibility only; lobby/room scope ими больше не переключается)
 - Room rejection: `ROOM_JOIN_REJECTED`
+
+
+
+
+
 
 
 

@@ -110,7 +110,7 @@ src/
 - **Централизованные UI hotkeys**: `Enter`, `Esc`, `I`, `J`, `M` обрабатываются в одном слое (`GameUiHotkeys`), а gameplay input учитывает текущий UI mode
 - **Authoritative spawn snap поверх interpolation**: `GameStateContext` принимает `SPAWN_ASSIGNED` для current player как authoritative patch, а `useShipInterpolation` мгновенно snap'ает локальный корабль при смене `spawnRevision`, чтобы respawn не выглядел как медленный перелёт из старой точки
 - **Client-side prediction**: Интерполяция позиций кораблей между обновлениями сервера для плавности
-- **WebSocket reconnect**: экспоненциальный backoff (1s/2s/4s/8s), лимит попыток, cleanup таймеров при logout/unmount; `WebSocketProvider` открывает `/ws/game` только на маршрутах `/lobby` и `/game`, поэтому домашняя страница не держит лишнюю realtime-сессию, а `LobbyPanel` показывает отдельный realtime status и после reconnect повторно получает `ROOMS_SNAPSHOT`
+- **WebSocket reconnect + room resume**: `WebSocketProvider` хранит phase/attempt metadata (`connecting`, `reconnecting`, retry delay), открывает `/ws/game` только на маршрутах `/lobby` и `/game` и не держит realtime-сессию на домашней странице; `GamePage` поверх этого реализует явный room reconnect flow с `RECONNECTING` mode, локальным 15-секундным grace timeout, ожиданием `ROOM_JOINED` + fresh `INIT_GAME_STATE` и fallback-навигацией обратно в `/lobby`, если backend вернул пользователя в lobby scope
 - **PWA для офлайн-кэширования**: 3D-модели (.glb) кэшируются через Service Worker
 - **Слоистая структура `src/`**: app/pages/widgets/features/scene/shared для контроля зависимостей и упрощения роста проекта
 - **Модульная загрузка моделей**: Централизованная предзагрузка через `useGLTF.preload()`
@@ -188,7 +188,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 21 файл, 111 тестов (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
+**Текущее покрытие**: 22 файла, 117 тестов (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init/reconnect flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, отдельный GamePage reconnect flow, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.
@@ -214,6 +214,8 @@ src/
 - Для публикации требуется корректный `base` в `vite.config.js` (под имя репозитория).
 - Основная команда проверки перед деплоем: `npm run build`.
 - PWA-функциональность включается только в production-режиме (devOptions: { enabled: false }).
+
+
 
 
 

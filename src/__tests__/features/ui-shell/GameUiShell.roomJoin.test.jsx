@@ -253,4 +253,42 @@ describe('GameUiShell room init flow', () => {
       expect(markRoomActiveMock).toHaveBeenCalled();
     });
   });
+
+  it('shows dedicated reconnect progress copy while room resume is pending', async () => {
+    mockGameState = {
+      state: {
+        playerStates: {
+          alice: { name: 'alice', x: 12, z: -4, angle: 0 },
+        },
+      },
+    };
+
+    render(
+      <GameUiProvider>
+        <GameUiShell
+          initialRoomEntry={{
+            room: { id: 'sandbox-4', name: 'Sandbox 4' },
+          }}
+          reconnectUiState={{
+            active: true,
+            status: 'waiting-room',
+            roomId: 'sandbox-4',
+            roomName: 'Sandbox 4',
+            graceRemainingMs: 9000,
+            wsPhase: 'open',
+            attempt: 2,
+            retryDelayMs: 4000,
+            lastClose: { code: 1006, reason: 'abnormal' },
+          }}
+        />
+      </GameUiProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Realtime link restored')).toBeInTheDocument();
+      expect(screen.getByText(/Waiting for backend to rebind this client to Sandbox 4/)).toBeInTheDocument();
+      expect(screen.getByText(/9s remaining/)).toBeInTheDocument();
+      expect(screen.getByTestId('chat-block')).toHaveTextContent('Room | Sandbox 4 (sandbox-4) | group:room:sandbox-4');
+    });
+  });
 });

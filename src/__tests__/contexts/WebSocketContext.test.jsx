@@ -55,14 +55,16 @@ function renderWithRoute(route, children) {
 }
 
 function StatusConsumer() {
-  const { isConnected, hasToken, lastClose } = useWebSocket();
+  const { isConnected, hasToken, lastClose, reconnectState } = useWebSocket();
   const closeText = lastClose?.code === undefined ? 'none' : `${String(lastClose.code)}:${lastClose.reason ?? ''}`;
+  const reconnectText = `${reconnectState.phase}:${String(reconnectState.attempt)}:${reconnectState.delayMs ?? 'none'}`;
 
   return (
     <div>
       <div data-testid="isConnected">{String(isConnected)}</div>
       <div data-testid="hasToken">{String(hasToken)}</div>
       <div data-testid="lastClose">{closeText}</div>
+      <div data-testid="reconnectState">{reconnectText}</div>
     </div>
   );
 }
@@ -96,13 +98,17 @@ describe('WebSocketContext', () => {
     expect(lastClient).not.toBeNull();
     expect(lastClient.connect).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('hasToken')).toHaveTextContent('true');
+    expect(screen.getByTestId('reconnectState')).toHaveTextContent('connecting:0:none');
 
     const url = lastConnectOptions.getUrl();
     expect(url).toContain('/ws/game');
     expect(url).toContain('token=');
 
     await act(() => lastConnectOptions.onConnectionChange(true));
+    await act(() => lastConnectOptions.onOpen());
+
     expect(screen.getByTestId('isConnected')).toHaveTextContent('true');
+    expect(screen.getByTestId('reconnectState')).toHaveTextContent('open:0:none');
   });
 
   it('does not connect on home route even when token exists', () => {
@@ -115,6 +121,7 @@ describe('WebSocketContext', () => {
     expect(lastClient.connect).not.toHaveBeenCalled();
     expect(screen.getByTestId('hasToken')).toHaveTextContent('true');
     expect(screen.getByTestId('isConnected')).toHaveTextContent('false');
+    expect(screen.getByTestId('reconnectState')).toHaveTextContent('idle:0:none');
   });
 
   it('disconnects when token is removed and disconnects on unmount', async () => {
@@ -138,6 +145,7 @@ describe('WebSocketContext', () => {
     expect(lastClient.disconnect).toHaveBeenCalled();
     expect(screen.getByTestId('hasToken')).toHaveTextContent('false');
     expect(screen.getByTestId('isConnected')).toHaveTextContent('false');
+    expect(screen.getByTestId('reconnectState')).toHaveTextContent('idle:0:none');
 
     unmount();
     expect(lastClient.disconnect).toHaveBeenCalled();
@@ -157,6 +165,16 @@ describe('WebSocketContext', () => {
     expect(screen.getByTestId('lastClose')).toHaveTextContent('1000:bye');
 
     warnSpy.mockRestore();
+  });
+
+  it('exposes reconnect attempt metadata from ws client callbacks', async () => {
+    renderWithRoute(
+      '/lobby',
+      <StatusConsumer />,
+    );
+
+    await act(() => lastConnectOptions.onReconnectAttempt({ attempt: 2, delayMs: 4000 }));
+    expect(screen.getByTestId('reconnectState')).toHaveTextContent('reconnecting:2:4000');
   });
 
   it('subscribe passes through to wsClient and supports unsubscribe on unmount', async () => {

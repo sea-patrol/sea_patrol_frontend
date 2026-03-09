@@ -38,6 +38,11 @@ export const WebSocketProvider = ({ children }) => {
   const { token } = useAuth();
   const { pathname } = useLocation();
   const [lastClose, setLastClose] = useState(null);
+  const [reconnectState, setReconnectState] = useState({
+    phase: 'idle',
+    attempt: 0,
+    delayMs: null,
+  });
 
   const clientRef = useRef(null);
   if (!clientRef.current) {
@@ -49,6 +54,12 @@ export const WebSocketProvider = ({ children }) => {
 
   const connectWebSocket = useCallback(() => {
     setLastClose(null);
+    setReconnectState({
+      phase: 'connecting',
+      attempt: 0,
+      delayMs: null,
+    });
+
     clientRef.current.connect({
       getUrl: () => {
         const currentToken = tokenRef.current;
@@ -65,6 +76,11 @@ export const WebSocketProvider = ({ children }) => {
       onConnectionChange: setIsConnected,
       onOpen: () => {
         setLastClose(null);
+        setReconnectState({
+          phase: 'open',
+          attempt: 0,
+          delayMs: null,
+        });
       },
       onClose: (event) => {
         const code = event?.code;
@@ -78,12 +94,24 @@ export const WebSocketProvider = ({ children }) => {
       onMessageError: (error) => {
         console.error('WebSocket message error:', error);
       },
+      onReconnectAttempt: ({ attempt, delayMs }) => {
+        setReconnectState({
+          phase: 'reconnecting',
+          attempt,
+          delayMs,
+        });
+      },
     });
   }, []);
 
   const disconnectWebSocket = useCallback(() => {
     clientRef.current.disconnect();
     setIsConnected(false);
+    setReconnectState({
+      phase: 'idle',
+      attempt: 0,
+      delayMs: null,
+    });
   }, []);
 
   const sendMessage = useCallback((messageData) => {
@@ -116,10 +144,11 @@ export const WebSocketProvider = ({ children }) => {
       isConnected,
       hasToken: !!token,
       lastClose,
+      reconnectState,
       sendMessage,
       subscribe,
     };
-  }, [isConnected, lastClose, sendMessage, subscribe, token]);
+  }, [isConnected, lastClose, reconnectState, sendMessage, subscribe, token]);
 
   return (
     <WebSocketContext.Provider value={value}>
