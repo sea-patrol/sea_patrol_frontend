@@ -63,6 +63,10 @@ function applyDefinedPatch(prev, patch) {
   return next;
 }
 
+function isFiniteNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
 export function gameStateReducer(state, action) {
   switch (action?.type) {
     case 'RESET_STATE':
@@ -110,6 +114,32 @@ export function gameStateReducer(state, action) {
       return {
         ...state,
         playerStates: nextPlayerStates,
+      };
+    }
+
+    case messageType.SPAWN_ASSIGNED: {
+      const currentPlayerName = action?.payload?.currentPlayerName;
+      const spawn = action?.payload?.spawn;
+      const prevPlayer = state.playerStates[currentPlayerName];
+      if (!currentPlayerName || !prevPlayer) return state;
+      if (!isFiniteNumber(spawn?.x) || !isFiniteNumber(spawn?.z) || !isFiniteNumber(spawn?.angle)) return state;
+
+      const nextPlayer = {
+        ...prevPlayer,
+        x: spawn.x,
+        z: spawn.z,
+        angle: spawn.angle,
+        velocity: 0,
+        lastSpawnReason: spawn.reason ?? prevPlayer.lastSpawnReason,
+        spawnRevision: (prevPlayer.spawnRevision ?? 0) + 1,
+      };
+
+      return {
+        ...state,
+        playerStates: {
+          ...state.playerStates,
+          [currentPlayerName]: nextPlayer,
+        },
       };
     }
 

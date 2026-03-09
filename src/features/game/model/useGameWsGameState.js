@@ -4,7 +4,7 @@ import * as messageType from '../../../shared/constants/messageType';
 
 import { wsMessageToGameAction } from './GameStateContext';
 
-export function useGameWsGameState({ subscribe, dispatch, setPlayerNames }) {
+export function useGameWsGameState({ subscribe, dispatch, setPlayerNames, currentPlayerName }) {
   useEffect(() => {
     const unsubscribeInitGameInfo = subscribe(messageType.INIT_GAME_STATE, (payload) => {
       const action = wsMessageToGameAction(messageType.INIT_GAME_STATE, payload);
@@ -33,11 +33,23 @@ export function useGameWsGameState({ subscribe, dispatch, setPlayerNames }) {
       setPlayerNames?.((prevNames) => prevNames.filter((name) => name !== username));
     });
 
+    const unsubscribeSpawnAssigned = subscribe(messageType.SPAWN_ASSIGNED, (payload) => {
+      if (!currentPlayerName) return;
+      dispatch({
+        type: messageType.SPAWN_ASSIGNED,
+        payload: {
+          currentPlayerName,
+          spawn: payload,
+        },
+      });
+    });
+
     return () => {
       unsubscribeInitGameInfo();
       unsubscribeUpdateGameInfo();
       unsubscribePlayerJoin();
       unsubscribePlayerLeave();
+      unsubscribeSpawnAssigned();
     };
-  }, [dispatch, setPlayerNames, subscribe]);
+  }, [currentPlayerName, dispatch, setPlayerNames, subscribe]);
 }

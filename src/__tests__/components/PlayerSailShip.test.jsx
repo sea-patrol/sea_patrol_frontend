@@ -7,12 +7,11 @@ import { GameStateProvider, useGameState } from '../../features/game/model/GameS
 import PlayerSailShip from '../../features/ships/ui/PlayerSailShip';
 import * as messageType from '../../shared/constants/messageType';
 
-// Модель корабля для этих тестов не важна, тестируем движение (transform) группы.
 vi.mock('../../features/ships/ui/ShipModel', () => {
   return { default: () => null };
 });
 
-function GameStateDriver({ player, shipRef }) {
+function GameStateDriver({ player, spawn, shipRef }) {
   const { dispatch } = useGameState();
   const initializedRef = useRef(false);
 
@@ -26,19 +25,30 @@ function GameStateDriver({ player, shipRef }) {
     dispatch({ type: messageType.UPDATE_GAME_STATE, payload: { players: [player] } });
   }, [dispatch, player]);
 
+  useEffect(() => {
+    if (!spawn) return;
+    dispatch({
+      type: messageType.SPAWN_ASSIGNED,
+      payload: {
+        currentPlayerName: player.name,
+        spawn,
+      },
+    });
+  }, [dispatch, player.name, spawn]);
+
   return <PlayerSailShip name={player.name} isCurrentPlayer shipRef={shipRef} />;
 }
 
-function Scene({ player, shipRef }) {
+function Scene({ player, spawn = null, shipRef }) {
   return (
     <GameStateProvider>
-      <GameStateDriver player={player} shipRef={shipRef} />
+      <GameStateDriver player={player} spawn={spawn} shipRef={shipRef} />
     </GameStateProvider>
   );
 }
 
 describe('PlayerSailShip', () => {
-  it('updates position and angle towards game state using interpolation', async () => {
+  it('updates position and angle towards game state using interpolation, but snaps on SPAWN_ASSIGNED', async () => {
     const shipRef = { current: null };
     if (vi.isMockFunction(useFrame)) {
       useFrame.mockClear();
@@ -64,10 +74,8 @@ describe('PlayerSailShip', () => {
     expect(vi.isMockFunction(useFrame)).toBe(true);
     const frameCallback = useFrame.mock.calls[0][0];
 
-    // Даем useEffect'ам (INIT_GAME_STATE) отработать
     await act(async () => {});
 
-    // Прогоняем 1 "кадр": применяем transform к shipRef.current через useShipInterpolation/useFrame callback
     await act(async () => {
       frameCallback({}, 1);
     });
@@ -87,7 +95,6 @@ describe('PlayerSailShip', () => {
       await renderer.update(<Scene player={nextPlayer} shipRef={shipRef} />);
     });
 
-    // deltaSeconds=0.5 => alpha=0.5 при speed=1
     await act(async () => {
       frameCallback({}, 0.5);
     });
@@ -96,14 +103,23 @@ describe('PlayerSailShip', () => {
     expect(shipRef.current.position.z).toBeCloseTo(3.5, 6);
     expect(shipRef.current.rotation.y).toBeCloseTo(0.6, 6);
 
-    // Большой шаг по времени должен довести до target (alpha clamp до 1)
     await act(async () => {
-      frameCallback({}, 2);
+      await renderer.update(
+        <Scene
+          player={nextPlayer}
+          spawn={{ reason: 'RESPAWN', x: -12, z: 9, angle: 0.75 }}
+          shipRef={shipRef}
+        />,
+      );
     });
 
-    expect(shipRef.current.position.x).toBeCloseTo(10, 6);
-    expect(shipRef.current.position.z).toBeCloseTo(4, 6);
-    expect(shipRef.current.rotation.y).toBeCloseTo(1, 6);
+    await act(async () => {
+      frameCallback({}, 0.1);
+    });
+
+    expect(shipRef.current.position.x).toBeCloseTo(-12, 6);
+    expect(shipRef.current.position.z).toBeCloseTo(9, 6);
+    expect(shipRef.current.rotation.y).toBeCloseTo(0.75, 6);
 
     await renderer.unmount();
   });

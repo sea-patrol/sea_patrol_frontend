@@ -108,6 +108,7 @@ src/
 - **Глобальный realtime bridge и room session поверх роутов**: `WebSocketProvider`, `GameStateProvider`, `RoomSessionProvider` и `GameRealtimeBridge` живут выше страниц, поэтому переходы `Home -> Lobby -> Game` не рвут WS-сессию, не теряют ранние room init сообщения и позволяют безопасно открыть `/game` повторно после возврата на домашний экран
 - **Scoped chat UI**: `LobbyPage` использует `ChatBlock` как standalone lobby chat widget для `group:lobby`, а `GameUiShell` держит room-scoped chat для `group:room:<roomId>`; истории lobby/room сообщений по-прежнему разделены по `payload.to`, без смешивания между комнатами
 - **Централизованные UI hotkeys**: `Enter`, `Esc`, `I`, `J`, `M` обрабатываются в одном слое (`GameUiHotkeys`), а gameplay input учитывает текущий UI mode
+- **Authoritative spawn snap поверх interpolation**: `GameStateContext` принимает `SPAWN_ASSIGNED` для current player как authoritative patch, а `useShipInterpolation` мгновенно snap'ает локальный корабль при смене `spawnRevision`, чтобы respawn не выглядел как медленный перелёт из старой точки
 - **Client-side prediction**: Интерполяция позиций кораблей между обновлениями сервера для плавности
 - **WebSocket reconnect**: экспоненциальный backoff (1s/2s/4s/8s), лимит попыток, cleanup таймеров при logout/unmount; `WebSocketProvider` открывает `/ws/game` только на маршрутах `/lobby` и `/game`, поэтому домашняя страница не держит лишнюю realtime-сессию, а `LobbyPanel` показывает отдельный realtime status и после reconnect повторно получает `ROOMS_SNAPSHOT`
 - **PWA для офлайн-кэширования**: 3D-модели (.glb) кэшируются через Service Worker
@@ -167,7 +168,7 @@ src/
 
 **Текущее покрытие**:
 - 21 тестовый файл
-- 109 тестов (все проходят ✅)
+- 111 тестов (все проходят ✅)
 - Протестированы: AuthContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
 
 ## 4. Working Commands
@@ -187,7 +188,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 21 файл, 109 тестов (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
+**Текущее покрытие**: 21 файл, 111 тестов (AuthContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.
@@ -213,6 +214,7 @@ src/
 - Для публикации требуется корректный `base` в `vite.config.js` (под имя репозитория).
 - Основная команда проверки перед деплоем: `npm run build`.
 - PWA-функциональность включается только в production-режиме (devOptions: { enabled: false }).
+
 
 
 

@@ -260,8 +260,8 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 {
   "roomId": "sandbox-1",
   "reason": "INITIAL",
-  "x": 0.0,
-  "z": 0.0,
+  "x": 12.5,
+  "z": -8.0,
   "angle": 0.0
 }
 ```
@@ -269,8 +269,11 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 Особенности для frontend:
 - canonical room enter flow: `POST /api/v1/rooms/{roomId}/join` -> `ROOM_JOINED` -> `SPAWN_ASSIGNED` -> `INIT_GAME_STATE`;
 - frontend держит пользователя на `/lobby` после REST success и переключает маршрут на `/game` только после появления current player в game state;
-- `SPAWN_ASSIGNED` используется как authoritative signal, что spawn уже назначен, но сам переход в room route и последующий `SAILING` происходят только после `INIT_GAME_STATE` / current player snapshot.
+- `SPAWN_ASSIGNED` используется как authoritative signal, что spawn уже назначен, но сам переход в room route и последующий `SAILING` происходят только после `INIT_GAME_STATE` / current player snapshot;
+- backend вычисляет initial spawn сам и держит его в MVP bounds `x/z in [-30.0, 30.0]`, поэтому клиент не должен рандомить эти координаты локально;
+- тот же payload shape используется и для будущего respawn с `reason=RESPAWN`, поэтому frontend должен ориентироваться на `reason`, а не на предположение, что `SPAWN_ASSIGNED` бывает только один раз за room session.
 
+- после `TASK-020` frontend применяет `SPAWN_ASSIGNED` к runtime state текущего игрока как authoritative spawn patch и при наличии active ship делает snap к новым координатам, а не плавный lerp из предыдущей позиции.
 #### Используются текущим gameplay UI/runtime
 
 `INIT_GAME_STATE`
@@ -323,6 +326,9 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 ### Уже зафиксированы в contract, но не используются в UI после `TASK-017`
 - Chat control: `CHAT_JOIN`, `CHAT_LEAVE` (legacy compatibility only; lobby/room scope ими больше не переключается)
 - Room rejection: `ROOM_JOIN_REJECTED`
+
+
+
 
 
 
