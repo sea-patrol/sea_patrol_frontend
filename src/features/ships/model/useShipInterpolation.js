@@ -38,6 +38,7 @@ export function useShipInterpolation({
 }) {
   const currentRef = useRef({ x: 0, z: 0, angle: 0 });
   const targetRef = useRef({ x: 0, z: 0, angle: 0, delta: serverDeltaFallback });
+  const lastAppliedSpawnRevisionRef = useRef(null);
 
   const getPlayerStateRef = useRef(getPlayerState);
   getPlayerStateRef.current = getPlayerState;
@@ -61,6 +62,8 @@ export function useShipInterpolation({
       angle: initialPlayerState.angle,
       delta: initialPlayerState.delta || optionsRef.current.serverDeltaFallback,
     };
+
+    lastAppliedSpawnRevisionRef.current = initialPlayerState.spawnRevision ?? null;
   }, [name]);
 
   useFrame((_, deltaSeconds) => {
@@ -69,6 +72,25 @@ export function useShipInterpolation({
 
     const playerState = getPlayerStateRef.current?.(name);
     if (!playerState) return;
+
+    const spawnRevision = playerState.spawnRevision ?? null;
+    if (spawnRevision !== null && spawnRevision !== lastAppliedSpawnRevisionRef.current) {
+      lastAppliedSpawnRevisionRef.current = spawnRevision;
+      currentRef.current = {
+        x: playerState.x,
+        z: playerState.z,
+        angle: playerState.angle,
+      };
+      targetRef.current = {
+        x: playerState.x,
+        z: playerState.z,
+        angle: playerState.angle,
+        delta: playerState.delta || optionsRef.current.serverDeltaFallback,
+      };
+      ship.position.set(currentRef.current.x, 0, currentRef.current.z);
+      ship.rotation.y = currentRef.current.angle;
+      return;
+    }
 
     targetRef.current = {
       x: playerState.x,

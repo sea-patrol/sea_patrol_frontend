@@ -19,7 +19,6 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
 
   const shipRefToUse = isCurrentPlayer && shipRef ? shipRef : localShipRef;
 
-  // Глобальное состояние игры
   const { stateRef } = useGameState();
   const state = selectPlayerState(stateRef.current, name);
 
@@ -38,15 +37,15 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
   });
 
   return (
-      <group ref={shipRefToUse} position={[currentRef.current.x, 0, currentRef.current.z]}>
-        {state && (
-          <WireframeBox
-            width={state.width}
-            height={state.height}
-            depth={state.length}
-          />
-        )}
-        <ShipModel />
-      </group>
-  )
+    <group ref={shipRefToUse} position={[currentRef.current.x, 0, currentRef.current.z]}>
+      {state && (
+        <WireframeBox
+          width={state.width}
+          height={state.height}
+          depth={state.length}
+        />
+      )}
+      <ShipModel />
+    </group>
+  );
 }

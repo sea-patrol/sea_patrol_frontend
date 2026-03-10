@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../features/auth/model/AuthContext';
 import { selectCurrentPlayerState, useGameState } from '../../features/game/model/GameStateContext';
@@ -90,6 +90,7 @@ function getJoinStatusCopy(joinState) {
 }
 
 export default function LobbyPage() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { user, token, loading, logout } = useAuth();
   const { state } = useGameState();
@@ -99,6 +100,7 @@ export default function LobbyPage() {
 
   const currentPlayerState = selectCurrentPlayerState(state, user?.username);
   const hasActiveRoom = Boolean(currentPlayerState && roomSession.room);
+  const reconnectNotice = location.state?.reconnectNotice ?? null;
 
   useEffect(() => {
     if (!token) {
@@ -293,6 +295,13 @@ export default function LobbyPage() {
           <strong>Join + init complete</strong>
         </div>
       </section>
+
+      {reconnectNotice && (
+        <section className="lobby-page__notice lobby-page__notice--warning" aria-live="polite">
+          <strong>{reconnectNotice.title}</strong>
+          <p>{reconnectNotice.body}</p>
+        </section>
+      )}
 
       {joinStatusCopy && (
         <section className="lobby-page__notice" aria-live="polite">

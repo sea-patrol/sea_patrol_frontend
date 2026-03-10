@@ -6,13 +6,12 @@ import { useGameWsGameState } from './useGameWsGameState';
 import { useAuth } from '@/features/auth/model/AuthContext';
 import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
 
-
 export default function GameRealtimeBridge() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { subscribe } = useWebSocket();
   const { dispatch } = useGameState();
 
-  useGameWsGameState({ subscribe, dispatch });
+  useGameWsGameState({ subscribe, dispatch, currentPlayerName: user?.username ?? null });
 
   useEffect(() => {
     if (!token) {

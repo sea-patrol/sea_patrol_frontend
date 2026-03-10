@@ -12,10 +12,6 @@ let mockAuthState = {
   isAuthenticated: true,
 };
 
-let mockGameState = {
-  state: { playerStates: {} },
-};
-
 let mockRoomSessionState = {
   phase: 'idle',
   room: null,
@@ -34,11 +30,6 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('@/features/auth/model/AuthContext', () => ({
   useAuth: () => mockAuthState,
-}));
-
-vi.mock('@/features/game/model/GameStateContext', () => ({
-  useGameState: () => mockGameState,
-  selectCurrentPlayerState: (state, currentPlayerName) => state?.playerStates?.[currentPlayerName],
 }));
 
 vi.mock('@/features/game/model/RoomSessionContext', () => ({
@@ -67,9 +58,6 @@ describe('HomePage navigation flow', () => {
       logout: logoutMock,
       isAuthenticated: true,
     };
-    mockGameState = {
-      state: { playerStates: {} },
-    };
     mockRoomSessionState = {
       phase: 'idle',
       room: null,
@@ -78,28 +66,21 @@ describe('HomePage navigation flow', () => {
     };
   });
 
-  it('sends an authenticated player to the lobby when there is no active room session', async () => {
+  it('sends an authenticated player to the lobby when there is no known room session', async () => {
     const user = userEvent.setup();
 
     render(<HomePage />);
 
-    expect(screen.getByRole('button', { name: 'Enter lobby' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Enter lobby' }));
+    await user.click(screen.getByRole('button', { name: 'Play' }));
 
     expect(navigateMock).toHaveBeenCalledWith('/lobby');
   });
 
-  it('offers return-to-room CTA when the player already has an active room session', async () => {
+  it('uses Play CTA to send the player back into a known room session after reload', async () => {
     const user = userEvent.setup();
 
-    mockGameState = {
-      state: {
-        playerStates: {
-          alice: { name: 'alice', x: 0, z: 0, angle: 0 },
-        },
-      },
-    };
     mockRoomSessionState = {
       phase: 'active',
       room: { id: 'sandbox-7', name: 'Sandbox 7' },
@@ -109,10 +90,10 @@ describe('HomePage navigation flow', () => {
 
     render(<HomePage />);
 
-    expect(screen.getByRole('button', { name: 'Return to room' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
     expect(screen.getByText(/Sandbox 7/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Return to room' }));
+    await user.click(screen.getByRole('button', { name: 'Play' }));
 
     expect(navigateMock).toHaveBeenCalledWith('/game');
   });

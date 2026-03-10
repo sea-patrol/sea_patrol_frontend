@@ -120,6 +120,47 @@ function getRoomLoadingCopy(roomJoinState) {
   }
 }
 
+function formatSeconds(ms) {
+  return Math.max(1, Math.ceil(ms / 1000));
+}
+
+function getReconnectCopy(reconnectUiState) {
+  const roomName = reconnectUiState?.roomName ?? reconnectUiState?.roomId ?? 'the current room';
+  const graceSeconds = formatSeconds(reconnectUiState?.graceRemainingMs ?? 0);
+  const retryCopy = reconnectUiState?.wsPhase === 'reconnecting' && reconnectUiState?.attempt > 0
+    ? ` Retry ${reconnectUiState.attempt} is scheduled in ${formatSeconds(reconnectUiState.retryDelayMs ?? 0)}s.`
+    : '';
+  const closeReasonCopy = reconnectUiState?.lastClose?.code !== undefined
+    ? ` Last close: ${String(reconnectUiState.lastClose.code)}${reconnectUiState.lastClose.reason ? ` (${reconnectUiState.lastClose.reason})` : ''}.`
+    : '';
+
+  switch (reconnectUiState?.status) {
+    case 'waiting-socket':
+      return {
+        title: 'Reconnecting to room session',
+        body: `Connection to ${roomName} was lost. The client is trying to reopen the realtime link before the 15-second grace window expires. ${graceSeconds}s remaining.${retryCopy}${closeReasonCopy}`,
+      };
+
+    case 'waiting-room':
+      return {
+        title: 'Realtime link restored',
+        body: `WebSocket connection is back. Waiting for backend to rebind this client to ${roomName} and resend ROOM_JOINED before the grace window closes. ${graceSeconds}s remaining.${closeReasonCopy}`,
+      };
+
+    case 'waiting-state':
+      return {
+        title: 'Restoring authoritative room state',
+        body: `Backend confirmed the room binding for ${roomName}. Waiting for fresh INIT_GAME_STATE so gameplay can safely resume. ${graceSeconds}s remaining.${closeReasonCopy}`,
+      };
+
+    default:
+      return {
+        title: 'Reconnecting',
+        body: `Trying to restore ${roomName}. ${graceSeconds}s remaining.${retryCopy}${closeReasonCopy}`,
+      };
+  }
+}
+
 function createRoomChatScope(room) {
   const roomId = room?.id ?? room?.roomId;
   if (!roomId) {
@@ -147,7 +188,7 @@ function ModeBadge({ mode }) {
   );
 }
 
-export default function GameUiShell({ initialRoomEntry = null }) {
+export default function GameUiShell({ initialRoomEntry = null, reconnectUiState = null }) {
   const chatInputRef = useRef(null);
   const { user, token, loading } = useAuth();
   const { state } = useGameState();
@@ -160,10 +201,11 @@ export default function GameUiShell({ initialRoomEntry = null }) {
   const currentPlayerState = selectCurrentPlayerState(state, user?.username);
   const hasActiveRoomState = Boolean(currentPlayerState);
   const isPendingRoomJoin = isRoomJoinPending(roomJoinState.status);
+  const isReconnectMode = Boolean(reconnectUiState?.active);
   const showSailingHud = ![GAME_UI_MODE.LOADING, GAME_UI_MODE.ROOM_LOADING].includes(mode);
   const showChatHud = mode !== GAME_UI_MODE.LOADING;
-  const showChatAction = mode !== GAME_UI_MODE.LOADING;
-  const showGameplayActions = ![GAME_UI_MODE.LOADING, GAME_UI_MODE.ROOM_LOADING].includes(mode);
+  const showChatAction = ![GAME_UI_MODE.LOADING, GAME_UI_MODE.RECONNECTING].includes(mode);
+  const showGameplayActions = ![GAME_UI_MODE.LOADING, GAME_UI_MODE.ROOM_LOADING, GAME_UI_MODE.RECONNECTING].includes(mode);
 
   useEffect(() => {
     if (!token) {
@@ -270,6 +312,11 @@ export default function GameUiShell({ initialRoomEntry = null }) {
       return;
     }
 
+    if (isReconnectMode) {
+      setScreenMode(GAME_UI_MODE.RECONNECTING);
+      return;
+    }
+
     if (hasActiveRoomState) {
       setScreenMode(isConnected ? GAME_UI_MODE.SAILING : GAME_UI_MODE.RECONNECTING);
       return;
@@ -281,21 +328,22 @@ export default function GameUiShell({ initialRoomEntry = null }) {
     }
 
     setScreenMode(GAME_UI_MODE.LOADING);
-  }, [hasActiveRoomState, isConnected, isPendingRoomJoin, loading, roomJoinState.status, setScreenMode]);
+  }, [hasActiveRoomState, isConnected, isPendingRoomJoin, isReconnectMode, loading, roomJoinState.status, setScreenMode]);
 
   const windowCopy = activeWindow ? WINDOW_COPY[activeWindow] : null;
   const roomLoadingCopy = useMemo(() => getRoomLoadingCopy(roomJoinState), [roomJoinState]);
+  const reconnectCopy = useMemo(() => getReconnectCopy(reconnectUiState), [reconnectUiState]);
   const currentChatScope = useMemo(() => {
     if (isPendingRoomJoin) {
       return createRoomChatScope(roomJoinState.room ?? roomJoinState.joinResponse ?? activeRoomMeta);
     }
 
-    if (hasActiveRoomState || mode === GAME_UI_MODE.RECONNECTING) {
-      return createRoomChatScope(activeRoomMeta ?? roomSession.room);
+    if (hasActiveRoomState || isReconnectMode || mode === GAME_UI_MODE.RECONNECTING) {
+      return createRoomChatScope(activeRoomMeta ?? roomSession.room ?? reconnectUiState);
     }
 
     return LOBBY_CHAT_SCOPE;
-  }, [activeRoomMeta, hasActiveRoomState, isPendingRoomJoin, mode, roomJoinState.joinResponse, roomJoinState.room, roomSession.room]);
+  }, [activeRoomMeta, hasActiveRoomState, isPendingRoomJoin, isReconnectMode, mode, reconnectUiState, roomJoinState.joinResponse, roomJoinState.room, roomSession.room]);
 
   const handleOpenChat = () => {
     openChat();
@@ -371,8 +419,8 @@ export default function GameUiShell({ initialRoomEntry = null }) {
 
         {mode === GAME_UI_MODE.RECONNECTING && (
           <section className="game-ui-shell__notice" aria-live="polite">
-            <h2>Reconnecting</h2>
-            <p>WebSocket connection is temporarily unavailable. The shell now has a dedicated reconnect mode for future resume flow.</p>
+            <h2>{reconnectCopy.title}</h2>
+            <p>{reconnectCopy.body}</p>
           </section>
         )}
 

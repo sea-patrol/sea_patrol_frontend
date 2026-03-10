@@ -32,7 +32,7 @@ function createSubscribeMock() {
   return { subscribe, emit, subscriptions, unsubscribeSpies };
 }
 
-function GameFlowHarness({ subscribe }) {
+function GameFlowHarness({ subscribe, currentPlayerName = 'alice' }) {
   const { dispatch, stateRef } = useGameState();
   const [playerNames, setPlayerNames] = useState([]);
   const [, bump] = useState(0);
@@ -45,7 +45,7 @@ function GameFlowHarness({ subscribe }) {
     [dispatch],
   );
 
-  useGameWsGameState({ subscribe, dispatch: dispatchWithRender, setPlayerNames });
+  useGameWsGameState({ subscribe, dispatch: dispatchWithRender, setPlayerNames, currentPlayerName });
 
   const names = selectPlayerNames(stateRef.current).sort();
   const alice = selectPlayerState(stateRef.current, 'alice');
@@ -54,7 +54,15 @@ function GameFlowHarness({ subscribe }) {
   const snapshot = {
     playerNames,
     stateNames: names,
-    alice: alice ? { x: alice.x, z: alice.z, angle: alice.angle } : null,
+    alice: alice
+      ? {
+          x: alice.x,
+          z: alice.z,
+          angle: alice.angle,
+          spawnRevision: alice.spawnRevision ?? null,
+          lastSpawnReason: alice.lastSpawnReason ?? null,
+        }
+      : null,
     bob: bob ? { x: bob.x, z: bob.z, angle: bob.angle } : null,
   };
 
@@ -66,7 +74,7 @@ function GameFlowHarness({ subscribe }) {
 }
 
 describe('game state flow integration', () => {
-  it('handles INIT -> UPDATE -> JOIN -> LEAVE and cleans up subscriptions', async () => {
+  it('handles INIT -> UPDATE -> SPAWN_ASSIGNED -> JOIN -> LEAVE and cleans up subscriptions', async () => {
     const mock = createSubscribeMock();
 
     const { unmount } = render(
@@ -75,7 +83,7 @@ describe('game state flow integration', () => {
       </GameStateProvider>,
     );
 
-    expect(mock.subscribe).toHaveBeenCalledTimes(4);
+    expect(mock.subscribe).toHaveBeenCalledTimes(5);
 
     await act(() => {
       mock.emit(messageType.INIT_GAME_STATE, {
@@ -87,7 +95,7 @@ describe('game state flow integration', () => {
       const snapshot = JSON.parse(screen.getByTestId('snapshot').textContent);
       expect(snapshot.playerNames).toEqual(['alice']);
       expect(snapshot.stateNames).toEqual(['alice']);
-      expect(snapshot.alice).toEqual({ x: 1, z: 2, angle: 0.1 });
+      expect(snapshot.alice).toEqual({ x: 1, z: 2, angle: 0.1, spawnRevision: null, lastSpawnReason: null });
     });
 
     await act(() => {
@@ -100,6 +108,21 @@ describe('game state flow integration', () => {
       const snapshot = JSON.parse(screen.getByTestId('snapshot').textContent);
       expect(snapshot.alice.x).toBe(5);
       expect(snapshot.stateNames).toEqual(['alice']);
+    });
+
+    await act(() => {
+      mock.emit(messageType.SPAWN_ASSIGNED, {
+        roomId: 'sandbox-1',
+        reason: 'RESPAWN',
+        x: -12,
+        z: 9,
+        angle: 1.2,
+      });
+    });
+
+    await waitFor(() => {
+      const snapshot = JSON.parse(screen.getByTestId('snapshot').textContent);
+      expect(snapshot.alice).toEqual({ x: -12, z: 9, angle: 1.2, spawnRevision: 1, lastSpawnReason: 'RESPAWN' });
     });
 
     await act(() => {
@@ -125,7 +148,7 @@ describe('game state flow integration', () => {
     });
 
     unmount();
-    expect(mock.unsubscribeSpies).toHaveLength(4);
+    expect(mock.unsubscribeSpies).toHaveLength(5);
     mock.unsubscribeSpies.forEach((spy) => expect(spy).toHaveBeenCalledTimes(1));
     expect(mock.subscriptions.size).toBe(0);
   });

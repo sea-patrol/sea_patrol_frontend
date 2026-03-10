@@ -256,4 +256,25 @@ describe('LobbyPage', () => {
       });
     });
   });
+
+  it('shows reconnect warning when the room session was dropped back to lobby', () => {
+    render(
+      <MemoryRouter
+        initialEntries={[{
+          pathname: '/lobby',
+          state: {
+            reconnectNotice: {
+              title: 'Reconnect window expired',
+              body: 'The room session was not restored within the reconnect grace window.',
+            },
+          },
+        }]}
+      >
+        <LobbyPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Reconnect window expired')).toBeInTheDocument();
+    expect(screen.getByText('The room session was not restored within the reconnect grace window.')).toBeInTheDocument();
+  });
 });

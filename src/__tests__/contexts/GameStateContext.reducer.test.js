@@ -73,6 +73,51 @@ describe('gameStateReducer', () => {
     });
   });
 
+  it('SPAWN_ASSIGNED: обновляет текущего игрока authoritative spawn coordinates и revision', () => {
+    const prevState = deepFreeze({
+      playerStates: {
+        alice: { name: 'alice', x: 1, z: 2, angle: 0.1, velocity: 4, health: 200 },
+        bob: { name: 'bob', x: 7, z: 8, angle: 0.3 },
+      },
+    });
+
+    const action = {
+      type: messageType.SPAWN_ASSIGNED,
+      payload: {
+        currentPlayerName: 'alice',
+        spawn: { reason: 'RESPAWN', x: -12, z: 9, angle: 1.2 },
+      },
+    };
+
+    const nextState = gameStateReducer(prevState, action);
+
+    expect(nextState.playerStates.alice).toEqual({
+      name: 'alice',
+      x: -12,
+      z: 9,
+      angle: 1.2,
+      velocity: 0,
+      health: 200,
+      lastSpawnReason: 'RESPAWN',
+      spawnRevision: 1,
+    });
+    expect(nextState.playerStates.bob).toEqual(prevState.playerStates.bob);
+  });
+
+  it('SPAWN_ASSIGNED: не создаёт current player state до INIT_GAME_STATE', () => {
+    const action = {
+      type: messageType.SPAWN_ASSIGNED,
+      payload: {
+        currentPlayerName: 'alice',
+        spawn: { reason: 'INITIAL', x: 10, z: -4, angle: 0 },
+      },
+    };
+
+    const nextState = gameStateReducer(initialGameState, action);
+
+    expect(nextState).toBe(initialGameState);
+  });
+
   it('PLAYER_JOIN: добавляет игрока по имени', () => {
     const prevState = deepFreeze({ playerStates: {} });
 
