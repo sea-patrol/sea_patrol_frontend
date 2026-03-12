@@ -62,7 +62,7 @@ describe('LobbyPanel', () => {
     };
   });
 
-  it('renders room cards after initial REST load and subscribes to lobby room messages', async () => {
+  it('renders room cards with map metadata after initial REST load and subscribes to lobby room messages', async () => {
     roomApi.listRooms.mockResolvedValueOnce({
       ok: true,
       data: {
@@ -93,13 +93,15 @@ describe('LobbyPanel', () => {
     expect(subscribeMock).toHaveBeenCalledWith(messageType.ROOMS_SNAPSHOT, expect.any(Function));
     expect(subscribeMock).toHaveBeenCalledWith(messageType.ROOMS_UPDATED, expect.any(Function));
     expect(screen.getByText('Lobby realtime online')).toBeInTheDocument();
-    expect(screen.getByText('Caribbean Sea')).toBeInTheDocument();
+    expect(screen.getAllByText('Caribbean Sea').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Caribbean').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Tropical Archipelago').length).toBeGreaterThan(0);
     expect(screen.getByText('OPEN')).toBeInTheDocument();
     expect(screen.getByText('4/100')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Join room' })).toBeEnabled();
   });
 
-  it('creates a room from the lobby form and updates the catalog', async () => {
+  it('creates a room with selected known map metadata and updates the catalog', async () => {
     const user = userEvent.setup();
 
     roomApi.listRooms.mockResolvedValueOnce({
@@ -116,8 +118,8 @@ describe('LobbyPanel', () => {
       data: {
         id: 'storm-run',
         name: 'Storm Run',
-        mapId: 'caribbean-01',
-        mapName: 'Caribbean Sea',
+        mapId: 'test-sandbox-01',
+        mapName: 'Test Sandbox',
         currentPlayers: 0,
         maxPlayers: 100,
         status: 'OPEN',
@@ -131,17 +133,23 @@ describe('LobbyPanel', () => {
     });
 
     await user.type(screen.getByLabelText('Room name'), 'Storm Run');
+    await user.selectOptions(screen.getByLabelText('Map'), 'test-sandbox-01');
+
+    expect(screen.getByText('Debug Sandbox')).toBeInTheDocument();
+    expect(screen.getByText('Dev Waters')).toBeInTheDocument();
+
     await user.click(screen.getByRole('button', { name: 'Create room' }));
 
     await waitFor(() => {
       expect(roomApi.createRoom).toHaveBeenCalledWith('test-token', {
         name: 'Storm Run',
-        mapId: 'caribbean-01',
+        mapId: 'test-sandbox-01',
       });
     });
 
     await waitFor(() => {
       expect(screen.getByText('Storm Run')).toBeInTheDocument();
+      expect(screen.getAllByText('Test Sandbox').length).toBeGreaterThan(0);
       expect(screen.getByText('OPEN')).toBeInTheDocument();
     });
   });
@@ -171,7 +179,7 @@ describe('LobbyPanel', () => {
       expect(screen.getByText('No rooms yet')).toBeInTheDocument();
     });
 
-    await user.selectOptions(screen.getByLabelText('Map source'), 'custom');
+    await user.selectOptions(screen.getByLabelText('Map'), '__custom__');
     await user.type(screen.getByLabelText('Custom mapId'), 'atlantic-void');
     await user.click(screen.getByRole('button', { name: 'Create room' }));
 
@@ -244,8 +252,8 @@ describe('LobbyPanel', () => {
           {
             id: 'fresh-harbor',
             name: 'Fresh Harbor',
-            mapId: 'caribbean-01',
-            mapName: 'Caribbean Sea',
+            mapId: 'test-sandbox-01',
+            mapName: 'Test Sandbox',
             currentPlayers: 1,
             maxPlayers: 100,
             status: 'OPEN',
@@ -256,6 +264,7 @@ describe('LobbyPanel', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Fresh Harbor')).toBeInTheDocument();
+      expect(screen.getAllByText('Dev Waters').length).toBeGreaterThan(0);
       expect(screen.queryByText('Sandbox 1')).not.toBeInTheDocument();
     });
   });
@@ -333,8 +342,8 @@ describe('LobbyPanel', () => {
           {
             id: 'regatta-night',
             name: 'Regatta Night',
-            mapId: 'caribbean-01',
-            mapName: 'Caribbean Sea',
+            mapId: 'test-sandbox-01',
+            mapName: 'Test Sandbox',
             currentPlayers: 100,
             maxPlayers: 100,
             status: 'FULL',

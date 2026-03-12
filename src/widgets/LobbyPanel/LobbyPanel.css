@@ -45,7 +45,9 @@
 .lobby-panel__live-status p,
 .lobby-panel__state p,
 .lobby-panel__create-error p,
-.lobby-panel__join-error p {
+.lobby-panel__join-error p,
+.lobby-panel__map-preview p,
+.lobby-panel__map-preview small {
   color: rgba(244, 240, 232, 0.76);
   line-height: 1.55;
 }
@@ -144,12 +146,17 @@
 
 .lobby-panel__create-grid span,
 .lobby-panel__summary span,
-.lobby-panel__room-meta dt {
+.lobby-panel__room-meta dt,
+.lobby-panel__room-region {
   display: block;
   color: rgba(244, 240, 232, 0.66);
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.lobby-panel__room-region {
+  margin-top: 8px;
 }
 
 .lobby-panel__create-grid span {
@@ -214,7 +221,8 @@
 }
 
 .lobby-panel__summary div,
-.lobby-panel__room-card {
+.lobby-panel__room-card,
+.lobby-panel__map-preview {
   border-radius: 18px;
   border: 1px solid rgba(244, 240, 232, 0.12);
   background: rgba(255, 255, 255, 0.05);
@@ -265,6 +273,65 @@
 .lobby-panel__room-meta dd {
   margin: 8px 0 0;
   font-size: 18px;
+}
+
+.lobby-panel__map-preview {
+  padding: 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.1), transparent 42%),
+    linear-gradient(135deg, rgba(17, 44, 68, 0.86), rgba(8, 16, 28, 0.92));
+}
+
+.lobby-panel__map-preview strong {
+  display: block;
+  font-size: 22px;
+}
+
+.lobby-panel__map-preview span {
+  display: block;
+  margin-top: 6px;
+  color: rgba(244, 240, 232, 0.72);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lobby-panel__map-preview p {
+  margin: 10px 0 0;
+  font-size: 18px;
+}
+
+.lobby-panel__map-preview small {
+  display: block;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.lobby-panel__map-preview--compact p {
+  font-size: 16px;
+}
+
+.lobby-panel__map-preview--compact small {
+  display: none;
+}
+
+.lobby-panel__map-preview--tropical {
+  background:
+    radial-gradient(circle at top left, rgba(227, 194, 111, 0.22), transparent 32%),
+    linear-gradient(135deg, rgba(13, 75, 112, 0.94), rgba(10, 36, 56, 0.96));
+}
+
+.lobby-panel__map-preview--debug {
+  background:
+    radial-gradient(circle at top left, rgba(146, 214, 255, 0.18), transparent 36%),
+    linear-gradient(135deg, rgba(33, 56, 79, 0.94), rgba(22, 28, 40, 0.96));
+}
+
+.lobby-panel__map-preview--unknown {
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.1), transparent 42%),
+    linear-gradient(135deg, rgba(61, 64, 72, 0.9), rgba(17, 19, 25, 0.96));
 }
 
 .lobby-panel__status {

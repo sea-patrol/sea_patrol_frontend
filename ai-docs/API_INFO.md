@@ -104,6 +104,8 @@ Response `200 OK`:
 - `rooms` может быть пустым массивом, и UI должен показывать понятный empty state;
 - error state должен читать `errors[0].message`, если backend вернул structured error;
 - после первого REST snapshot lobby UI продолжает жить за счёт `ROOMS_SNAPSHOT` / `ROOMS_UPDATED` по тому же payload shape;
+- frontend локально enrich'ит room entries по `mapId` через свой map metadata registry и показывает `region` + preview placeholder даже до отдельного map-loading flow;
+- если backend вернул неизвестный `mapId`, lobby UI использует fallback metadata на основе `mapName`, а не ломает room card;
 - ручной refresh остаётся fallback, если lobby WebSocket временно offline.
 
 ### 3.5 POST `/api/v1/rooms`
@@ -120,8 +122,8 @@ Request JSON:
 
 Все поля опциональны, но для текущего frontend flow:
 - `name` может быть пустым, тогда backend генерирует `Sandbox N`;
-- default map mode отправляет `mapId = caribbean-01`;
-- custom map mode отправляет пользовательский `mapId` и может получить validation error.
+- create form предлагает known map selector (`caribbean-01`, `test-sandbox-01`) и показывает по выбранной карте `region` + chart preview;
+- custom map mode по-прежнему позволяет вручную ввести `mapId` и получить validation error от backend.
 
 Response `201 Created`:
 ```json
@@ -138,6 +140,7 @@ Response `201 Created`:
 
 Важно для frontend:
 - create form живёт прямо в lobby UI;
+- выбор карты в create form сразу показывает локально известный region/preview context до отправки запроса;
 - после success frontend обновляет локальный catalog и затем продолжает принимать `ROOMS_UPDATED` как authoritative source;
 - backend валидирует `mapId` против своего in-memory `MapTemplateRegistry`; сейчас доступны `caribbean-01` и `test-sandbox-01`, поэтому custom `mapId` режим уже можно использовать и для реальной dev/debug комнаты, и для честного surfacing validation errors.
 
@@ -330,6 +333,8 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 ### Уже зафиксированы в contract, но не используются в UI после `TASK-017`
 - Chat control: `CHAT_JOIN`, `CHAT_LEAVE` (legacy compatibility only; lobby/room scope ими больше не переключается)
 - Room rejection: `ROOM_JOIN_REJECTED`
+
+
 
 
 
