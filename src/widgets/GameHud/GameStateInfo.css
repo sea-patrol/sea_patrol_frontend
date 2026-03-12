@@ -17,3 +17,38 @@
   font-size: 16px;
   font-weight: 700;
 }
+
+.game-state-info__wind-card {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(18, 72, 104, 0.42);
+  border: 1px solid rgba(118, 199, 231, 0.2);
+}
+
+.game-state-info__wind-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.game-state-info__wind-strength {
+  color: #9fd8f5;
+  font-weight: 700;
+}
+
+.game-state-info__wind-meta {
+  color: rgba(244, 240, 232, 0.9);
+}
+
+.game-state-info__wind-copy {
+  margin-top: 6px;
+  color: rgba(244, 240, 232, 0.82);
+  font-size: 12px;
+  line-height: 1.45;
+}

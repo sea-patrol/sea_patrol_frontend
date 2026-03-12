@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 
+import { describeRelativeWind, describeSailDrive, getWindCompassLabel, getWindStrengthLabel, toDegrees } from './windFeedback';
+
 import { selectPlayerState, selectWindState, useGameState } from '@/features/game/model/GameStateContext';
 import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
 import * as messageType from '@/shared/constants/messageType';
+
 import './GameStateInfo.css';
 
 const EMPTY_PLAYER_STATE = { x: 0, z: 0, angle: 0, velocity: 0, sailLevel: null };
@@ -14,6 +17,16 @@ export default function GameStateInfo({ name }) {
   const [viewState, setViewState] = useState({
     player: EMPTY_PLAYER_STATE,
     wind: EMPTY_WIND_STATE,
+  });
+  const windDegrees = toDegrees(viewState.wind.angle);
+  const windCompass = getWindCompassLabel(viewState.wind.angle);
+  const windStrength = getWindStrengthLabel(viewState.wind.speed);
+  const relativeWind = describeRelativeWind(viewState.player.angle, viewState.wind.angle);
+  const sailDriveCopy = describeSailDrive({
+    sailLevel: viewState.player.sailLevel,
+    shipAngle: viewState.player.angle,
+    windAngle: viewState.wind.angle,
+    windSpeed: viewState.wind.speed,
   });
 
   useEffect(() => {
@@ -58,7 +71,19 @@ export default function GameStateInfo({ name }) {
       <div>Угол: {viewState.player.angle.toFixed(2)}</div>
       <div>Скорость: {viewState.player.velocity.toFixed(2)}</div>
       <div>Паруса: {viewState.player.sailLevel ?? '-'}/3</div>
-      <div className="game-state-info__wind">Ветер: {viewState.wind.angle.toFixed(2)} рад / {viewState.wind.speed.toFixed(2)}</div>
+      <div className="game-state-info__wind-card">
+        <div className="game-state-info__wind-heading">
+          <span className="game-state-info__wind-strength">{windStrength}</span>
+          <span>{viewState.wind.speed.toFixed(2)}</span>
+        </div>
+        <div className="game-state-info__wind-meta">
+          Ветер: {windDegrees ?? '-'}° / {windCompass}
+        </div>
+        <div className="game-state-info__wind-meta">
+          Курс и ветер: {relativeWind?.label ?? 'Unknown'}
+        </div>
+        <div className="game-state-info__wind-copy">{sailDriveCopy}</div>
+      </div>
     </div>
   );
 }

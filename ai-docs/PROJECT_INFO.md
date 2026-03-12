@@ -115,6 +115,7 @@ src/
 - **Authoritative spawn snap поверх interpolation**: `GameStateContext` принимает `SPAWN_ASSIGNED` для current player как authoritative patch, а `useShipInterpolation` мгновенно snap'ает локальный корабль при смене `spawnRevision`, чтобы respawn не выглядел как медленный перелёт из старой точки
 - **Authoritative wind state тоже живёт в `GameStateContext`**: frontend хранит `wind` рядом с `playerStates`, заполняет его из `INIT_GAME_STATE`, обновляет из `UPDATE_GAME_STATE` даже без player patches и больше не опирается на локальные wind placeholders в основном runtime path
 - **`sailLevel` тоже остаётся чисто backend-authoritative**: после `TASK-033C` frontend хранит `sailLevel` прямо внутри `playerStates`, обновляет его только из `INIT_GAME_STATE` / `UPDATE_GAME_STATE` и показывает в `GameStateInfo` как HUD/debug-поле, не создавая отдельной локальной модели парусов
+- **Wind HUD объясняет поведение корабля, а не просто выводит числа**: после `TASK-034` `GameStateInfo` показывает силу и направление ветра, относительное положение ветра к текущему курсу (`Tailwind`, `Port beam`, `Headwind` и т.д.) и короткую подсказку, почему при текущем ветре и `sailLevel` разгон ощущается сильным или слабым
 - **Client-side prediction**: Интерполяция позиций кораблей между обновлениями сервера для плавности
 - **WebSocket reconnect + room resume**: `WebSocketProvider` хранит phase/attempt metadata (`connecting`, `reconnecting`, retry delay), открывает `/ws/game` только на маршрутах `/lobby` и `/game` и не держит realtime-сессию на домашней странице; `GamePage` поверх этого реализует явный room reconnect flow с `RECONNECTING` mode, локальным 15-секундным grace timeout, ожиданием `ROOM_JOINED` + fresh `INIT_GAME_STATE` и fallback-навигацией обратно в `/lobby`, если backend вернул пользователя в lobby scope; отдельный close path `1008 / SEAPATROL_DUPLICATE_SESSION` не считается reconnect-кандидатом и сразу возвращает клиента на домашнюю страницу с access-denied notice
 - **PWA для офлайн-кэширования**: 3D-модели (.glb) кэшируются через Service Worker
@@ -173,8 +174,8 @@ src/
 - `npm run test:coverage` — запуск с отчётом о покрытии
 
 **Текущее покрытие**:
-- 23 тестовых файла
-- 126 тестов (все проходят ✅)
+- 24 тестовых файла
+- 130 тестов (все проходят ✅)
 - Протестированы: AuthContext, RoomSessionContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init/reconnect flow, room loading summary и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation и room entry summary, отдельный GamePage reconnect flow, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + map metadata previews + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
 
 ## 4. Working Commands
@@ -194,7 +195,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 23 файла, 126 тестов (AuthContext, RoomSessionContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init/reconnect flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, отдельный GamePage reconnect flow, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils).
+**Текущее покрытие**: 24 файла, 130 тестов (AuthContext, RoomSessionContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init/reconnect flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, отдельный GamePage reconnect flow, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils, wind feedback helpers).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.

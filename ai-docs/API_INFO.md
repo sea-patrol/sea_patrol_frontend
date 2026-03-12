@@ -313,7 +313,8 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 - `angle` приходит в радианах в плоскости `XZ`: `0 -> +X`, `PI / 2 -> +Z`;
 - клиент не должен держать собственный authoritative источник ветра или выводить ветер из движения корабля;
 - после `TASK-032` frontend поднимает `wind` в `GameStateContext` и обновляет это поле только из backend `INIT_GAME_STATE` / `UPDATE_GAME_STATE`;
-- `UPDATE_GAME_STATE.wind` должен применяться даже если конкретный frame не содержит player patches.
+- `UPDATE_GAME_STATE.wind` должен применяться даже если конкретный frame не содержит player patches;
+- после `TASK-034` frontend использует тот же state для HUD feedback: показывает wind speed, compass-like direction, относительное положение ветра к курсу корабля и короткую подсказку по sail drive, не меняя transport contract.
 
 `PLAYER_JOIN`
 ```json
