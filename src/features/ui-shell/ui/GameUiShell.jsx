@@ -11,7 +11,6 @@ import { useRoomSession } from '@/features/game/model/RoomSessionContext';
 import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
 import * as messageType from '@/shared/constants/messageType';
 import ChatBlock from '@/widgets/ChatPanel/ChatBlock';
-import GameStateInfo from '@/widgets/GameHud/GameStateInfo';
 import ProfileBlock from '@/widgets/GameHud/ProfileBlock';
 import RoomLoadingSummary from '@/widgets/RoomLoadingSummary/RoomLoadingSummary';
 
@@ -387,12 +386,6 @@ export default function GameUiShell({ initialRoomEntry = null, reconnectUiState 
         {showSailingHud && (
           <div className="game-ui-shell__hud game-ui-shell__hud--profile">
             <ProfileBlock />
-          </div>
-        )}
-
-        {showSailingHud && (
-          <div className="game-ui-shell__hud game-ui-shell__hud--state">
-            <GameStateInfo name={user?.username} />
           </div>
         )}
 

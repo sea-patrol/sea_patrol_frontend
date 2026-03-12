@@ -79,10 +79,6 @@ vi.mock('@/widgets/ChatPanel/ChatBlock', () => ({
   ),
 }));
 
-vi.mock('@/widgets/GameHud/GameStateInfo', () => ({
-  default: () => <div data-testid="game-state-info" />,
-}));
-
 vi.mock('@/widgets/GameHud/ProfileBlock', () => ({
   default: () => <div data-testid="profile-block" />,
 }));

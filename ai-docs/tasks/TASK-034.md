@@ -19,9 +19,10 @@
 
 ## Source of Truth
 - Код:
-  - `sea_patrol_frontend/src/widgets/GameHud/GameStateInfo.jsx`
-  - `sea_patrol_frontend/src/widgets/GameHud/GameStateInfo.css`
+  - `sea_patrol_frontend/src/widgets/GameHud/ProfileBlock.jsx`
+  - `sea_patrol_frontend/src/widgets/GameHud/ProfileBlock.css`
   - `sea_patrol_frontend/src/widgets/GameHud/windFeedback.js`
+  - `sea_patrol_frontend/src/features/ui-shell/ui/GameUiShell.jsx`
 - Тесты:
   - `sea_patrol_frontend/src/__tests__/widgets/windFeedback.test.js`
   - `sea_patrol_frontend/src/__tests__/contexts/GameStateContext.reducer.test.js`
@@ -54,7 +55,7 @@
 - изменение sailing physics.
 
 ## Технический подход
-- `GameStateInfo` остаётся thin UI-слоем над `GameStateContext`.
+- `ProfileBlock` теперь является основным HUD-слоем над `GameStateContext`.
 - Числа и UX-copy собираются через pure helpers в `windFeedback.js`, чтобы логику можно было тестировать отдельно от React UI.
 - Derived feedback строится только из уже имеющихся authoritative данных: `wind.angle`, `wind.speed`, `player.angle`, `player.sailLevel`.
 
@@ -87,7 +88,7 @@
 **Review решение:** `Approve`
 
 ## Финализация
-- [x] Wind HUD стал понятнее для игрока
+- [x] Wind HUD перенесён в основной `ProfileBlock`
 - [x] Feedback объясняет влияние ветра на ход корабля
 - [x] Tests и build проходят
 - [x] Документация синхронизирована

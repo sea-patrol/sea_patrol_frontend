@@ -20,7 +20,7 @@
 ## Source of Truth
 - Код:
   - `sea_patrol_frontend/src/features/game/model/GameStateContext.jsx`
-  - `sea_patrol_frontend/src/widgets/GameHud/GameStateInfo.jsx`
+  - `sea_patrol_frontend/src/widgets/GameHud/ProfileBlock.jsx`
 - Тесты:
   - `sea_patrol_frontend/src/__tests__/contexts/GameStateContext.reducer.test.js`
   - `sea_patrol_frontend/src/__tests__/integration/game-state-flow.test.jsx`
@@ -41,7 +41,7 @@
 ## Scope
 **Включает:**
 - закрепление `sailLevel` как части `playerStates` в client runtime;
-- отображение `sailLevel` в `GameStateInfo`;
+- отображение `sailLevel` в основном HUD;
 - тесты на reducer и WS flow;
 - синхронизацию frontend/orchestration docs.
 
@@ -53,7 +53,7 @@
 
 ## Технический подход
 - `GameStateContext` уже копировал неизвестные player fields из backend payload, поэтому для runtime было важно не добавлять новую клиентскую state machine, а просто зафиксировать это тестами.
-- `GameStateInfo` теперь читает `sailLevel` из текущего player state и показывает его как `Паруса: N/3`.
+- основной HUD читает `sailLevel` из текущего player state и показывает его как `Паруса: N/3`.
 - Клиент по-прежнему отправляет только `PLAYER_INPUT` и считает backend единственным source of truth для уровня парусов.
 
 ## Проверки
@@ -66,7 +66,7 @@
 ### Ручная проверка
 - [x] `INIT_GAME_STATE.players[*].sailLevel` появляется в client state
 - [x] `UPDATE_GAME_STATE.players[*].sailLevel` обновляет client state
-- [x] `GameStateInfo` показывает уровень парусов без локального пересчёта
+- [x] Основной HUD показывает уровень парусов без локального пересчёта
 
 ## QA / Review
 ### QA
@@ -86,7 +86,7 @@
 
 ## Финализация
 - [x] `sailLevel` поднят в frontend runtime state
-- [x] `GameStateInfo` показывает текущий уровень парусов
+- [x] Основной HUD показывает текущий уровень парусов
 - [x] Tests и build проходят
 - [x] Документация синхронизирована
 - [x] Задача помечена как выполненная в roadmap

@@ -305,7 +305,7 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 - backend уже присылает `sailLevel` (`0..3`) в player state;
 - `INIT_GAME_STATE.players[*].sailLevel` задаёт начальный уровень парусов;
 - `UPDATE_GAME_STATE.players[*].sailLevel` тоже уже приходит из backend runtime;
-- frontend уже поднимает это поле в `GameStateContext` и показывает его в HUD;
+- frontend уже поднимает это поле в `GameStateContext` и показывает его в основном HUD через `ProfileBlock`;
 - клиент по-прежнему не должен рассчитывать `sailLevel` локально как отдельное authoritative состояние.
 
 Особенности `wind` для frontend:
@@ -314,7 +314,8 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 - клиент не должен держать собственный authoritative источник ветра или выводить ветер из движения корабля;
 - после `TASK-032` frontend поднимает `wind` в `GameStateContext` и обновляет это поле только из backend `INIT_GAME_STATE` / `UPDATE_GAME_STATE`;
 - `UPDATE_GAME_STATE.wind` должен применяться даже если конкретный frame не содержит player patches;
-- после `TASK-034` frontend использует тот же state для HUD feedback: показывает wind speed, compass-like direction, относительное положение ветра к курсу корабля и короткую подсказку по sail drive, не меняя transport contract.
+- после `TASK-034` frontend использует тот же state для HUD feedback внутри `ProfileBlock`: показывает wind speed, compass-like direction, относительное положение ветра к курсу корабля и короткую подсказку по sail drive, не меняя transport contract;
+- координаты и угол поворота больше не считаются частью основного HUD и показываются только в dev-only debug секции.
 
 `PLAYER_JOIN`
 ```json
