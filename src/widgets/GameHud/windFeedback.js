@@ -18,19 +18,19 @@ export function toDegrees(angle) {
 
 export function getWindCompassLabel(angle) {
   const normalized = normalizeAngle(angle);
-  if (normalized === null) return 'Unknown';
+  if (normalized === null) return 'Неизвестно';
 
-  const sectors = ['E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE'];
+  const sectors = ['В', 'СВ', 'С', 'СЗ', 'З', 'ЮЗ', 'Ю', 'ЮВ'];
   const sectorIndex = Math.round(normalized / (Math.PI / 4)) % sectors.length;
   return sectors[sectorIndex];
 }
 
 export function getWindStrengthLabel(speed) {
-  if (!isFiniteNumber(speed) || speed <= 0.5) return 'Calm';
-  if (speed < 4) return 'Light breeze';
-  if (speed < 8) return 'Working breeze';
-  if (speed < 12) return 'Fresh breeze';
-  return 'Strong breeze';
+  if (!isFiniteNumber(speed) || speed <= 0.5) return 'Штиль';
+  if (speed < 4) return 'Лёгкий ветер';
+  if (speed < 8) return 'Умеренный ветер';
+  if (speed < 12) return 'Свежий ветер';
+  return 'Сильный ветер';
 }
 
 export function describeRelativeWind(shipAngle, windAngle) {
@@ -46,43 +46,43 @@ export function describeRelativeWind(shipAngle, windAngle) {
 
   if (absDelta <= Math.PI / 8) {
     return {
-      label: 'Tailwind',
-      hint: 'Wind is aft of the bow. Expect steady push.',
+      label: 'Попутный ветер',
+      hint: 'Ветер идёт с кормы и даёт ровную тягу.',
     };
   }
 
   if (absDelta >= (Math.PI * 7) / 8) {
     return {
-      label: 'Headwind',
-      hint: 'You are heading into the wind. Drive will feel weaker.',
+      label: 'Встречный ветер',
+      hint: 'Корабль идёт против ветра, поэтому тяга будет слабее.',
     };
   }
 
-  const side = delta > 0 ? 'Port' : 'Starboard';
+  const side = delta > 0 ? 'Левый' : 'Правый';
 
   if (absDelta >= (Math.PI * 3) / 8 && absDelta <= (Math.PI * 5) / 8) {
     return {
-      label: `${side} beam`,
-      hint: 'Beam wind gives the strongest sailing pull in the current model.',
+      label: `${side} галс траверз`,
+      hint: 'Боковой ветер даёт самую сильную тягу в текущей модели.',
     };
   }
 
   return {
-    label: `${side} reach`,
-    hint: 'Wind is crossing the sails at an angle. Expect moderate pull.',
+    label: `${side} галс бейдевинд`,
+    hint: 'Ветер идёт под углом к парусам, поэтому тяга будет умеренной.',
   };
 }
 
 export function describeSailDrive({ sailLevel, shipAngle, windAngle, windSpeed }) {
   if (!isFiniteNumber(sailLevel) || sailLevel <= 0) {
-    return 'Sails are lowered. The ship will not build sail drive.';
+    return 'Паруса опущены. Корабль не будет набирать ход под парусами.';
   }
 
   const windStrength = getWindStrengthLabel(windSpeed);
   const relativeWind = describeRelativeWind(shipAngle, windAngle);
   if (!relativeWind) {
-    return `Sails ${sailLevel}/3. Waiting for authoritative wind vector.`;
+    return `Паруса ${sailLevel}/3. Ожидаем authoritative-вектор ветра.`;
   }
 
-  return `Sails ${sailLevel}/3. ${windStrength}. ${relativeWind.hint}`;
+  return `Паруса ${sailLevel}/3. ${windStrength}. ${relativeWind.hint}`;
 }

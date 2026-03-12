@@ -12,22 +12,22 @@ describe('windFeedback', () => {
   it('converts radians into degrees and compass labels', () => {
     expect(toDegrees(0)).toBe(0);
     expect(toDegrees(Math.PI / 2)).toBe(90);
-    expect(getWindCompassLabel(0)).toBe('E');
-    expect(getWindCompassLabel(Math.PI / 2)).toBe('N');
+    expect(getWindCompassLabel(0)).toBe('В');
+    expect(getWindCompassLabel(Math.PI / 2)).toBe('С');
   });
 
   it('describes relative wind for tailwind, beam and headwind', () => {
-    expect(describeRelativeWind(0, 0)).toMatchObject({ label: 'Tailwind' });
-    expect(describeRelativeWind(0, Math.PI / 2)).toMatchObject({ label: 'Port beam' });
-    expect(describeRelativeWind(0, Math.PI)).toMatchObject({ label: 'Headwind' });
+    expect(describeRelativeWind(0, 0)).toMatchObject({ label: 'Попутный ветер' });
+    expect(describeRelativeWind(0, Math.PI / 2)).toMatchObject({ label: 'Левый галс траверз' });
+    expect(describeRelativeWind(0, Math.PI)).toMatchObject({ label: 'Встречный ветер' });
   });
 
   it('maps wind speed into readable strength labels', () => {
-    expect(getWindStrengthLabel(0)).toBe('Calm');
-    expect(getWindStrengthLabel(3)).toBe('Light breeze');
-    expect(getWindStrengthLabel(6)).toBe('Working breeze');
-    expect(getWindStrengthLabel(10)).toBe('Fresh breeze');
-    expect(getWindStrengthLabel(14)).toBe('Strong breeze');
+    expect(getWindStrengthLabel(0)).toBe('Штиль');
+    expect(getWindStrengthLabel(3)).toBe('Лёгкий ветер');
+    expect(getWindStrengthLabel(6)).toBe('Умеренный ветер');
+    expect(getWindStrengthLabel(10)).toBe('Свежий ветер');
+    expect(getWindStrengthLabel(14)).toBe('Сильный ветер');
   });
 
   it('explains sail drive from current sail level and wind', () => {
@@ -38,7 +38,7 @@ describe('windFeedback', () => {
         windAngle: 0,
         windSpeed: 8,
       }),
-    ).toContain('Sails are lowered');
+    ).toContain('Паруса опущены');
 
     expect(
       describeSailDrive({
@@ -47,6 +47,6 @@ describe('windFeedback', () => {
         windAngle: Math.PI / 2,
         windSpeed: 10,
       }),
-    ).toContain('Beam wind gives the strongest sailing pull');
+    ).toContain('Боковой ветер даёт самую сильную тягу');
   });
 });

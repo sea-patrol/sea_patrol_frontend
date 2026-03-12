@@ -314,6 +314,7 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 - клиент не должен держать собственный authoritative источник ветра или выводить ветер из движения корабля;
 - после `TASK-032` frontend поднимает `wind` в `GameStateContext` и обновляет это поле только из backend `INIT_GAME_STATE` / `UPDATE_GAME_STATE`;
 - `UPDATE_GAME_STATE.wind` должен применяться даже если конкретный frame не содержит player patches;
+- после `TASK-035` backend меняет `angle` предсказуемо по часовой стрелке на room-wide фиксированной скорости, но frontend всё равно должен просто применять последний authoritative snapshot, а не крутить ветер локально по таймеру;
 - после `TASK-034` frontend использует тот же state для HUD feedback внутри `ProfileBlock`: показывает wind speed, compass-like direction, относительное положение ветра к курсу корабля и короткую подсказку по sail drive, не меняя transport contract;
 - координаты и угол поворота больше не считаются частью основного HUD и показываются только в dev-only debug секции.
 

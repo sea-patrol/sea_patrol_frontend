@@ -45,9 +45,9 @@ describe('ProfileBlock', () => {
     expect(screen.getByText('4.25')).toBeInTheDocument();
     expect(screen.getByText('Паруса')).toBeInTheDocument();
     expect(screen.getByText('2/3')).toBeInTheDocument();
-    expect(screen.getByText('Fresh breeze')).toBeInTheDocument();
-    expect(screen.getByText('Ветер: 90° / N')).toBeInTheDocument();
-    expect(screen.getByText('Курс и ветер: Port reach')).toBeInTheDocument();
-    expect(screen.getByText(/Expect moderate pull/)).toBeInTheDocument();
+    expect(screen.getByText('Свежий ветер')).toBeInTheDocument();
+    expect(screen.getByText('Ветер: 90° / С')).toBeInTheDocument();
+    expect(screen.getByText('Курс и ветер: Левый галс бейдевинд')).toBeInTheDocument();
+    expect(screen.getByText(/тяга будет умеренной/)).toBeInTheDocument();
   });
 });
