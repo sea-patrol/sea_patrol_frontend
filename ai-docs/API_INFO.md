@@ -225,6 +225,11 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 ["PLAYER_INPUT", { "up": true, "down": false, "left": false, "right": false }]
 ```
 
+Контрактная заметка `TASK-033A`:
+- `left/right` остаются командами поворота;
+- каноника следующего шага: `up/down` используются не как газ/тормоз, а как rising-edge команды подъёма/опускания парусов на `+1/-1`;
+- клиент не должен вводить отдельный локальный authoritative `sailLevel`, не совпадающий с backend state.
+
 ### 4.4 Входящие сообщения (backend -> frontend)
 
 #### Используются текущим lobby UI
@@ -295,6 +300,11 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 ```json
 ["UPDATE_GAME_STATE", { "wind": { "angle": 0.1, "speed": 10.0 }, "players": [{ "name": "alice", "x": 10, "z": 5 }] }]
 ```
+
+Контрактная заметка `TASK-033A`:
+- следующий agreed player-state field: `sailLevel` (`0..3`);
+- `INIT_GAME_STATE.players[*].sailLevel` должен задавать начальный уровень парусов;
+- `UPDATE_GAME_STATE.players[*].sailLevel` должен приходить при изменении уровня парусов.
 
 Особенности `wind` для frontend:
 - `wind` имеет один и тот же transport shape в `INIT_GAME_STATE` и `UPDATE_GAME_STATE`: `{ angle, speed }`;
