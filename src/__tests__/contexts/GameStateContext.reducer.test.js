@@ -29,8 +29,8 @@ describe('gameStateReducer', () => {
       payload: {
         wind: { angle: 0.5, speed: 10 },
         players: [
-          { name: 'alice', x: 1, z: 2 },
-          { name: 'bob', x: 3, z: 4 },
+          { name: 'alice', x: 1, z: 2, sailLevel: 3 },
+          { name: 'bob', x: 3, z: 4, sailLevel: 1 },
         ],
       },
     };
@@ -39,8 +39,8 @@ describe('gameStateReducer', () => {
 
     expect(nextState).toEqual({
       playerStates: {
-        alice: { name: 'alice', x: 1, z: 2 },
-        bob: { name: 'bob', x: 3, z: 4 },
+        alice: { name: 'alice', x: 1, z: 2, sailLevel: 3 },
+        bob: { name: 'bob', x: 3, z: 4, sailLevel: 1 },
       },
       wind: { angle: 0.5, speed: 10 },
     });
@@ -50,7 +50,7 @@ describe('gameStateReducer', () => {
     const prevState = deepFreeze({
       wind: { angle: 0.2, speed: 8 },
       playerStates: {
-        alice: { name: 'alice', x: 0, z: 0, angle: 10, health: 100 },
+        alice: { name: 'alice', x: 0, z: 0, angle: 10, health: 100, sailLevel: 3 },
       },
     });
 
@@ -58,7 +58,7 @@ describe('gameStateReducer', () => {
       type: messageType.UPDATE_GAME_STATE,
       payload: {
         wind: { angle: 0.4, speed: 8 },
-        players: [{ name: 'alice', x: 5, z: undefined }],
+        players: [{ name: 'alice', x: 5, z: undefined, sailLevel: 2 }],
       },
     };
 
@@ -75,6 +75,7 @@ describe('gameStateReducer', () => {
       z: 0,
       angle: 10,
       health: 100,
+      sailLevel: 2,
     });
     expect(nextState.wind).toEqual({ angle: 0.4, speed: 8 });
   });

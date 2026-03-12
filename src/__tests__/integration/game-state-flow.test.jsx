@@ -67,11 +67,19 @@ function GameFlowHarness({ subscribe, currentPlayerName = 'alice' }) {
           x: alice.x,
           z: alice.z,
           angle: alice.angle,
+          sailLevel: alice.sailLevel ?? null,
           spawnRevision: alice.spawnRevision ?? null,
           lastSpawnReason: alice.lastSpawnReason ?? null,
         }
       : null,
-    bob: bob ? { x: bob.x, z: bob.z, angle: bob.angle } : null,
+    bob: bob
+      ? {
+          x: bob.x,
+          z: bob.z,
+          angle: bob.angle,
+          sailLevel: bob.sailLevel ?? null,
+        }
+      : null,
   };
 
   return (
@@ -96,7 +104,7 @@ describe('game state flow integration', () => {
     await act(() => {
       mock.emit(messageType.INIT_GAME_STATE, {
         wind: { angle: 0.5, speed: 10 },
-        players: [{ name: 'alice', x: 1, z: 2, angle: 0.1 }],
+        players: [{ name: 'alice', x: 1, z: 2, angle: 0.1, sailLevel: 3 }],
       });
     });
 
@@ -105,19 +113,27 @@ describe('game state flow integration', () => {
       expect(snapshot.playerNames).toEqual(['alice']);
       expect(snapshot.stateNames).toEqual(['alice']);
       expect(snapshot.wind).toEqual({ angle: 0.5, speed: 10 });
-      expect(snapshot.alice).toEqual({ x: 1, z: 2, angle: 0.1, spawnRevision: null, lastSpawnReason: null });
+      expect(snapshot.alice).toEqual({
+        x: 1,
+        z: 2,
+        angle: 0.1,
+        sailLevel: 3,
+        spawnRevision: null,
+        lastSpawnReason: null,
+      });
     });
 
     await act(() => {
       mock.emit(messageType.UPDATE_GAME_STATE, {
         wind: { angle: 0.8, speed: 9.5 },
-        players: [{ name: 'alice', x: 5 }],
+        players: [{ name: 'alice', x: 5, sailLevel: 2 }],
       });
     });
 
     await waitFor(() => {
       const snapshot = JSON.parse(screen.getByTestId('snapshot').textContent);
       expect(snapshot.alice.x).toBe(5);
+      expect(snapshot.alice.sailLevel).toBe(2);
       expect(snapshot.stateNames).toEqual(['alice']);
       expect(snapshot.wind).toEqual({ angle: 0.8, speed: 9.5 });
     });
@@ -134,18 +150,25 @@ describe('game state flow integration', () => {
 
     await waitFor(() => {
       const snapshot = JSON.parse(screen.getByTestId('snapshot').textContent);
-      expect(snapshot.alice).toEqual({ x: -12, z: 9, angle: 1.2, spawnRevision: 1, lastSpawnReason: 'RESPAWN' });
+      expect(snapshot.alice).toEqual({
+        x: -12,
+        z: 9,
+        angle: 1.2,
+        sailLevel: 2,
+        spawnRevision: 1,
+        lastSpawnReason: 'RESPAWN',
+      });
     });
 
     await act(() => {
-      mock.emit(messageType.PLAYER_JOIN, { name: 'bob', x: 9, z: 9, angle: 0 });
+      mock.emit(messageType.PLAYER_JOIN, { name: 'bob', x: 9, z: 9, angle: 0, sailLevel: 1 });
     });
 
     await waitFor(() => {
       const snapshot = JSON.parse(screen.getByTestId('snapshot').textContent);
       expect(snapshot.playerNames.sort()).toEqual(['alice', 'bob']);
       expect(snapshot.stateNames).toEqual(['alice', 'bob']);
-      expect(snapshot.bob).toEqual({ x: 9, z: 9, angle: 0 });
+      expect(snapshot.bob).toEqual({ x: 9, z: 9, angle: 0, sailLevel: 1 });
     });
 
     await act(() => {

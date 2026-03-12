@@ -225,10 +225,10 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 ["PLAYER_INPUT", { "up": true, "down": false, "left": false, "right": false }]
 ```
 
-Контрактная заметка `TASK-033A`:
+Состояние после `TASK-033C`:
 - `left/right` остаются командами поворота;
-- каноника следующего шага: `up/down` используются не как газ/тормоз, а как rising-edge команды подъёма/опускания парусов на `+1/-1`;
-- клиент не должен вводить отдельный локальный authoritative `sailLevel`, не совпадающий с backend state.
+- `up/down` используются не как газ/тормоз, а как rising-edge команды подъёма/опускания парусов на `+1/-1`;
+- frontend не вводит отдельный локальный authoritative `sailLevel`, а только отправляет input и отображает backend state в HUD/runtime.
 
 ### 4.4 Входящие сообщения (backend -> frontend)
 
@@ -301,11 +301,12 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 ["UPDATE_GAME_STATE", { "wind": { "angle": 0.1, "speed": 10.0 }, "players": [{ "name": "alice", "x": 10, "z": 5 }] }]
 ```
 
-Состояние после `TASK-033B`:
+Состояние после `TASK-033C`:
 - backend уже присылает `sailLevel` (`0..3`) в player state;
 - `INIT_GAME_STATE.players[*].sailLevel` задаёт начальный уровень парусов;
 - `UPDATE_GAME_STATE.players[*].sailLevel` тоже уже приходит из backend runtime;
-- фронтовая задача `TASK-033C` нужна для подъёма этого поля в runtime state/HUD, а не для изменения backend contract.
+- frontend уже поднимает это поле в `GameStateContext` и показывает его в HUD;
+- клиент по-прежнему не должен рассчитывать `sailLevel` локально как отдельное authoritative состояние.
 
 Особенности `wind` для frontend:
 - `wind` имеет один и тот же transport shape в `INIT_GAME_STATE` и `UPDATE_GAME_STATE`: `{ angle, speed }`;

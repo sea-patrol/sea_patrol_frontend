@@ -5,7 +5,7 @@ import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
 import * as messageType from '@/shared/constants/messageType';
 import './GameStateInfo.css';
 
-const EMPTY_PLAYER_STATE = { x: 0, z: 0, angle: 0, velocity: 0 };
+const EMPTY_PLAYER_STATE = { x: 0, z: 0, angle: 0, velocity: 0, sailLevel: null };
 const EMPTY_WIND_STATE = { angle: 0, speed: 0 };
 
 export default function GameStateInfo({ name }) {
@@ -28,6 +28,7 @@ export default function GameStateInfo({ name }) {
               z: nextPlayerState.z ?? 0,
               angle: nextPlayerState.angle ?? 0,
               velocity: nextPlayerState.velocity ?? 0,
+              sailLevel: Number.isInteger(nextPlayerState.sailLevel) ? nextPlayerState.sailLevel : null,
             }
           : EMPTY_PLAYER_STATE,
         wind: nextWindState
@@ -56,6 +57,7 @@ export default function GameStateInfo({ name }) {
       <div>X: {viewState.player.x.toFixed(2)}, Z: {viewState.player.z.toFixed(2)}</div>
       <div>Угол: {viewState.player.angle.toFixed(2)}</div>
       <div>Скорость: {viewState.player.velocity.toFixed(2)}</div>
+      <div>Паруса: {viewState.player.sailLevel ?? '-'}/3</div>
       <div className="game-state-info__wind">Ветер: {viewState.wind.angle.toFixed(2)} рад / {viewState.wind.speed.toFixed(2)}</div>
     </div>
   );
