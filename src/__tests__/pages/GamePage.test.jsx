@@ -211,6 +211,7 @@ describe('GamePage reconnect flow', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('game-ui-shell')).toHaveTextContent('waiting-socket:sandbox-1');
+      expect(screen.queryByTestId('game-scene')).not.toBeInTheDocument();
     });
   });
 

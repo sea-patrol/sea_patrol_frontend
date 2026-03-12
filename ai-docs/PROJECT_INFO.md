@@ -74,7 +74,8 @@ src/
 ├── widgets/              # UI-виджеты (сборки UI)
 │   ├── ChatPanel/
 │   ├── GameHud/
-│   └── LobbyPanel/
+│   ├── LobbyPanel/
+│   └── RoomLoadingSummary/
 ├── features/             # Фичи (ui + model)
 │   ├── auth/             # AuthContext + формы
 │   ├── realtime/         # WebSocketContext
@@ -105,6 +106,7 @@ src/
 - **Auth bootstrap восстанавливает persisted session целиком**: `AuthContext` поднимает пользователя из `localStorage` (`token` + `auth-user`), может восстановить `username` из JWT `sub` и сразу отбрасывает просроченный/битый JWT, поэтому home/lobby UI не показывает ложный logged-in state при expired token
 - **UI shell отдельно от 3D-сцены**: `LobbyPage` теперь HTML-first и вообще не монтирует `Canvas`, а `GamePage` поднимает 3D-сцену только когда у маршрута уже есть room context; внутри room route `GameUiShell` продолжает жить отдельно от canvas
 - **Lobby map metadata дополняется на фронте**: `LobbyPanel` использует локальный registry `src/shared/lib/mapMetadata.js`, чтобы по `mapId` показывать в списке комнат и в create form не только `mapName`, но и `region` с простым chart preview; для неизвестных `mapId` UI откатывается к fallback metadata без поломки room catalog
+- **`ROOM_LOADING` теперь показывает структурированный summary**: общий widget `RoomLoadingSummary` используется и в `LobbyPage`, и в `GameUiShell`, поэтому до старта плавания игрок видит room name, map context, region, server status и spawn metadata из REST/WS contract, а `GamePage` не монтирует 3D-сцену, пока ещё нет authoritative current player snapshot
 - **Единая UI mode model**: `GameUiContext` задаёт состояния `LOADING`, `LOBBY`, `ROOM_LOADING`, `SAILING`, `CHAT_FOCUS`, `WINDOW_FOCUS`, `MENU_OPEN`, `RECONNECTING`, `RESPAWN`
 - **Явный navigation flow `Home -> Lobby -> Game` с room resume-first входом**: домашняя страница снова использует CTA `Play`; если у пользователя уже есть сохранённая room session, `Play` ведёт сразу на `/game`, где стартует reconnect/resume flow, а если room session нет или backend её уже не восстановил, пользователь попадает в обычный `/lobby`; `Join room` по-прежнему стартует на lobby route, проходит через REST `POST /api/v1/rooms/{roomId}/join`, WS `ROOM_JOINED`, `SPAWN_ASSIGNED` и финальный `INIT_GAME_STATE/current player`, и только после полного init flow переводит пользователя в `/game`
 - **Глобальный realtime bridge и room session поверх роутов**: `WebSocketProvider`, `GameStateProvider`, `RoomSessionProvider` и `GameRealtimeBridge` живут выше страниц, поэтому переходы `Home -> Lobby -> Game` не рвут WS-сессию, не теряют ранние room init сообщения и позволяют безопасно открыть `/game` повторно после возврата на домашний экран; `RoomSessionProvider` дополнительно сохраняет room metadata в `localStorage`, чтобы full page reload не лишал пользователя room resume target в пределах backend reconnect grace
@@ -171,7 +173,7 @@ src/
 **Текущее покрытие**:
 - 23 тестовых файла
 - 121 тест (все проходят ✅)
-- Протестированы: AuthContext, RoomSessionContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init/reconnect flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, отдельный GamePage reconnect flow, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + map metadata previews + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
+- Протестированы: AuthContext, RoomSessionContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init/reconnect flow, room loading summary и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation и room entry summary, отдельный GamePage reconnect flow, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + map metadata previews + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
 
 ## 4. Working Commands
 

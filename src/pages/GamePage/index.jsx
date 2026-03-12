@@ -87,6 +87,7 @@ function GamePage() {
   } : null);
   const currentPlayerState = selectCurrentPlayerState(state, user?.username);
   const hasRoomContext = Boolean(effectiveRoomEntry?.room || currentPlayerState);
+  const shouldMountScene = Boolean(currentPlayerState);
   const roomId = effectiveRoomEntry?.room?.id ?? effectiveRoomEntry?.joinResponse?.roomId ?? null;
   const roomName = effectiveRoomEntry?.room?.name ?? effectiveRoomEntry?.joinResponse?.roomName ?? roomId;
 
@@ -305,7 +306,7 @@ function GamePage() {
     <div className="game-page">
       <GameUiProvider>
         <div className="game-page__viewport">
-          <GameMainScene />
+          {shouldMountScene && <GameMainScene />}
           <GameUiShell initialRoomEntry={effectiveRoomEntry} reconnectUiState={reconnectUiState} />
         </div>
       </GameUiProvider>

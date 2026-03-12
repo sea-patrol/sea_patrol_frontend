@@ -177,6 +177,7 @@ Response `200 OK`:
 - ошибки `404` / `409` показываются пользователю прямо на lobby route;
 - после REST `200 OK` lobby page остаётся активной и ждёт полный authoritative init flow: `ROOM_JOINED` -> `SPAWN_ASSIGNED` -> `INIT_GAME_STATE/current player`;
 - переход на `/game` и монтирование gameplay scene происходят только после появления current player snapshot, а не только после spawn assignment;
+- между REST join, `ROOM_JOINED`, `SPAWN_ASSIGNED` и финальным `INIT_GAME_STATE` frontend показывает room loading summary с room/map metadata и не прячет этот этап за голым спиннером;
 - metadata room entry хранится в `RoomSessionContext`, поэтому пользователь может безопасно вернуться на `/game` с домашней страницы, пока room session остаётся активной.
 
 ## 4. WebSocket API
@@ -273,12 +274,14 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 - canonical room enter flow: `POST /api/v1/rooms/{roomId}/join` -> `ROOM_JOINED` -> `SPAWN_ASSIGNED` -> `INIT_GAME_STATE`;
 - frontend держит пользователя на `/lobby` после REST success и переключает маршрут на `/game` только после появления current player в game state;
 - `SPAWN_ASSIGNED` используется как authoritative signal, что spawn уже назначен, но сам переход в room route и последующий `SAILING` происходят только после `INIT_GAME_STATE` / current player snapshot;
+- `LobbyPage` и `GameUiShell` используют `joinResponse`, `spawn` и `roomMeta` для room loading summary: пользователь видит карту, регион, server status и spawn coordinates ещё до входа в активную сцену;
 - backend вычисляет initial spawn сам из `MapTemplate.spawnPoints` + `spawnRules.playerSpawnRadius` и валидирует координаты по `MapTemplate.bounds`, поэтому клиент не должен рандомить spawn локально;
 - тот же payload shape используется и для будущего respawn с `reason=RESPAWN`, поэтому frontend должен ориентироваться на `reason`, а не на предположение, что `SPAWN_ASSIGNED` бывает только один раз за room session.
 - `INIT_GAME_STATE` теперь может содержать `roomMeta`; текущий frontend path не зависит от него для gameplay, но может использовать эти map/room данные для loading summary и room resume UX.
 - reconnect в пределах `game.room.reconnect-grace-period` (MVP default: `15s`) теперь возвращает пользователя в ту же комнату: backend повторно шлёт `ROOM_JOINED` и `INIT_GAME_STATE`, но не делает новый `SPAWN_ASSIGNED`.
 - после `TASK-022` frontend на `/game` входит в явный `RECONNECTING` flow, ждёт `ROOM_JOINED`, затем fresh `INIT_GAME_STATE` и только после этого считает room session восстановленной.
 - если backend вместо room resume возвращает `ROOMS_SNAPSHOT` / `ROOMS_UPDATED`, frontend трактует это как lobby fallback, очищает stale room/game state и переводит пользователя обратно на `/lobby` с warning notice.
+- если `/game` открыт с persisted room session, но authoritative current player snapshot ещё не восстановлен, `GamePage` держит только loading/reconnect UI и не монтирует 3D canvas раньше времени.
 - если окно grace истекло и room resume так и не пришёл, frontend завершает reconnect flow через локальный `15s` timeout, очищает room/game state и переводит пользователя в новый lobby session flow.
 - после `TASK-020` frontend применяет `SPAWN_ASSIGNED` к runtime state текущего игрока как authoritative spawn patch и при наличии active ship делает snap к новым координатам, а не плавный lerp из предыдущей позиции.
 #### Используются текущим gameplay UI/runtime

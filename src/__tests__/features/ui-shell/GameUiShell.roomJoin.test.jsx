@@ -143,6 +143,8 @@ describe('GameUiShell room init flow', () => {
 
     expect(screen.getByText('Assigning spawn')).toBeInTheDocument();
     expect(screen.getByTestId('chat-block')).toHaveTextContent('Room | Sandbox 1 (sandbox-1) | group:room:sandbox-1');
+    expect(screen.getAllByText('Caribbean Sea').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Caribbean').length).toBeGreaterThan(0);
 
     await act(async () => {
       emitWsMessage(messageType.SPAWN_ASSIGNED, {
@@ -157,6 +159,7 @@ describe('GameUiShell room init flow', () => {
     await waitFor(() => {
       expect(screen.getByText('Initializing room state')).toBeInTheDocument();
       expect(screen.getByText(/Spawn is assigned/)).toBeInTheDocument();
+      expect(screen.getByText(/Spawn coordinates/)).toBeInTheDocument();
     });
 
     mockGameState = {

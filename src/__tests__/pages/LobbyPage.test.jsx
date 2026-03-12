@@ -114,7 +114,18 @@ vi.mock('@/shared/api/roomApi', () => ({
 vi.mock('@/widgets/LobbyPanel/LobbyPanel', () => ({
   default: ({ onJoinRoom, joiningRoomId, joinError }) => (
     <section>
-      <button type="button" onClick={() => onJoinRoom?.({ id: 'sandbox-1', name: 'Sandbox 1' })}>
+      <button
+        type="button"
+        onClick={() => onJoinRoom?.({
+          id: 'sandbox-1',
+          name: 'Sandbox 1',
+          mapId: 'caribbean-01',
+          mapName: 'Caribbean Sea',
+          currentPlayers: 1,
+          maxPlayers: 100,
+          status: 'OPEN',
+        })}
+      >
         Join sandbox
       </button>
       <div data-testid="joining-room">{joiningRoomId ?? 'none'}</div>
@@ -193,6 +204,8 @@ describe('LobbyPage', () => {
     await waitFor(() => {
       expect(roomApi.joinRoom).toHaveBeenCalledWith('test-token', 'sandbox-1');
       expect(screen.getByText('Room admitted')).toBeInTheDocument();
+      expect(screen.getAllByText('Caribbean Sea').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Caribbean').length).toBeGreaterThan(0);
     });
 
     await act(async () => {
@@ -215,6 +228,7 @@ describe('LobbyPage', () => {
 
     expect(navigateMock).not.toHaveBeenCalled();
     expect(screen.getByText('Waiting for room initialization')).toBeInTheDocument();
+    expect(screen.getByText(/Spawn coordinates/)).toBeInTheDocument();
 
     mockGameState = {
       state: {

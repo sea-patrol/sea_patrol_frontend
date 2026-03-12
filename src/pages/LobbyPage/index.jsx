@@ -9,6 +9,7 @@ import { roomApi } from '../../shared/api/roomApi';
 import * as messageType from '../../shared/constants/messageType';
 import ChatBlock from '../../widgets/ChatPanel/ChatBlock';
 import LobbyPanel from '../../widgets/LobbyPanel/LobbyPanel';
+import RoomLoadingSummary from '../../widgets/RoomLoadingSummary/RoomLoadingSummary';
 import './LobbyPage.css';
 
 const LOBBY_CHAT_SCOPE = Object.freeze({
@@ -68,18 +69,21 @@ function getJoinStatusCopy(joinState) {
   switch (joinState.status) {
     case ROOM_JOIN_STATUS.SUBMITTING:
       return {
+        stageLabel: 'Admission request',
         title: 'Sending room join request',
         body: `Requesting room admission for ${roomName}. The lobby stays active until backend confirms room initialization for the gameplay route.`,
       };
 
     case ROOM_JOIN_STATUS.AWAITING_SPAWN:
       return {
+        stageLabel: 'Awaiting spawn',
         title: 'Room admitted',
         body: `Backend accepted the join for ${roomName}. Waiting for authoritative spawn assignment before room initialization continues.`,
       };
 
     case ROOM_JOIN_STATUS.AWAITING_INIT:
       return {
+        stageLabel: 'Awaiting init',
         title: 'Waiting for room initialization',
         body: `Spawn is assigned for ${roomName}. The lobby keeps the player here until authoritative room state is fully ready.`,
       };
@@ -304,10 +308,16 @@ export default function LobbyPage() {
       )}
 
       {joinStatusCopy && (
-        <section className="lobby-page__notice" aria-live="polite">
-          <strong>{joinStatusCopy.title}</strong>
-          <p>{joinStatusCopy.body}</p>
-        </section>
+        <div className="lobby-page__notice" aria-live="polite">
+          <RoomLoadingSummary
+            title={joinStatusCopy.title}
+            body={joinStatusCopy.body}
+            room={joinState.room}
+            joinResponse={joinState.joinResponse}
+            spawn={joinState.spawn}
+            stageLabel={joinStatusCopy.stageLabel}
+          />
+        </div>
       )}
 
       <main className="lobby-page__layout">
