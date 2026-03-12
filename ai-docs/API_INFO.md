@@ -288,13 +288,19 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 
 `INIT_GAME_STATE`
 ```json
-["INIT_GAME_STATE", { "room": "sandbox-1", "roomMeta": { "roomId": "sandbox-1", "mapId": "caribbean-01", "mapName": "Caribbean Sea" }, "players": [{ "name": "alice", "x": 0, "z": 0, "angle": 0 }] }]
+["INIT_GAME_STATE", { "room": "sandbox-1", "roomMeta": { "roomId": "sandbox-1", "mapId": "caribbean-01", "mapName": "Caribbean Sea" }, "wind": { "angle": 0.0, "speed": 10.0 }, "players": [{ "name": "alice", "x": 0, "z": 0, "angle": 0 }] }]
 ```
 
 `UPDATE_GAME_STATE`
 ```json
-["UPDATE_GAME_STATE", { "players": [{ "name": "alice", "x": 10, "z": 5 }] }]
+["UPDATE_GAME_STATE", { "wind": { "angle": 0.1, "speed": 10.0 }, "players": [{ "name": "alice", "x": 10, "z": 5 }] }]
 ```
+
+Особенности `wind` для frontend:
+- `wind` имеет один и тот же transport shape в `INIT_GAME_STATE` и `UPDATE_GAME_STATE`: `{ angle, speed }`;
+- `angle` приходит в радианах в плоскости `XZ`: `0 -> +X`, `PI / 2 -> +Z`;
+- клиент не должен держать собственный authoritative источник ветра или выводить ветер из движения корабля;
+- до runtime-задач `TASK-031` и `TASK-035` фронт должен считать `wind` просто authoritative snapshot-полем и применять последнее значение, пришедшее с backend.
 
 `PLAYER_JOIN`
 ```json
