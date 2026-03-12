@@ -300,7 +300,8 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 - `wind` имеет один и тот же transport shape в `INIT_GAME_STATE` и `UPDATE_GAME_STATE`: `{ angle, speed }`;
 - `angle` приходит в радианах в плоскости `XZ`: `0 -> +X`, `PI / 2 -> +Z`;
 - клиент не должен держать собственный authoritative источник ветра или выводить ветер из движения корабля;
-- до runtime-задач `TASK-031` и `TASK-035` фронт должен считать `wind` просто authoritative snapshot-полем и применять последнее значение, пришедшее с backend.
+- после `TASK-032` frontend поднимает `wind` в `GameStateContext` и обновляет это поле только из backend `INIT_GAME_STATE` / `UPDATE_GAME_STATE`;
+- `UPDATE_GAME_STATE.wind` должен применяться даже если конкретный frame не содержит player patches.
 
 `PLAYER_JOIN`
 ```json

@@ -2,7 +2,13 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { useCallback, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { GameStateProvider, selectPlayerNames, selectPlayerState, useGameState } from '../../features/game/model/GameStateContext';
+import {
+  GameStateProvider,
+  selectPlayerNames,
+  selectPlayerState,
+  selectWindState,
+  useGameState,
+} from '../../features/game/model/GameStateContext';
 import { useGameWsGameState } from '../../features/game/model/useGameWsGameState';
 import * as messageType from '../../shared/constants/messageType';
 
@@ -50,10 +56,12 @@ function GameFlowHarness({ subscribe, currentPlayerName = 'alice' }) {
   const names = selectPlayerNames(stateRef.current).sort();
   const alice = selectPlayerState(stateRef.current, 'alice');
   const bob = selectPlayerState(stateRef.current, 'bob');
+  const wind = selectWindState(stateRef.current);
 
   const snapshot = {
     playerNames,
     stateNames: names,
+    wind,
     alice: alice
       ? {
           x: alice.x,
@@ -87,6 +95,7 @@ describe('game state flow integration', () => {
 
     await act(() => {
       mock.emit(messageType.INIT_GAME_STATE, {
+        wind: { angle: 0.5, speed: 10 },
         players: [{ name: 'alice', x: 1, z: 2, angle: 0.1 }],
       });
     });
@@ -95,11 +104,13 @@ describe('game state flow integration', () => {
       const snapshot = JSON.parse(screen.getByTestId('snapshot').textContent);
       expect(snapshot.playerNames).toEqual(['alice']);
       expect(snapshot.stateNames).toEqual(['alice']);
+      expect(snapshot.wind).toEqual({ angle: 0.5, speed: 10 });
       expect(snapshot.alice).toEqual({ x: 1, z: 2, angle: 0.1, spawnRevision: null, lastSpawnReason: null });
     });
 
     await act(() => {
       mock.emit(messageType.UPDATE_GAME_STATE, {
+        wind: { angle: 0.8, speed: 9.5 },
         players: [{ name: 'alice', x: 5 }],
       });
     });
@@ -108,6 +119,7 @@ describe('game state flow integration', () => {
       const snapshot = JSON.parse(screen.getByTestId('snapshot').textContent);
       expect(snapshot.alice.x).toBe(5);
       expect(snapshot.stateNames).toEqual(['alice']);
+      expect(snapshot.wind).toEqual({ angle: 0.8, speed: 9.5 });
     });
 
     await act(() => {

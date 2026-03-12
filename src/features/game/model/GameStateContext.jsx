@@ -7,6 +7,7 @@ const GameStateContext = createContext();
 
 export const initialGameState = Object.freeze({
   playerStates: {},
+  wind: null,
 });
 
 export function selectPlayerStates(state) {
@@ -20,6 +21,10 @@ export function selectPlayerNames(state) {
 export function selectPlayerState(state, name) {
   if (!name) return undefined;
   return selectPlayerStates(state)[name];
+}
+
+export function selectWindState(state) {
+  return state?.wind ?? null;
 }
 
 export function selectCurrentPlayerState(state, currentPlayerName) {
@@ -67,6 +72,15 @@ function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
+function normalizeWindSnapshot(wind) {
+  if (!isFiniteNumber(wind?.angle) || !isFiniteNumber(wind?.speed)) return null;
+
+  return {
+    angle: wind.angle,
+    speed: wind.speed,
+  };
+}
+
 export function gameStateReducer(state, action) {
   switch (action?.type) {
     case 'RESET_STATE':
@@ -74,6 +88,7 @@ export function gameStateReducer(state, action) {
 
     case messageType.INIT_GAME_STATE: {
       const players = action?.payload?.players ?? [];
+      const wind = normalizeWindSnapshot(action?.payload?.wind);
 
       const playerStates = players.reduce((acc, player) => {
         acc[player.name] = { ...player };
@@ -83,15 +98,19 @@ export function gameStateReducer(state, action) {
       return {
         ...state,
         playerStates,
+        wind,
       };
     }
 
     case messageType.UPDATE_GAME_STATE: {
       const players = action?.payload?.players ?? [];
-      if (players.length === 0) return state;
+      const nextWind = normalizeWindSnapshot(action?.payload?.wind);
+      const windChanged =
+        nextWind !== null &&
+        (state.wind?.angle !== nextWind.angle || state.wind?.speed !== nextWind.speed);
 
       let nextPlayerStates = state.playerStates;
-      let changed = false;
+      let playersChanged = false;
 
       for (const player of players) {
         if (!player?.name) continue;
@@ -101,19 +120,20 @@ export function gameStateReducer(state, action) {
 
         if (nextPlayer === prevPlayer) continue;
 
-        if (!changed) {
-          changed = true;
+        if (!playersChanged) {
+          playersChanged = true;
           nextPlayerStates = { ...state.playerStates };
         }
 
         nextPlayerStates[player.name] = nextPlayer;
       }
 
-      if (!changed) return state;
+      if (!playersChanged && !windChanged) return state;
 
       return {
         ...state,
-        playerStates: nextPlayerStates,
+        playerStates: playersChanged ? nextPlayerStates : state.playerStates,
+        wind: windChanged ? nextWind : state.wind,
       };
     }
 
