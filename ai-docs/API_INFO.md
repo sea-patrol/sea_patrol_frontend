@@ -139,7 +139,7 @@ Response `201 Created`:
 Важно для frontend:
 - create form живёт прямо в lobby UI;
 - после success frontend обновляет локальный catalog и затем продолжает принимать `ROOMS_UPDATED` как authoritative source;
-- backend сейчас принимает только `caribbean-01`, поэтому custom `mapId` режим нужен для честного surfacing validation errors.
+- backend валидирует `mapId` против своего in-memory `MapTemplateRegistry`; сейчас доступны `caribbean-01` и `test-sandbox-01`, поэтому custom `mapId` режим уже можно использовать и для реальной dev/debug комнаты, и для честного surfacing validation errors.
 
 Ошибки:
 - `400` -> `{ "errors": [{ "code": "INVALID_MAP_ID", "message": "Unknown mapId" }] }`
@@ -270,8 +270,9 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 - canonical room enter flow: `POST /api/v1/rooms/{roomId}/join` -> `ROOM_JOINED` -> `SPAWN_ASSIGNED` -> `INIT_GAME_STATE`;
 - frontend держит пользователя на `/lobby` после REST success и переключает маршрут на `/game` только после появления current player в game state;
 - `SPAWN_ASSIGNED` используется как authoritative signal, что spawn уже назначен, но сам переход в room route и последующий `SAILING` происходят только после `INIT_GAME_STATE` / current player snapshot;
-- backend вычисляет initial spawn сам и держит его в MVP bounds `x/z in [-30.0, 30.0]`, поэтому клиент не должен рандомить эти координаты локально;
+- backend вычисляет initial spawn сам из `MapTemplate.spawnPoints` + `spawnRules.playerSpawnRadius` и валидирует координаты по `MapTemplate.bounds`, поэтому клиент не должен рандомить spawn локально;
 - тот же payload shape используется и для будущего respawn с `reason=RESPAWN`, поэтому frontend должен ориентироваться на `reason`, а не на предположение, что `SPAWN_ASSIGNED` бывает только один раз за room session.
+- `INIT_GAME_STATE` теперь может содержать `roomMeta`; текущий frontend path не зависит от него для gameplay, но может использовать эти map/room данные для loading summary и room resume UX.
 - reconnect в пределах `game.room.reconnect-grace-period` (MVP default: `15s`) теперь возвращает пользователя в ту же комнату: backend повторно шлёт `ROOM_JOINED` и `INIT_GAME_STATE`, но не делает новый `SPAWN_ASSIGNED`.
 - после `TASK-022` frontend на `/game` входит в явный `RECONNECTING` flow, ждёт `ROOM_JOINED`, затем fresh `INIT_GAME_STATE` и только после этого считает room session восстановленной.
 - если backend вместо room resume возвращает `ROOMS_SNAPSHOT` / `ROOMS_UPDATED`, frontend трактует это как lobby fallback, очищает stale room/game state и переводит пользователя обратно на `/lobby` с warning notice.
@@ -281,7 +282,7 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 
 `INIT_GAME_STATE`
 ```json
-["INIT_GAME_STATE", { "players": [{ "name": "alice", "x": 0, "z": 0, "angle": 0 }] }]
+["INIT_GAME_STATE", { "room": "sandbox-1", "roomMeta": { "roomId": "sandbox-1", "mapId": "caribbean-01", "mapName": "Caribbean Sea" }, "players": [{ "name": "alice", "x": 0, "z": 0, "angle": 0 }] }]
 ```
 
 `UPDATE_GAME_STATE`
