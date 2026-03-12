@@ -301,10 +301,11 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 ["UPDATE_GAME_STATE", { "wind": { "angle": 0.1, "speed": 10.0 }, "players": [{ "name": "alice", "x": 10, "z": 5 }] }]
 ```
 
-Контрактная заметка `TASK-033A`:
-- следующий agreed player-state field: `sailLevel` (`0..3`);
-- `INIT_GAME_STATE.players[*].sailLevel` должен задавать начальный уровень парусов;
-- `UPDATE_GAME_STATE.players[*].sailLevel` должен приходить при изменении уровня парусов.
+Состояние после `TASK-033B`:
+- backend уже присылает `sailLevel` (`0..3`) в player state;
+- `INIT_GAME_STATE.players[*].sailLevel` задаёт начальный уровень парусов;
+- `UPDATE_GAME_STATE.players[*].sailLevel` тоже уже приходит из backend runtime;
+- фронтовая задача `TASK-033C` нужна для подъёма этого поля в runtime state/HUD, а не для изменения backend contract.
 
 Особенности `wind` для frontend:
 - `wind` имеет один и тот же transport shape в `INIT_GAME_STATE` и `UPDATE_GAME_STATE`: `{ angle, speed }`;
