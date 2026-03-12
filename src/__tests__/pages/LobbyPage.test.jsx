@@ -21,6 +21,11 @@ const subscribeMock = vi.fn((type, callback) => {
 
 const logoutMock = vi.fn();
 
+let mockWsState = {
+  lastClose: null,
+  subscribe: subscribeMock,
+};
+
 let authState = {
   user: { username: 'alice' },
   token: 'test-token',
@@ -102,7 +107,7 @@ vi.mock('@/features/game/model/RoomSessionContext', () => ({
 }));
 
 vi.mock('@/features/realtime/model/WebSocketContext', () => ({
-  useWebSocket: () => ({ subscribe: subscribeMock }),
+  useWebSocket: () => mockWsState,
 }));
 
 vi.mock('@/shared/api/roomApi', () => ({
@@ -166,6 +171,10 @@ describe('LobbyPage', () => {
       token: 'test-token',
       loading: false,
       logout: logoutMock,
+    };
+    mockWsState = {
+      lastClose: null,
+      subscribe: subscribeMock,
     };
     mockGameState = {
       state: { playerStates: {} },
@@ -265,6 +274,38 @@ describe('LobbyPage', () => {
               z: 0,
               angle: 0,
             },
+          },
+        },
+      });
+    });
+  });
+
+  it('returns the player to home when websocket access is denied by duplicate session policy', async () => {
+    mockRoomSessionState = {
+      phase: 'active',
+      room: { id: 'sandbox-1', name: 'Sandbox 1' },
+      joinResponse: null,
+      spawn: null,
+    };
+    mockWsState = {
+      lastClose: { code: 1008, reason: 'SEAPATROL_DUPLICATE_SESSION' },
+      subscribe: subscribeMock,
+    };
+
+    render(
+      <MemoryRouter>
+        <LobbyPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(clearRoomSessionMock).toHaveBeenCalled();
+      expect(navigateMock).toHaveBeenCalledWith('/', {
+        replace: true,
+        state: {
+          accessDenied: {
+            title: 'Access denied',
+            body: 'Another browser tab already owns the active game session for alice. Close that tab or wait until it disconnects, then press Play again.',
           },
         },
       });

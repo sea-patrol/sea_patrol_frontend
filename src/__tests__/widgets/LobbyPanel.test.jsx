@@ -82,7 +82,7 @@ describe('LobbyPanel', () => {
       },
     });
 
-    render(<LobbyPanel token="test-token" onJoinRoom={() => {}} />);
+    render(<LobbyPanel token="test-token" />);
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading room catalog');
 
@@ -101,8 +101,9 @@ describe('LobbyPanel', () => {
     expect(screen.getByRole('button', { name: 'Join room' })).toBeEnabled();
   });
 
-  it('creates a room with selected known map metadata and updates the catalog', async () => {
+  it('creates a room, auto-joins it and updates the catalog', async () => {
     const user = userEvent.setup();
+    const onJoinRoom = vi.fn();
 
     roomApi.listRooms.mockResolvedValueOnce({
       ok: true,
@@ -126,7 +127,7 @@ describe('LobbyPanel', () => {
       },
     });
 
-    render(<LobbyPanel token="test-token" onJoinRoom={() => {}} />);
+    render(<LobbyPanel token="test-token" onJoinRoom={onJoinRoom} />);
 
     await waitFor(() => {
       expect(screen.getByText('No rooms yet')).toBeInTheDocument();
@@ -138,7 +139,7 @@ describe('LobbyPanel', () => {
     expect(screen.getByText('Debug Sandbox')).toBeInTheDocument();
     expect(screen.getByText('Dev Waters')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Create room' }));
+    await user.click(screen.getByRole('button', { name: 'Create and join' }));
 
     await waitFor(() => {
       expect(roomApi.createRoom).toHaveBeenCalledWith('test-token', {
@@ -151,6 +152,15 @@ describe('LobbyPanel', () => {
       expect(screen.getByText('Storm Run')).toBeInTheDocument();
       expect(screen.getAllByText('Test Sandbox').length).toBeGreaterThan(0);
       expect(screen.getByText('OPEN')).toBeInTheDocument();
+      expect(onJoinRoom).toHaveBeenCalledWith({
+        id: 'storm-run',
+        name: 'Storm Run',
+        mapId: 'test-sandbox-01',
+        mapName: 'Test Sandbox',
+        currentPlayers: 0,
+        maxPlayers: 100,
+        status: 'OPEN',
+      });
     });
   });
 
@@ -181,7 +191,7 @@ describe('LobbyPanel', () => {
 
     await user.selectOptions(screen.getByLabelText('Map'), '__custom__');
     await user.type(screen.getByLabelText('Custom mapId'), 'atlantic-void');
-    await user.click(screen.getByRole('button', { name: 'Create room' }));
+    await user.click(screen.getByRole('button', { name: 'Create and join' }));
 
     await waitFor(() => {
       expect(screen.getByText('Room creation failed')).toBeInTheDocument();
@@ -371,3 +381,4 @@ describe('LobbyPanel', () => {
     expect(screen.getByRole('button', { name: 'Room full' })).toBeDisabled();
   });
 });
+

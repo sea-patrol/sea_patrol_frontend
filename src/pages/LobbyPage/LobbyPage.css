@@ -1,7 +1,8 @@
 .lobby-page {
-  min-height: 100vh;
-  padding: 28px;
-  overflow: auto;
+  min-height: 100dvh;
+  padding: 20px;
+  overflow-x: hidden;
+  overflow-y: visible;
   color: #f4f0e8;
   background:
     radial-gradient(circle at top left, rgba(219, 188, 115, 0.18), transparent 28%),
@@ -14,7 +15,7 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 24px;
-  margin: 0 auto 20px;
+  margin: 0 auto 16px;
   width: min(1240px, 100%);
 }
 
@@ -28,13 +29,13 @@
 
 .lobby-page h1 {
   margin: 0;
-  font-size: clamp(36px, 4vw, 58px);
+  font-size: clamp(32px, 3.6vw, 52px);
   line-height: 0.95;
 }
 
 .lobby-page__lead {
   max-width: 720px;
-  margin: 14px 0 0;
+  margin: 10px 0 0;
   color: rgba(244, 240, 232, 0.74);
   line-height: 1.6;
 }
@@ -86,7 +87,7 @@
 
 .lobby-page__notice {
   width: min(1240px, 100%);
-  margin: 0 auto 20px;
+  margin: 0 auto 16px;
   padding: 16px 18px;
   border-radius: 18px;
   border: 1px solid rgba(215, 180, 106, 0.24);
@@ -105,10 +106,45 @@
   line-height: 1.5;
 }
 
+.lobby-page__notice:has(.room-loading-summary) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.lobby-page__state-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: min(1240px, 100%);
+  margin: 0 auto 16px;
+}
+
+.lobby-page__state-strip div {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(244, 240, 232, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.lobby-page__state-strip span {
+  display: block;
+  color: rgba(244, 240, 232, 0.62);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.lobby-page__state-strip strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
 .lobby-page__layout {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.95fr);
-  gap: 20px;
+  gap: 16px;
   width: min(1240px, 100%);
   margin: 0 auto;
   align-items: start;
@@ -120,7 +156,7 @@
 }
 
 .lobby-page__chat-card {
-  padding: 22px;
+  padding: 18px;
   border-radius: 24px;
   border: 1px solid rgba(244, 240, 232, 0.12);
   background:
@@ -131,7 +167,7 @@
 
 .lobby-page__chat-copy h2 {
   margin: 0;
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .lobby-page__chat-copy p:last-child {
@@ -141,8 +177,8 @@
 }
 
 .lobby-page__chat-shell {
-  margin-top: 18px;
-  height: min(560px, 58vh);
+  margin-top: 14px;
+  height: min(320px, 32vh);
 }
 
 @media (max-width: 1080px) {
@@ -150,14 +186,19 @@
     grid-template-columns: 1fr;
   }
 
+  .lobby-page__state-strip,
+  .lobby-page__layout {
+    grid-template-columns: 1fr;
+  }
+
   .lobby-page__chat-shell {
-    height: 360px;
+    height: 280px;
   }
 }
 
 @media (max-width: 720px) {
   .lobby-page {
-    padding: 18px;
+    padding: 16px;
   }
 
   .lobby-page__header {

@@ -12,6 +12,10 @@ import * as messageType from '../../shared/constants/messageType';
 import './GamePage.css';
 
 const RECONNECT_GRACE_PERIOD_MS = 15_000;
+const DUPLICATE_SESSION_CLOSE = Object.freeze({
+  code: 1008,
+  reason: 'SEAPATROL_DUPLICATE_SESSION',
+});
 
 const RECONNECT_STATUS = Object.freeze({
   IDLE: 'idle',
@@ -50,6 +54,17 @@ function createReconnectSession(roomId, isConnected) {
 
 function isReconnectPending(status) {
   return status !== RECONNECT_STATUS.IDLE;
+}
+
+function isDuplicateSessionClose(lastClose) {
+  return lastClose?.code === DUPLICATE_SESSION_CLOSE.code && lastClose?.reason === DUPLICATE_SESSION_CLOSE.reason;
+}
+
+function getAccessDeniedNotice(username) {
+  return {
+    title: 'Access denied',
+    body: `Another browser tab already owns the active game session${username ? ` for ${username}` : ''}. Close that tab or wait until it disconnects, then press Play again.`,
+  };
 }
 
 function getReconnectNotice(reason) {
@@ -93,6 +108,7 @@ function GamePage() {
 
   const previousConnectionRef = useRef(isConnected);
   const reconnectSessionRef = useRef(reconnectSession);
+  const duplicateSessionHandledRef = useRef(false);
   reconnectSessionRef.current = reconnectSession;
 
   const resetReconnectSession = useCallback(() => {
@@ -111,11 +127,35 @@ function GamePage() {
     });
   }, [clearRoomSession, dispatch, navigate, resetReconnectSession]);
 
+  const handleAccessDenied = useCallback(() => {
+    resetReconnectSession();
+    clearRoomSession();
+    dispatch({ type: 'RESET_STATE' });
+    navigate('/', {
+      replace: true,
+      state: {
+        accessDenied: getAccessDeniedNotice(user?.username),
+      },
+    });
+  }, [clearRoomSession, dispatch, navigate, resetReconnectSession, user?.username]);
+
   useEffect(() => {
     if (locationRoomEntry) {
       hydrateRoomEntry(locationRoomEntry);
     }
   }, [hydrateRoomEntry, locationRoomEntry]);
+
+  useEffect(() => {
+    if (isDuplicateSessionClose(lastClose)) {
+      if (!duplicateSessionHandledRef.current) {
+        duplicateSessionHandledRef.current = true;
+        handleAccessDenied();
+      }
+      return;
+    }
+
+    duplicateSessionHandledRef.current = false;
+  }, [handleAccessDenied, lastClose]);
 
   useEffect(() => {
     if (!roomId) {

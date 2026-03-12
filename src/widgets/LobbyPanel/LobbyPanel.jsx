@@ -257,6 +257,8 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
     setCreateError(null);
     setIsCreatingRoom(false);
 
+    onJoinRoom?.(result.data);
+
     if (!isConnected) {
       setReloadNonce((value) => value + 1);
     }
@@ -301,7 +303,7 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
             <h3>Create a harbor room</h3>
           </div>
           <button type="submit" className="lobby-panel__create-button" disabled={isCreatingRoom}>
-            {isCreatingRoom ? 'Creating...' : 'Create room'}
+            {isCreatingRoom ? 'Creating...' : 'Create and join'}
           </button>
         </div>
 

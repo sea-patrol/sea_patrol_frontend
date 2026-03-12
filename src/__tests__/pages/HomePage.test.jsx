@@ -98,6 +98,24 @@ describe('HomePage navigation flow', () => {
     expect(navigateMock).toHaveBeenCalledWith('/game');
   });
 
+  it('shows access denied notice when duplicate session policy blocks room entry', async () => {
+    mockLocation = {
+      state: {
+        accessDenied: {
+          title: 'Access denied',
+          body: 'Another browser tab already owns the active game session for alice.',
+        },
+      },
+    };
+
+    render(<HomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Access denied')).toBeInTheDocument();
+      expect(screen.getByText('Another browser tab already owns the active game session for alice.')).toBeInTheDocument();
+    });
+  });
+
   it('opens login modal when the route explicitly requests auth', async () => {
     mockLocation = {
       state: {

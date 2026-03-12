@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -68,6 +68,30 @@ describe('RoomSessionContext', () => {
     expect(screen.getByTestId('phase')).toHaveTextContent('idle');
     expect(screen.getByTestId('room-id')).toHaveTextContent('none');
     expect(localStorage.getItem('room-session')).toBeNull();
+  });
+
+  it('syncs room session across tabs through storage events', async () => {
+    render(
+      <RoomSessionProvider>
+        <RoomSessionConsumer />
+      </RoomSessionProvider>,
+    );
+
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'room-session',
+        newValue: JSON.stringify({
+          phase: 'active',
+          room: { id: 'sandbox-8', name: 'Sandbox 8' },
+          joinResponse: { roomId: 'sandbox-8' },
+        }),
+      }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('phase')).toHaveTextContent('active');
+      expect(screen.getByTestId('room-id')).toHaveTextContent('sandbox-8');
+    });
   });
 
   it('drops persisted room session when auth token disappears', async () => {

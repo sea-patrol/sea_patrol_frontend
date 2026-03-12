@@ -215,6 +215,35 @@ describe('GamePage reconnect flow', () => {
     });
   });
 
+  it('returns the player to home when websocket access is denied by duplicate session policy', async () => {
+    mockWsState = {
+      ...mockWsState,
+      isConnected: false,
+      lastClose: { code: 1008, reason: 'SEAPATROL_DUPLICATE_SESSION' },
+      reconnectState: { phase: 'reconnecting', attempt: 1, delayMs: 1000 },
+    };
+
+    render(
+      <MemoryRouter>
+        <GamePage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(clearRoomSessionMock).toHaveBeenCalled();
+      expect(dispatchMock).toHaveBeenCalledWith({ type: 'RESET_STATE' });
+      expect(navigateMock).toHaveBeenCalledWith('/', {
+        replace: true,
+        state: {
+          accessDenied: {
+            title: 'Access denied',
+            body: 'Another browser tab already owns the active game session for alice. Close that tab or wait until it disconnects, then press Play again.',
+          },
+        },
+      });
+    });
+  });
+
   it('returns the player to lobby when backend resumes the ws in lobby scope instead of the room', async () => {
     const { rerender } = render(
       <MemoryRouter>
