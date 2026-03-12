@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../features/auth/model/AuthContext';
@@ -9,6 +9,7 @@ import { roomApi } from '../../shared/api/roomApi';
 import * as messageType from '../../shared/constants/messageType';
 import ChatBlock from '../../widgets/ChatPanel/ChatBlock';
 import LobbyPanel from '../../widgets/LobbyPanel/LobbyPanel';
+import RoomLoadingSummary from '../../widgets/RoomLoadingSummary/RoomLoadingSummary';
 import './LobbyPage.css';
 
 const LOBBY_CHAT_SCOPE = Object.freeze({
@@ -18,6 +19,11 @@ const LOBBY_CHAT_SCOPE = Object.freeze({
   caption: 'Lobby chat',
   emptyState: 'No lobby messages yet. Start the conversation!',
   placeholder: 'Message the lobby...',
+});
+
+const DUPLICATE_SESSION_CLOSE = Object.freeze({
+  code: 1008,
+  reason: 'SEAPATROL_DUPLICATE_SESSION',
 });
 
 const ROOM_JOIN_STATUS = Object.freeze({
@@ -62,24 +68,38 @@ function resolveRoomMeta(payload, fallbackRoom = null) {
   };
 }
 
+function isDuplicateSessionClose(lastClose) {
+  return lastClose?.code === DUPLICATE_SESSION_CLOSE.code && lastClose?.reason === DUPLICATE_SESSION_CLOSE.reason;
+}
+
+function getAccessDeniedNotice(username) {
+  return {
+    title: 'Access denied',
+    body: `Another browser tab already owns the active game session${username ? ` for ${username}` : ''}. Close that tab or wait until it disconnects, then press Play again.`,
+  };
+}
+
 function getJoinStatusCopy(joinState) {
   const roomName = joinState.room?.name ?? joinState.joinResponse?.roomId ?? 'Selected room';
 
   switch (joinState.status) {
     case ROOM_JOIN_STATUS.SUBMITTING:
       return {
+        stageLabel: 'Admission request',
         title: 'Sending room join request',
         body: `Requesting room admission for ${roomName}. The lobby stays active until backend confirms room initialization for the gameplay route.`,
       };
 
     case ROOM_JOIN_STATUS.AWAITING_SPAWN:
       return {
+        stageLabel: 'Awaiting spawn',
         title: 'Room admitted',
         body: `Backend accepted the join for ${roomName}. Waiting for authoritative spawn assignment before room initialization continues.`,
       };
 
     case ROOM_JOIN_STATUS.AWAITING_INIT:
       return {
+        stageLabel: 'Awaiting init',
         title: 'Waiting for room initialization',
         body: `Spawn is assigned for ${roomName}. The lobby keeps the player here until authoritative room state is fully ready.`,
       };
@@ -95,8 +115,9 @@ export default function LobbyPage() {
   const { user, token, loading, logout } = useAuth();
   const { state } = useGameState();
   const { roomSession, startRoomJoin, applyRoomJoined, applySpawnAssigned, clearRoomSession } = useRoomSession();
-  const { subscribe } = useWebSocket();
+  const { lastClose, subscribe } = useWebSocket();
   const [joinState, setJoinState] = useState(createInitialJoinState);
+  const duplicateSessionHandledRef = useRef(false);
 
   const currentPlayerState = selectCurrentPlayerState(state, user?.username);
   const hasActiveRoom = Boolean(currentPlayerState && roomSession.room);
@@ -178,7 +199,40 @@ export default function LobbyPage() {
     };
   }, [applyRoomJoined, applySpawnAssigned, clearRoomSession, subscribe, token]);
 
+  const handleUnauthorized = useCallback(() => {
+    clearRoomSession();
+    setJoinState(createInitialJoinState());
+    logout();
+    navigate('/', {
+      replace: true,
+      state: {
+        openAuth: 'login',
+      },
+    });
+  }, [clearRoomSession, logout, navigate]);
+
+  const handleDuplicateSession = useCallback(() => {
+    clearRoomSession();
+    setJoinState(createInitialJoinState());
+    navigate('/', {
+      replace: true,
+      state: {
+        accessDenied: getAccessDeniedNotice(user?.username),
+      },
+    });
+  }, [clearRoomSession, navigate, user?.username]);
+
   useEffect(() => {
+    if (isDuplicateSessionClose(lastClose)) {
+      if (!duplicateSessionHandledRef.current) {
+        duplicateSessionHandledRef.current = true;
+        handleDuplicateSession();
+      }
+      return;
+    }
+
+    duplicateSessionHandledRef.current = false;
+
     if (hasActiveRoom) {
       navigate('/game', {
         replace: true,
@@ -191,19 +245,7 @@ export default function LobbyPage() {
         },
       });
     }
-  }, [hasActiveRoom, navigate, roomSession]);
-
-  const handleUnauthorized = () => {
-    clearRoomSession();
-    setJoinState(createInitialJoinState());
-    logout();
-    navigate('/', {
-      replace: true,
-      state: {
-        openAuth: 'login',
-      },
-    });
-  };
+  }, [handleDuplicateSession, hasActiveRoom, lastClose, navigate, roomSession]);
 
   const handleJoinRoom = async (room) => {
     if (!token) {
@@ -304,10 +346,16 @@ export default function LobbyPage() {
       )}
 
       {joinStatusCopy && (
-        <section className="lobby-page__notice" aria-live="polite">
-          <strong>{joinStatusCopy.title}</strong>
-          <p>{joinStatusCopy.body}</p>
-        </section>
+        <div className="lobby-page__notice" aria-live="polite">
+          <RoomLoadingSummary
+            title={joinStatusCopy.title}
+            body={joinStatusCopy.body}
+            room={joinState.room}
+            joinResponse={joinState.joinResponse}
+            spawn={joinState.spawn}
+            stageLabel={joinStatusCopy.stageLabel}
+          />
+        </div>
       )}
 
       <main className="lobby-page__layout">

@@ -21,6 +21,11 @@ const subscribeMock = vi.fn((type, callback) => {
 
 const logoutMock = vi.fn();
 
+let mockWsState = {
+  lastClose: null,
+  subscribe: subscribeMock,
+};
+
 let authState = {
   user: { username: 'alice' },
   token: 'test-token',
@@ -102,7 +107,7 @@ vi.mock('@/features/game/model/RoomSessionContext', () => ({
 }));
 
 vi.mock('@/features/realtime/model/WebSocketContext', () => ({
-  useWebSocket: () => ({ subscribe: subscribeMock }),
+  useWebSocket: () => mockWsState,
 }));
 
 vi.mock('@/shared/api/roomApi', () => ({
@@ -114,7 +119,18 @@ vi.mock('@/shared/api/roomApi', () => ({
 vi.mock('@/widgets/LobbyPanel/LobbyPanel', () => ({
   default: ({ onJoinRoom, joiningRoomId, joinError }) => (
     <section>
-      <button type="button" onClick={() => onJoinRoom?.({ id: 'sandbox-1', name: 'Sandbox 1' })}>
+      <button
+        type="button"
+        onClick={() => onJoinRoom?.({
+          id: 'sandbox-1',
+          name: 'Sandbox 1',
+          mapId: 'caribbean-01',
+          mapName: 'Caribbean Sea',
+          currentPlayers: 1,
+          maxPlayers: 100,
+          status: 'OPEN',
+        })}
+      >
         Join sandbox
       </button>
       <div data-testid="joining-room">{joiningRoomId ?? 'none'}</div>
@@ -156,6 +172,10 @@ describe('LobbyPage', () => {
       loading: false,
       logout: logoutMock,
     };
+    mockWsState = {
+      lastClose: null,
+      subscribe: subscribeMock,
+    };
     mockGameState = {
       state: { playerStates: {} },
     };
@@ -193,6 +213,8 @@ describe('LobbyPage', () => {
     await waitFor(() => {
       expect(roomApi.joinRoom).toHaveBeenCalledWith('test-token', 'sandbox-1');
       expect(screen.getByText('Room admitted')).toBeInTheDocument();
+      expect(screen.getAllByText('Caribbean Sea').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Caribbean').length).toBeGreaterThan(0);
     });
 
     await act(async () => {
@@ -215,6 +237,7 @@ describe('LobbyPage', () => {
 
     expect(navigateMock).not.toHaveBeenCalled();
     expect(screen.getByText('Waiting for room initialization')).toBeInTheDocument();
+    expect(screen.getByText(/Spawn coordinates/)).toBeInTheDocument();
 
     mockGameState = {
       state: {
@@ -251,6 +274,38 @@ describe('LobbyPage', () => {
               z: 0,
               angle: 0,
             },
+          },
+        },
+      });
+    });
+  });
+
+  it('returns the player to home when websocket access is denied by duplicate session policy', async () => {
+    mockRoomSessionState = {
+      phase: 'active',
+      room: { id: 'sandbox-1', name: 'Sandbox 1' },
+      joinResponse: null,
+      spawn: null,
+    };
+    mockWsState = {
+      lastClose: { code: 1008, reason: 'SEAPATROL_DUPLICATE_SESSION' },
+      subscribe: subscribeMock,
+    };
+
+    render(
+      <MemoryRouter>
+        <LobbyPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(clearRoomSessionMock).toHaveBeenCalled();
+      expect(navigateMock).toHaveBeenCalledWith('/', {
+        replace: true,
+        state: {
+          accessDenied: {
+            title: 'Access denied',
+            body: 'Another browser tab already owns the active game session for alice. Close that tab or wait until it disconnects, then press Play again.',
           },
         },
       });

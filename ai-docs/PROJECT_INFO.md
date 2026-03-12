@@ -74,7 +74,8 @@ src/
 ├── widgets/              # UI-виджеты (сборки UI)
 │   ├── ChatPanel/
 │   ├── GameHud/
-│   └── LobbyPanel/
+│   ├── LobbyPanel/
+│   └── RoomLoadingSummary/
 ├── features/             # Фичи (ui + model)
 │   ├── auth/             # AuthContext + формы
 │   ├── realtime/         # WebSocketContext
@@ -90,6 +91,7 @@ src/
 │   ├── ws/
 │   ├── constants/
 │   ├── assets/
+│   ├── lib/
 │   └── styles/
 ├── test/                 # test setup + msw mocks (setupFiles)
 │   ├── setup/
@@ -103,14 +105,16 @@ src/
 - **Context API для глобального состояния**: Auth, WebSocket, GameState и RoomSession подняты выше роутов, а route-local `GameUi` управляет только room/game shell without Redux/Zustand
 - **Auth bootstrap восстанавливает persisted session целиком**: `AuthContext` поднимает пользователя из `localStorage` (`token` + `auth-user`), может восстановить `username` из JWT `sub` и сразу отбрасывает просроченный/битый JWT, поэтому home/lobby UI не показывает ложный logged-in state при expired token
 - **UI shell отдельно от 3D-сцены**: `LobbyPage` теперь HTML-first и вообще не монтирует `Canvas`, а `GamePage` поднимает 3D-сцену только когда у маршрута уже есть room context; внутри room route `GameUiShell` продолжает жить отдельно от canvas
+- **Lobby map metadata дополняется на фронте**: `LobbyPanel` использует локальный registry `src/shared/lib/mapMetadata.js`, чтобы по `mapId` показывать в списке комнат и в create form не только `mapName`, но и `region` с простым chart preview; для неизвестных `mapId` UI откатывается к fallback metadata без поломки room catalog
+- **`ROOM_LOADING` теперь показывает структурированный summary**: общий widget `RoomLoadingSummary` используется и в `LobbyPage`, и в `GameUiShell`, поэтому до старта плавания игрок видит room name, map context, region, server status и spawn metadata из REST/WS contract, а `GamePage` не монтирует 3D-сцену, пока ещё нет authoritative current player snapshot
 - **Единая UI mode model**: `GameUiContext` задаёт состояния `LOADING`, `LOBBY`, `ROOM_LOADING`, `SAILING`, `CHAT_FOCUS`, `WINDOW_FOCUS`, `MENU_OPEN`, `RECONNECTING`, `RESPAWN`
 - **Явный navigation flow `Home -> Lobby -> Game` с room resume-first входом**: домашняя страница снова использует CTA `Play`; если у пользователя уже есть сохранённая room session, `Play` ведёт сразу на `/game`, где стартует reconnect/resume flow, а если room session нет или backend её уже не восстановил, пользователь попадает в обычный `/lobby`; `Join room` по-прежнему стартует на lobby route, проходит через REST `POST /api/v1/rooms/{roomId}/join`, WS `ROOM_JOINED`, `SPAWN_ASSIGNED` и финальный `INIT_GAME_STATE/current player`, и только после полного init flow переводит пользователя в `/game`
-- **Глобальный realtime bridge и room session поверх роутов**: `WebSocketProvider`, `GameStateProvider`, `RoomSessionProvider` и `GameRealtimeBridge` живут выше страниц, поэтому переходы `Home -> Lobby -> Game` не рвут WS-сессию, не теряют ранние room init сообщения и позволяют безопасно открыть `/game` повторно после возврата на домашний экран; `RoomSessionProvider` дополнительно сохраняет room metadata в `localStorage`, чтобы full page reload не лишал пользователя room resume target в пределах backend reconnect grace
+- **Глобальный realtime bridge и room session поверх роутов**: `WebSocketProvider`, `GameStateProvider`, `RoomSessionProvider` и `GameRealtimeBridge` живут выше страниц, поэтому переходы `Home -> Lobby -> Game` не рвут WS-сессию, не теряют ранние room init сообщения и позволяют безопасно открыть `/game` повторно после возврата на домашний экран; `RoomSessionProvider` дополнительно сохраняет room metadata в `localStorage` и синхронизирует её через `storage` events между вкладками, чтобы full page reload или повторный вход с домашней страницы не лишали пользователя room resume target в пределах backend reconnect grace
 - **Scoped chat UI**: `LobbyPage` использует `ChatBlock` как standalone lobby chat widget для `group:lobby`, а `GameUiShell` держит room-scoped chat для `group:room:<roomId>`; истории lobby/room сообщений по-прежнему разделены по `payload.to`, без смешивания между комнатами
 - **Централизованные UI hotkeys**: `Enter`, `Esc`, `I`, `J`, `M` обрабатываются в одном слое (`GameUiHotkeys`), а gameplay input учитывает текущий UI mode
 - **Authoritative spawn snap поверх interpolation**: `GameStateContext` принимает `SPAWN_ASSIGNED` для current player как authoritative patch, а `useShipInterpolation` мгновенно snap'ает локальный корабль при смене `spawnRevision`, чтобы respawn не выглядел как медленный перелёт из старой точки
 - **Client-side prediction**: Интерполяция позиций кораблей между обновлениями сервера для плавности
-- **WebSocket reconnect + room resume**: `WebSocketProvider` хранит phase/attempt metadata (`connecting`, `reconnecting`, retry delay), открывает `/ws/game` только на маршрутах `/lobby` и `/game` и не держит realtime-сессию на домашней странице; `GamePage` поверх этого реализует явный room reconnect flow с `RECONNECTING` mode, локальным 15-секундным grace timeout, ожиданием `ROOM_JOINED` + fresh `INIT_GAME_STATE` и fallback-навигацией обратно в `/lobby`, если backend вернул пользователя в lobby scope
+- **WebSocket reconnect + room resume**: `WebSocketProvider` хранит phase/attempt metadata (`connecting`, `reconnecting`, retry delay), открывает `/ws/game` только на маршрутах `/lobby` и `/game` и не держит realtime-сессию на домашней странице; `GamePage` поверх этого реализует явный room reconnect flow с `RECONNECTING` mode, локальным 15-секундным grace timeout, ожиданием `ROOM_JOINED` + fresh `INIT_GAME_STATE` и fallback-навигацией обратно в `/lobby`, если backend вернул пользователя в lobby scope; отдельный close path `1008 / SEAPATROL_DUPLICATE_SESSION` не считается reconnect-кандидатом и сразу возвращает клиента на домашнюю страницу с access-denied notice
 - **PWA для офлайн-кэширования**: 3D-модели (.glb) кэшируются через Service Worker
 - **Слоистая структура `src/`**: app/pages/widgets/features/scene/shared для контроля зависимостей и упрощения роста проекта
 - **Модульная загрузка моделей**: Централизованная предзагрузка через `useGLTF.preload()`
@@ -169,7 +173,7 @@ src/
 **Текущее покрытие**:
 - 23 тестовых файла
 - 121 тест (все проходят ✅)
-- Протестированы: AuthContext, RoomSessionContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init/reconnect flow и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, отдельный GamePage reconnect flow, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
+- Протестированы: AuthContext, RoomSessionContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init/reconnect flow, room loading summary и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation и room entry summary, отдельный GamePage reconnect flow, ChatBlock scoped chat UI, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + map metadata previews + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils
 
 ## 4. Working Commands
 
@@ -214,6 +218,8 @@ src/
 - Для публикации требуется корректный `base` в `vite.config.js` (под имя репозитория).
 - Основная команда проверки перед деплоем: `npm run build`.
 - PWA-функциональность включается только в production-режиме (devOptions: { enabled: false }).
+
+
 
 
 

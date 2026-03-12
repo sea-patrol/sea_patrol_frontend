@@ -113,6 +113,35 @@ export function RoomSessionProvider({ children }) {
     persistRoomSession(roomSession);
   }, [roomSession, token]);
 
+  useEffect(() => {
+    if (!token) {
+      return undefined;
+    }
+
+    const handleStorage = (event) => {
+      if (event.key !== ROOM_SESSION_STORAGE_KEY) {
+        return;
+      }
+
+      if (!event.newValue) {
+        setRoomSession(createInitialRoomSessionState());
+        return;
+      }
+
+      try {
+        setRoomSession(normalizeStoredRoomSession(JSON.parse(event.newValue)));
+      } catch {
+        clearStoredRoomSession();
+        setRoomSession(createInitialRoomSessionState());
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [token]);
+
   const value = useMemo(() => ({
     roomSession,
     startRoomJoin: (room) => {

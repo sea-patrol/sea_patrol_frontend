@@ -16,6 +16,7 @@ function HomePage() {
   const [authMode, setAuthMode] = useState('login');
 
   const hasKnownRoomSession = Boolean(roomSession.room);
+  const accessDeniedNotice = location.state?.accessDenied ?? null;
   const primaryActionLabel = 'Play';
   const primaryHint = hasKnownRoomSession
     ? `Captain ${user?.username} can continue the room session in ${roomSession.room?.name ?? roomSession.room?.id}.`
@@ -59,6 +60,13 @@ function HomePage() {
     <div className="home-page">
       <div className="content">
         <h1>Sea Patrol</h1>
+
+        {accessDeniedNotice && (
+          <section className="home-page__notice" role="alert" aria-live="polite">
+            <strong>{accessDeniedNotice.title}</strong>
+            <p>{accessDeniedNotice.body}</p>
+          </section>
+        )}
 
         {isAuthenticated ? (
           <div className="user-info">

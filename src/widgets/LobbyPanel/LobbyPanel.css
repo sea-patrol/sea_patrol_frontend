@@ -1,9 +1,9 @@
 .lobby-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
-  padding: 24px;
+  padding: 16px;
   border-radius: 24px;
   border: 1px solid rgba(244, 240, 232, 0.12);
   background:
@@ -18,7 +18,7 @@
 .lobby-panel__live-status {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   align-items: flex-start;
 }
 
@@ -36,7 +36,7 @@
 }
 
 .lobby-panel h2 {
-  font-size: clamp(28px, 3vw, 40px);
+  font-size: clamp(26px, 2.6vw, 36px);
   line-height: 1.05;
 }
 
@@ -45,14 +45,16 @@
 .lobby-panel__live-status p,
 .lobby-panel__state p,
 .lobby-panel__create-error p,
-.lobby-panel__join-error p {
+.lobby-panel__join-error p,
+.lobby-panel__map-preview p,
+.lobby-panel__map-preview small {
   color: rgba(244, 240, 232, 0.76);
   line-height: 1.55;
 }
 
 .lobby-panel__lead {
   max-width: 720px;
-  margin: 12px 0 0;
+  margin: 10px 0 0;
 }
 
 .lobby-panel__refresh,
@@ -108,24 +110,24 @@
 }
 
 .lobby-panel__create-form {
-  padding: 18px;
-  border-radius: 22px;
+  padding: 16px;
+  border-radius: 20px;
   border: 1px solid rgba(244, 240, 232, 0.12);
   background: rgba(255, 255, 255, 0.05);
 }
 
 .lobby-panel__create-head {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .lobby-panel__create-head h3 {
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .lobby-panel__create-button {
   flex: 0 0 auto;
-  min-height: 48px;
-  padding: 0 16px;
+  min-height: 44px;
+  padding: 0 14px;
   border-radius: 14px;
   background: rgba(122, 212, 134, 0.14);
   border-color: rgba(122, 212, 134, 0.28);
@@ -134,7 +136,7 @@
 .lobby-panel__create-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .lobby-panel__create-grid label,
@@ -144,12 +146,17 @@
 
 .lobby-panel__create-grid span,
 .lobby-panel__summary span,
-.lobby-panel__room-meta dt {
+.lobby-panel__room-meta dt,
+.lobby-panel__room-region {
   display: block;
   color: rgba(244, 240, 232, 0.66);
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.lobby-panel__room-region {
+  margin-top: 8px;
 }
 
 .lobby-panel__create-grid span {
@@ -182,7 +189,7 @@
 .lobby-panel__create-error,
 .lobby-panel__join-error,
 .lobby-panel__state {
-  padding: 20px;
+  padding: 16px;
   border-radius: 20px;
   border: 1px solid rgba(244, 240, 232, 0.12);
   background: rgba(255, 255, 255, 0.05);
@@ -199,12 +206,12 @@
 .lobby-panel__join-error strong {
   display: block;
   margin: 0 0 8px;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .lobby-panel__state h3 {
   margin-bottom: 10px;
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .lobby-panel__summary {
@@ -214,26 +221,27 @@
 }
 
 .lobby-panel__summary div,
-.lobby-panel__room-card {
+.lobby-panel__room-card,
+.lobby-panel__map-preview {
   border-radius: 18px;
   border: 1px solid rgba(244, 240, 232, 0.12);
   background: rgba(255, 255, 255, 0.05);
 }
 
 .lobby-panel__summary div {
-  padding: 16px;
+  padding: 14px;
 }
 
 .lobby-panel__summary strong {
   display: block;
-  margin-top: 10px;
-  font-size: 30px;
+  margin-top: 8px;
+  font-size: 26px;
 }
 
 .lobby-panel__room-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -242,12 +250,12 @@
 .lobby-panel__room-card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   padding: 18px;
 }
 
 .lobby-panel__room-head h3 {
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .lobby-panel__room-head p {
@@ -264,7 +272,66 @@
 
 .lobby-panel__room-meta dd {
   margin: 8px 0 0;
-  font-size: 18px;
+  font-size: 16px;
+}
+
+.lobby-panel__map-preview {
+  padding: 14px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.1), transparent 42%),
+    linear-gradient(135deg, rgba(17, 44, 68, 0.86), rgba(8, 16, 28, 0.92));
+}
+
+.lobby-panel__map-preview strong {
+  display: block;
+  font-size: 20px;
+}
+
+.lobby-panel__map-preview span {
+  display: block;
+  margin-top: 6px;
+  color: rgba(244, 240, 232, 0.72);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lobby-panel__map-preview p {
+  margin: 10px 0 0;
+  font-size: 16px;
+}
+
+.lobby-panel__map-preview small {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.lobby-panel__map-preview--compact p {
+  font-size: 16px;
+}
+
+.lobby-panel__map-preview--compact small {
+  display: none;
+}
+
+.lobby-panel__map-preview--tropical {
+  background:
+    radial-gradient(circle at top left, rgba(227, 194, 111, 0.22), transparent 32%),
+    linear-gradient(135deg, rgba(13, 75, 112, 0.94), rgba(10, 36, 56, 0.96));
+}
+
+.lobby-panel__map-preview--debug {
+  background:
+    radial-gradient(circle at top left, rgba(146, 214, 255, 0.18), transparent 36%),
+    linear-gradient(135deg, rgba(33, 56, 79, 0.94), rgba(22, 28, 40, 0.96));
+}
+
+.lobby-panel__map-preview--unknown {
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.1), transparent 42%),
+    linear-gradient(135deg, rgba(61, 64, 72, 0.9), rgba(17, 19, 25, 0.96));
 }
 
 .lobby-panel__status {
@@ -288,8 +355,8 @@
 }
 
 .lobby-panel__join-button {
-  min-height: 48px;
-  padding: 0 16px;
+  min-height: 44px;
+  padding: 0 14px;
   border-radius: 14px;
   background: linear-gradient(135deg, rgba(31, 119, 182, 0.7), rgba(20, 70, 120, 0.82));
 }

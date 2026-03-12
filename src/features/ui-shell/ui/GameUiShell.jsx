@@ -13,6 +13,7 @@ import * as messageType from '@/shared/constants/messageType';
 import ChatBlock from '@/widgets/ChatPanel/ChatBlock';
 import GameStateInfo from '@/widgets/GameHud/GameStateInfo';
 import ProfileBlock from '@/widgets/GameHud/ProfileBlock';
+import RoomLoadingSummary from '@/widgets/RoomLoadingSummary/RoomLoadingSummary';
 
 const WINDOW_COPY = {
   [UI_WINDOW.INVENTORY]: {
@@ -89,6 +90,7 @@ function getRoomLoadingCopy(roomJoinState) {
   switch (roomJoinState.status) {
     case ROOM_JOIN_STATUS.AWAITING_SPAWN:
       return {
+        stageLabel: 'Awaiting spawn',
         title: 'Assigning spawn',
         body: `Backend accepted the room admission for ${roomName}. Waiting for authoritative SPAWN_ASSIGNED before gameplay starts.`,
       };
@@ -101,6 +103,7 @@ function getRoomLoadingCopy(roomJoinState) {
         : '';
 
       return {
+        stageLabel: 'Awaiting init',
         title: 'Initializing room state',
         body: `Spawn is assigned for ${roomName}. Waiting for INIT_GAME_STATE/current player snapshot to switch into sailing.${spawnCopy}`,
       };
@@ -108,12 +111,14 @@ function getRoomLoadingCopy(roomJoinState) {
 
     case ROOM_JOIN_STATUS.ERROR:
       return {
+        stageLabel: 'Join rejected',
         title: 'Room entry failed',
         body: roomJoinState.error ?? 'Room entry could not be completed.',
       };
 
     default:
       return {
+        stageLabel: 'Waiting for context',
         title: 'Preparing room session',
         body: 'Waiting for room session context.',
       };
@@ -433,8 +438,14 @@ export default function GameUiShell({ initialRoomEntry = null, reconnectUiState 
 
         {mode === GAME_UI_MODE.ROOM_LOADING && (
           <section className="game-ui-shell__notice" aria-live="polite">
-            <h2>{roomLoadingCopy.title}</h2>
-            <p>{roomLoadingCopy.body}</p>
+            <RoomLoadingSummary
+              title={roomLoadingCopy.title}
+              body={roomLoadingCopy.body}
+              room={roomJoinState.room ?? activeRoomMeta}
+              joinResponse={roomJoinState.joinResponse}
+              spawn={roomJoinState.spawn}
+              stageLabel={roomLoadingCopy.stageLabel}
+            />
           </section>
         )}
       </div>

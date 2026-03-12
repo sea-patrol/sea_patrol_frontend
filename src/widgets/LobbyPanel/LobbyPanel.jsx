@@ -3,13 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
 import { roomApi } from '@/shared/api/roomApi';
 import * as messageType from '@/shared/constants/messageType';
+import { listKnownLobbyMaps, resolveLobbyMapMetadata } from '@/shared/lib/mapMetadata';
 import './LobbyPanel.css';
 
 const DEFAULT_MAP_ID = 'caribbean-01';
-const CREATE_MAP_MODE = Object.freeze({
-  DEFAULT: 'default',
-  CUSTOM: 'custom',
-});
+const CUSTOM_MAP_OPTION = '__custom__';
+const KNOWN_MAP_OPTIONS = listKnownLobbyMaps();
 
 function RoomStatusPill({ status }) {
   return (
@@ -19,7 +18,20 @@ function RoomStatusPill({ status }) {
   );
 }
 
+function MapPreviewCard({ mapMeta, eyebrow = 'Sea chart', compact = false }) {
+  return (
+    <section className={`lobby-panel__map-preview lobby-panel__map-preview--${mapMeta.tone}${compact ? ' lobby-panel__map-preview--compact' : ''}`}>
+      <p className="lobby-panel__eyebrow">{eyebrow}</p>
+      <strong>{mapMeta.name}</strong>
+      <span>{mapMeta.region}</span>
+      <p>{mapMeta.previewLabel}</p>
+      {!compact && <small>{mapMeta.previewCaption}</small>}
+    </section>
+  );
+}
+
 function RoomCard({ room, joiningRoomId, onJoinRoom }) {
+  const mapMeta = resolveLobbyMapMetadata(room);
   const isJoinSupported = typeof onJoinRoom === 'function';
   const isJoiningThisRoom = joiningRoomId === room.id;
   const isJoinBusy = Boolean(joiningRoomId);
@@ -31,10 +43,12 @@ function RoomCard({ room, joiningRoomId, onJoinRoom }) {
       <div className="lobby-panel__room-head">
         <div>
           <h3>{room.name}</h3>
-          <p>{room.mapName}</p>
+          <p>{mapMeta.name}</p>
+          <span className="lobby-panel__room-region">{mapMeta.region}</span>
         </div>
         <RoomStatusPill status={room.status} />
       </div>
+      <MapPreviewCard mapMeta={mapMeta} eyebrow="Chart preview" compact />
       <dl className="lobby-panel__room-meta">
         <div>
           <dt>Captain slots</dt>
@@ -109,7 +123,7 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
   const [isLoading, setIsLoading] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [roomName, setRoomName] = useState('');
-  const [mapMode, setMapMode] = useState(CREATE_MAP_MODE.DEFAULT);
+  const [selectedMapOption, setSelectedMapOption] = useState(DEFAULT_MAP_ID);
   const [customMapId, setCustomMapId] = useState('');
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [createError, setCreateError] = useState(null);
@@ -187,6 +201,13 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
     };
   }, [onUnauthorized, reloadNonce, token]);
 
+  const selectedMapId = selectedMapOption === CUSTOM_MAP_OPTION
+    ? customMapId.trim()
+    : selectedMapOption;
+  const selectedMapMeta = resolveLobbyMapMetadata({
+    mapId: selectedMapId || selectedMapOption,
+  });
+
   const handleCreateRoom = async (event) => {
     event.preventDefault();
 
@@ -201,7 +222,7 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
       draft.name = trimmedName;
     }
 
-    if (mapMode === CREATE_MAP_MODE.CUSTOM) {
+    if (selectedMapOption === CUSTOM_MAP_OPTION) {
       const trimmedMapId = customMapId.trim();
       if (!trimmedMapId) {
         setCreateError('Custom mapId is required when custom map mode is selected.');
@@ -210,7 +231,7 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
 
       draft.mapId = trimmedMapId;
     } else {
-      draft.mapId = DEFAULT_MAP_ID;
+      draft.mapId = selectedMapOption;
     }
 
     setIsCreatingRoom(true);
@@ -231,10 +252,12 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
 
     setCatalog((prevCatalog) => upsertRoomSummary(prevCatalog, result.data));
     setRoomName('');
-    setMapMode(CREATE_MAP_MODE.DEFAULT);
+    setSelectedMapOption(DEFAULT_MAP_ID);
     setCustomMapId('');
     setCreateError(null);
     setIsCreatingRoom(false);
+
+    onJoinRoom?.(result.data);
 
     if (!isConnected) {
       setReloadNonce((value) => value + 1);
@@ -280,7 +303,7 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
             <h3>Create a harbor room</h3>
           </div>
           <button type="submit" className="lobby-panel__create-button" disabled={isCreatingRoom}>
-            {isCreatingRoom ? 'Creating...' : 'Create room'}
+            {isCreatingRoom ? 'Creating...' : 'Create and join'}
           </button>
         </div>
 
@@ -296,14 +319,16 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
           </label>
 
           <label>
-            <span>Map source</span>
-            <select value={mapMode} onChange={(event) => setMapMode(event.target.value)}>
-              <option value={CREATE_MAP_MODE.DEFAULT}>MVP default map ({DEFAULT_MAP_ID})</option>
-              <option value={CREATE_MAP_MODE.CUSTOM}>Custom mapId</option>
+            <span>Map</span>
+            <select value={selectedMapOption} onChange={(event) => setSelectedMapOption(event.target.value)}>
+              {KNOWN_MAP_OPTIONS.map((map) => (
+                <option key={map.id} value={map.id}>{`${map.name} (${map.id})`}</option>
+              ))}
+              <option value={CUSTOM_MAP_OPTION}>Custom mapId</option>
             </select>
           </label>
 
-          {mapMode === CREATE_MAP_MODE.CUSTOM && (
+          {selectedMapOption === CUSTOM_MAP_OPTION && (
             <label className="lobby-panel__create-grid--wide">
               <span>Custom mapId</span>
               <input
@@ -314,10 +339,14 @@ export default function LobbyPanel({ token, onJoinRoom, joiningRoomId = null, jo
               />
             </label>
           )}
+
+          <div className="lobby-panel__create-grid--wide">
+            <MapPreviewCard mapMeta={selectedMapMeta} eyebrow="Selected chart" />
+          </div>
         </div>
 
         <p className="lobby-panel__create-note">
-          Backend currently accepts only `caribbean-01`. Custom mapId mode is here to match the agreed contract and surface validation errors honestly.
+          Known lobby maps are described locally so the player can see the region and chart context before room creation. Unknown custom ids still go through backend validation.
         </p>
 
         {createError && (
