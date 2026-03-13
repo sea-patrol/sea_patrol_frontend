@@ -185,14 +185,6 @@ function createRoomChatScope(room) {
   };
 }
 
-function ModeBadge({ mode }) {
-  return (
-    <div className="game-ui-shell__mode" data-mode={mode}>
-      {mode}
-    </div>
-  );
-}
-
 export default function GameUiShell({
   initialRoomEntry = null,
   reconnectUiState = null,
@@ -204,7 +196,7 @@ export default function GameUiShell({
   const { isDebugBuild, isDebugUiVisible, toggleDebugUi } = useDebugUi();
   const { state } = useGameState();
   const { roomSession, markRoomActive } = useRoomSession();
-  const { hasToken, isConnected, lastClose, subscribe } = useWebSocket();
+  const { isConnected, subscribe } = useWebSocket();
   const { activeWindow, mode, openChat, returnToSailing, setScreenMode, toggleMenu, toggleWindow } = useGameUi();
   const [roomJoinState, setRoomJoinState] = useState(() => createInitialRoomJoinState(initialRoomEntry));
   const [activeRoomMeta, setActiveRoomMeta] = useState(() => resolveRoomMeta(initialRoomEntry?.room ?? initialRoomEntry?.joinResponse, null));
@@ -371,17 +363,6 @@ export default function GameUiShell({
       <GameUiHotkeys chatInputRef={chatInputRef} />
       <div className="game-ui-shell">
         <header className="game-ui-shell__topbar">
-          <ModeBadge mode={mode} />
-          <div className="game-ui-shell__connection">
-            <span className={`game-ui-shell__connection-dot ${isConnected ? 'is-online' : 'is-offline'}`} />
-            {isConnected ? 'Realtime online' : hasToken ? 'Realtime offline' : 'Guest mode'}
-            {!isConnected && lastClose?.code !== undefined && (
-              <span className="game-ui-shell__connection-close">
-                {String(lastClose.code)}
-                {lastClose.reason ? `, ${lastClose.reason}` : ''}
-              </span>
-            )}
-          </div>
           <div className="game-ui-shell__actions">
             {showChatAction && <button type="button" onClick={handleOpenChat}>Chat</button>}
             {showGameplayActions && (
