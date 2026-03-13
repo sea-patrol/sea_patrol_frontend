@@ -143,6 +143,38 @@
   line-height: 1.45;
 }
 
+.game-ui-shell__menu-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.game-ui-shell__menu-danger {
+  border: 1px solid rgba(227, 95, 70, 0.45);
+  background: rgba(86, 24, 16, 0.55);
+  color: #fff2ea;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 160ms ease, opacity 160ms ease;
+}
+
+.game-ui-shell__menu-danger:hover:not(:disabled) {
+  background: rgba(148, 39, 25, 0.72);
+  transform: translateY(-1px);
+}
+
+.game-ui-shell__menu-danger:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.game-ui-shell__menu-error {
+  margin-top: 12px !important;
+  color: #ffb7ad !important;
+}
+
 @media (max-width: 900px) {
   .game-ui-shell__topbar {
     grid-template-columns: 1fr;

@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockAuthState = {
@@ -289,5 +290,45 @@ describe('GameUiShell room init flow', () => {
       expect(screen.getByText(/9s remaining/)).toBeInTheDocument();
       expect(screen.getByTestId('chat-block')).toHaveTextContent('Room | Sandbox 4 (sandbox-4) | group:room:sandbox-4');
     });
+  });
+
+  it('opens menu modal and delegates room exit through the leave button', async () => {
+    const user = userEvent.setup();
+    const onLeaveRoom = vi.fn();
+    mockGameState = {
+      state: {
+        playerStates: {
+          alice: { name: 'alice', x: 3, z: 4, angle: 0 },
+        },
+      },
+    };
+    mockRoomSessionState = {
+      phase: 'active',
+      room: { id: 'sandbox-3', name: 'Sandbox 3' },
+      joinResponse: {
+        roomId: 'sandbox-3',
+        mapId: 'caribbean-01',
+        mapName: 'Caribbean Sea',
+        currentPlayers: 1,
+        maxPlayers: 100,
+        status: 'JOINED',
+      },
+      spawn: null,
+    };
+
+    render(
+      <GameUiProvider>
+        <GameUiShell
+          onLeaveRoom={onLeaveRoom}
+          leaveRoomState={{ status: 'idle', error: null }}
+        />
+      </GameUiProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Menu' }));
+    expect(screen.getByRole('button', { name: 'Выйти' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Выйти' }));
+    expect(onLeaveRoom).toHaveBeenCalledTimes(1);
   });
 });

@@ -8,6 +8,7 @@ import { useWebSocket } from '../../features/realtime/model/WebSocketContext';
 import { GameUiProvider } from '../../features/ui-shell/model/GameUiContext';
 import GameUiShell from '../../features/ui-shell/ui/GameUiShell';
 import GameMainScene from '../../scene/GameMainScene';
+import { roomApi } from '../../shared/api/roomApi';
 import * as messageType from '../../shared/constants/messageType';
 import './GamePage.css';
 
@@ -22,6 +23,12 @@ const RECONNECT_STATUS = Object.freeze({
   WAITING_SOCKET: 'waiting-socket',
   WAITING_ROOM: 'waiting-room',
   WAITING_STATE: 'waiting-state',
+});
+
+const LEAVE_ROOM_STATUS = Object.freeze({
+  IDLE: 'idle',
+  SUBMITTING: 'submitting',
+  ERROR: 'error',
 });
 
 function normalizeRoomEntry(roomEntry) {
@@ -84,14 +91,22 @@ function getReconnectNotice(reason) {
   }
 }
 
+function createInitialLeaveRoomState() {
+  return {
+    status: LEAVE_ROOM_STATUS.IDLE,
+    error: null,
+  };
+}
+
 function GamePage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, token, loading } = useAuth();
+  const { user, token, loading, logout } = useAuth();
   const { state, dispatch } = useGameState();
   const { roomSession, hydrateRoomEntry, clearRoomSession } = useRoomSession();
   const { isConnected, lastClose, reconnectState, subscribe } = useWebSocket();
   const [reconnectSession, setReconnectSession] = useState(createInitialReconnectSession);
+  const [leaveRoomState, setLeaveRoomState] = useState(createInitialLeaveRoomState);
   const [now, setNow] = useState(() => Date.now());
 
   const locationRoomEntry = normalizeRoomEntry(location.state?.roomEntry);
@@ -139,11 +154,28 @@ function GamePage() {
     });
   }, [clearRoomSession, dispatch, navigate, resetReconnectSession, user?.username]);
 
+  const handleUnauthorized = useCallback(() => {
+    resetReconnectSession();
+    clearRoomSession();
+    dispatch({ type: 'RESET_STATE' });
+    logout();
+    navigate('/', {
+      replace: true,
+      state: {
+        openAuth: 'login',
+      },
+    });
+  }, [clearRoomSession, dispatch, logout, navigate, resetReconnectSession]);
+
   useEffect(() => {
     if (locationRoomEntry) {
       hydrateRoomEntry(locationRoomEntry);
     }
   }, [hydrateRoomEntry, locationRoomEntry]);
+
+  useEffect(() => {
+    setLeaveRoomState(createInitialLeaveRoomState());
+  }, [roomId]);
 
   useEffect(() => {
     if (isDuplicateSessionClose(lastClose)) {
@@ -308,6 +340,37 @@ function GamePage() {
     };
   }, [lastClose, now, reconnectSession, reconnectState, roomId, roomName]);
 
+  const handleLeaveRoom = useCallback(async () => {
+    if (!token || !roomId || leaveRoomState.status === LEAVE_ROOM_STATUS.SUBMITTING) {
+      return;
+    }
+
+    setLeaveRoomState({
+      status: LEAVE_ROOM_STATUS.SUBMITTING,
+      error: null,
+    });
+
+    const result = await roomApi.leaveRoom(token, roomId);
+    if (!result.ok) {
+      if (result.error?.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      setLeaveRoomState({
+        status: LEAVE_ROOM_STATUS.ERROR,
+        error: result.error?.message || 'Не удалось выйти из комнаты.',
+      });
+      return;
+    }
+
+    resetReconnectSession();
+    clearRoomSession();
+    dispatch({ type: 'RESET_STATE' });
+    setLeaveRoomState(createInitialLeaveRoomState());
+    navigate('/lobby', { replace: true });
+  }, [clearRoomSession, dispatch, handleUnauthorized, leaveRoomState.status, navigate, resetReconnectSession, roomId, token]);
+
   if (!loading && !token) {
     return <Navigate to="/" replace />;
   }
@@ -347,7 +410,12 @@ function GamePage() {
       <GameUiProvider>
         <div className="game-page__viewport">
           {shouldMountScene && <GameMainScene />}
-          <GameUiShell initialRoomEntry={effectiveRoomEntry} reconnectUiState={reconnectUiState} />
+          <GameUiShell
+            initialRoomEntry={effectiveRoomEntry}
+            reconnectUiState={reconnectUiState}
+            onLeaveRoom={handleLeaveRoom}
+            leaveRoomState={leaveRoomState}
+          />
         </div>
       </GameUiProvider>
     </div>

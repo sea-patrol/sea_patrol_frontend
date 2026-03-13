@@ -5,6 +5,7 @@ import {
   mockRoomCatalogResponses,
   mockRoomCreateResponses,
   mockRoomJoinResponses,
+  mockRoomLeaveResponses,
   testUsers,
 } from './data';
 
@@ -149,6 +150,32 @@ export const handlers = [
 
     return HttpResponse.json({
       ...mockRoomJoinResponses.success,
+      roomId: params.roomId,
+    });
+  }),
+
+  http.post(`${ROOMS_API_BASE_URL}/:roomId/leave`, ({ params, request }) => {
+    const authorization = request.headers.get('authorization');
+    if (!authorization?.startsWith('Bearer ')) {
+      return HttpResponse.json(
+        {
+          errors: [
+            {
+              code: 'SEAPATROL_UNAUTHORIZED',
+              message: 'Unauthorized',
+            },
+          ],
+        },
+        { status: 401 }
+      );
+    }
+
+    if (params.roomId === 'missing-room-session') {
+      return HttpResponse.json(mockRoomLeaveResponses.roomSessionRequired, { status: 409 });
+    }
+
+    return HttpResponse.json({
+      ...mockRoomLeaveResponses.success,
       roomId: params.roomId,
     });
   }),

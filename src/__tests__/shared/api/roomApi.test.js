@@ -101,4 +101,27 @@ describe('roomApi', () => {
       message: 'Room is full',
     });
   });
+
+  it('leaveRoom: returns canonical leave response on success', async () => {
+    const result = await roomApi.leaveRoom('test-jwt-token-valid-user', 'sandbox-1');
+
+    expect(result.ok).toBe(true);
+    expect(result.data).toEqual({
+      roomId: 'sandbox-1',
+      status: 'LEFT',
+      nextState: 'LOBBY',
+    });
+  });
+
+  it('leaveRoom: surfaces structured backend room-session errors', async () => {
+    const result = await roomApi.leaveRoom('test-jwt-token-valid-user', 'missing-room-session');
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatchObject({
+      type: 'http',
+      status: 409,
+      code: 'ROOM_SESSION_REQUIRED',
+      message: 'Active room WebSocket session is required',
+    });
+  });
 });

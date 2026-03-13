@@ -192,7 +192,12 @@ function ModeBadge({ mode }) {
   );
 }
 
-export default function GameUiShell({ initialRoomEntry = null, reconnectUiState = null }) {
+export default function GameUiShell({
+  initialRoomEntry = null,
+  reconnectUiState = null,
+  onLeaveRoom = null,
+  leaveRoomState = null,
+}) {
   const chatInputRef = useRef(null);
   const { user, token, loading } = useAuth();
   const { state } = useGameState();
@@ -210,6 +215,7 @@ export default function GameUiShell({ initialRoomEntry = null, reconnectUiState 
   const showChatHud = mode !== GAME_UI_MODE.LOADING;
   const showChatAction = ![GAME_UI_MODE.LOADING, GAME_UI_MODE.RECONNECTING].includes(mode);
   const showGameplayActions = ![GAME_UI_MODE.LOADING, GAME_UI_MODE.ROOM_LOADING, GAME_UI_MODE.RECONNECTING].includes(mode);
+  const isLeavePending = leaveRoomState?.status === 'submitting';
 
   useEffect(() => {
     if (!token) {
@@ -404,7 +410,13 @@ export default function GameUiShell({ initialRoomEntry = null, reconnectUiState 
         {mode === GAME_UI_MODE.MENU_OPEN && (
           <section className="game-ui-shell__panel" aria-label="Game menu">
             <h2>Menu</h2>
-            <p>Esc closes the menu. This panel is the shell anchor for future in-game menu actions.</p>
+            <p>Esc closes the menu. Exit returns the captain to the harbor lobby without logging out of the current session.</p>
+            <div className="game-ui-shell__menu-actions">
+              <button type="button" className="game-ui-shell__menu-danger" onClick={onLeaveRoom} disabled={!onLeaveRoom || isLeavePending}>
+                {isLeavePending ? 'Выходим...' : 'Выйти'}
+              </button>
+            </div>
+            {leaveRoomState?.error && <p className="game-ui-shell__menu-error">{leaveRoomState.error}</p>}
           </section>
         )}
 
