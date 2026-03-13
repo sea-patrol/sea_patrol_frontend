@@ -202,6 +202,7 @@ Response `200 OK`:
 - после REST success frontend сразу очищает stale room gameplay state и возвращает пользователя на `/lobby`, не включая reconnect flow;
 - `ROOMS_SNAPSHOT` остаётся обычным lobby snapshot после возврата, но frontend не должен задерживать route transition в ожидании отдельного WS-подтверждения leave;
 - та же auth и WS session должны сохраняться, поэтому frontend не должен заставлять пользователя логиниться заново после обычного выхода из комнаты.
+- именно leave считается одним из немногих authoritative flow, которому разрешено делать полный `clearRoomSession()` с удалением persisted `room-session:<username>`; duplicate-session notice, access-denied path и локальный logout не должны использовать этот путь, иначе вторичная вкладка сможет сломать активную игровую вкладку того же пользователя;
 - если backend вернул `401`, frontend должен считать auth-state невалидным, делать logout и открывать login flow с домашней страницы;
 - `409` ошибки (`ROOM_SESSION_REQUIRED`, `ROOM_SESSION_MISMATCH`) пока показываются прямо в menu modal и не должны тихо переводить пользователя в другой route без подтверждённого REST success.
 
@@ -223,6 +224,9 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 Дополнение по текущей frontend архитектуре:
 - `WebSocketProvider` живёт выше маршрутов, поэтому SPA-переходы `Home -> Lobby -> Game` не рвут WS-сессию;
 - `RoomSessionProvider` хранит room metadata поверх маршрутов и в `localStorage`, поэтому после полного reload домашняя страница всё ещё знает текущий room resume target и может вести `Play` сразу в `/game`;
+- persisted room metadata хранится в user-scoped key `room-session:<username>`, а не в одном общем ключе на весь браузер;
+- cross-tab safety rule: вкладки с разными аккаунтами не должны влиять друг на друга через `storage` events, а вторичная вкладка того же пользователя не должна очищать persisted room target active owner tab при duplicate-session, access-denied и локальном logout;
+- для этого frontend использует два разных пути: `resetRoomSession()` делает только локальный reset текущей вкладки, а `clearRoomSession()` дополнительно удаляет persisted `room-session:<username>` и разрешён только для подтверждённого room exit / reconnect fail;
 - room/game state подписки тоже подняты выше страницы сцены, чтобы не потерять ранние room init сообщения во время route transition.
 
 ### 4.2 Формат сообщений
@@ -319,6 +323,7 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 - если `/game` открыт с persisted room session, но authoritative current player snapshot ещё не восстановлен, `GamePage` держит только loading/reconnect UI и не монтирует 3D canvas раньше времени.
 - если окно grace истекло и room resume так и не пришёл, frontend завершает reconnect flow через локальный `15s` timeout, очищает room/game state и переводит пользователя в новый lobby session flow.
 - после `TASK-020` frontend применяет `SPAWN_ASSIGNED` к runtime state текущего игрока как authoritative spawn patch и при наличии active ship делает snap к новым координатам, а не плавный lerp из предыдущей позиции.
+- game-runtime сообщения (`INIT_GAME_STATE`, `UPDATE_GAME_STATE`, `PLAYER_JOIN`, `PLAYER_LEAVE`, `SPAWN_ASSIGNED`) применяются только пока у вкладки есть актуальная active `roomSession`; это дополнительная защита от stale cross-tab событий после local reset, duplicate-session denial и explicit leave.
 #### Используются текущим gameplay UI/runtime
 
 `INIT_GAME_STATE`
