@@ -82,7 +82,7 @@ describe('LobbyPanel', () => {
       },
     });
 
-    render(<LobbyPanel token="test-token" />);
+    render(<LobbyPanel token="test-token" onJoinRoom={() => {}} />);
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading room catalog');
 
@@ -381,4 +381,3 @@ describe('LobbyPanel', () => {
     expect(screen.getByRole('button', { name: 'Room full' })).toBeDisabled();
   });
 });
-

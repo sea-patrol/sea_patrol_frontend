@@ -26,7 +26,7 @@ export default function GameSceneCanvas({
   return (
     <Canvas dpr={1} camera={{ position: [0, 5, 100], fov: 55, near: 1, far: 1000 }}>
       {perfNode}
-      <Suspense fallback={LoadingScreen}>
+      <Suspense fallback={<LoadingScreen />}>
         <ambientLight intensity={0.5} />
         <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]} />
         <Sky scale={1000} sunPosition={safeSunPosition} turbidity={turbidity} />

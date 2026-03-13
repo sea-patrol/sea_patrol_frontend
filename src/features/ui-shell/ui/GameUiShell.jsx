@@ -6,12 +6,12 @@ import './GameUiShell.css';
 import GameUiHotkeys from './GameUiHotkeys';
 
 import { useAuth } from '@/features/auth/model/AuthContext';
+import { useDebugUi } from '@/features/debug/model/DebugUiContext';
 import { selectCurrentPlayerState, useGameState } from '@/features/game/model/GameStateContext';
 import { useRoomSession } from '@/features/game/model/RoomSessionContext';
 import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
 import * as messageType from '@/shared/constants/messageType';
 import ChatBlock from '@/widgets/ChatPanel/ChatBlock';
-import GameStateInfo from '@/widgets/GameHud/GameStateInfo';
 import ProfileBlock from '@/widgets/GameHud/ProfileBlock';
 import RoomLoadingSummary from '@/widgets/RoomLoadingSummary/RoomLoadingSummary';
 
@@ -185,20 +185,18 @@ function createRoomChatScope(room) {
   };
 }
 
-function ModeBadge({ mode }) {
-  return (
-    <div className="game-ui-shell__mode" data-mode={mode}>
-      {mode}
-    </div>
-  );
-}
-
-export default function GameUiShell({ initialRoomEntry = null, reconnectUiState = null }) {
+export default function GameUiShell({
+  initialRoomEntry = null,
+  reconnectUiState = null,
+  onLeaveRoom = null,
+  leaveRoomState = null,
+}) {
   const chatInputRef = useRef(null);
   const { user, token, loading } = useAuth();
+  const { isDebugBuild, isDebugUiVisible, toggleDebugUi } = useDebugUi();
   const { state } = useGameState();
   const { roomSession, markRoomActive } = useRoomSession();
-  const { hasToken, isConnected, lastClose, subscribe } = useWebSocket();
+  const { isConnected, subscribe } = useWebSocket();
   const { activeWindow, mode, openChat, returnToSailing, setScreenMode, toggleMenu, toggleWindow } = useGameUi();
   const [roomJoinState, setRoomJoinState] = useState(() => createInitialRoomJoinState(initialRoomEntry));
   const [activeRoomMeta, setActiveRoomMeta] = useState(() => resolveRoomMeta(initialRoomEntry?.room ?? initialRoomEntry?.joinResponse, null));
@@ -211,6 +209,7 @@ export default function GameUiShell({ initialRoomEntry = null, reconnectUiState 
   const showChatHud = mode !== GAME_UI_MODE.LOADING;
   const showChatAction = ![GAME_UI_MODE.LOADING, GAME_UI_MODE.RECONNECTING].includes(mode);
   const showGameplayActions = ![GAME_UI_MODE.LOADING, GAME_UI_MODE.ROOM_LOADING, GAME_UI_MODE.RECONNECTING].includes(mode);
+  const isLeavePending = leaveRoomState?.status === 'submitting';
 
   useEffect(() => {
     if (!token) {
@@ -317,6 +316,10 @@ export default function GameUiShell({ initialRoomEntry = null, reconnectUiState 
       return;
     }
 
+    if (isLeavePending) {
+      return;
+    }
+
     if (isReconnectMode) {
       setScreenMode(GAME_UI_MODE.RECONNECTING);
       return;
@@ -333,7 +336,7 @@ export default function GameUiShell({ initialRoomEntry = null, reconnectUiState 
     }
 
     setScreenMode(GAME_UI_MODE.LOADING);
-  }, [hasActiveRoomState, isConnected, isPendingRoomJoin, isReconnectMode, loading, roomJoinState.status, setScreenMode]);
+  }, [hasActiveRoomState, isConnected, isLeavePending, isPendingRoomJoin, isReconnectMode, loading, roomJoinState.status, setScreenMode]);
 
   const windowCopy = activeWindow ? WINDOW_COPY[activeWindow] : null;
   const roomLoadingCopy = useMemo(() => getRoomLoadingCopy(roomJoinState), [roomJoinState]);
@@ -360,17 +363,6 @@ export default function GameUiShell({ initialRoomEntry = null, reconnectUiState 
       <GameUiHotkeys chatInputRef={chatInputRef} />
       <div className="game-ui-shell">
         <header className="game-ui-shell__topbar">
-          <ModeBadge mode={mode} />
-          <div className="game-ui-shell__connection">
-            <span className={`game-ui-shell__connection-dot ${isConnected ? 'is-online' : 'is-offline'}`} />
-            {isConnected ? 'Realtime online' : hasToken ? 'Realtime offline' : 'Guest mode'}
-            {!isConnected && lastClose?.code !== undefined && (
-              <span className="game-ui-shell__connection-close">
-                {String(lastClose.code)}
-                {lastClose.reason ? `, ${lastClose.reason}` : ''}
-              </span>
-            )}
-          </div>
           <div className="game-ui-shell__actions">
             {showChatAction && <button type="button" onClick={handleOpenChat}>Chat</button>}
             {showGameplayActions && (
@@ -390,12 +382,6 @@ export default function GameUiShell({ initialRoomEntry = null, reconnectUiState 
           </div>
         )}
 
-        {showSailingHud && (
-          <div className="game-ui-shell__hud game-ui-shell__hud--state">
-            <GameStateInfo name={user?.username} />
-          </div>
-        )}
-
         {showChatHud && (
           <div className="game-ui-shell__hud game-ui-shell__hud--chat">
             <ChatBlock
@@ -411,7 +397,18 @@ export default function GameUiShell({ initialRoomEntry = null, reconnectUiState 
         {mode === GAME_UI_MODE.MENU_OPEN && (
           <section className="game-ui-shell__panel" aria-label="Game menu">
             <h2>Menu</h2>
-            <p>Esc closes the menu. This panel is the shell anchor for future in-game menu actions.</p>
+            <p>Esc closes the menu. Exit returns the captain to the harbor lobby without logging out of the current session.</p>
+            <div className="game-ui-shell__menu-actions">
+              <button type="button" className="game-ui-shell__menu-danger" onClick={onLeaveRoom} disabled={!onLeaveRoom || isLeavePending}>
+                {isLeavePending ? 'Выходим...' : 'Выйти'}
+              </button>
+              {isDebugBuild && (
+                <button type="button" className="game-ui-shell__menu-toggle" onClick={toggleDebugUi}>
+                  {isDebugUiVisible ? 'Дебаг: выкл' : 'Дебаг: вкл'}
+                </button>
+              )}
+            </div>
+            {leaveRoomState?.error && <p className="game-ui-shell__menu-error">{leaveRoomState.error}</p>}
           </section>
         )}
 

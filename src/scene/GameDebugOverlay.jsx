@@ -1,12 +1,15 @@
 import { Leva, useControls } from 'leva';
 import { Perf } from 'r3f-perf';
 
+import { useDebugUi } from '@/features/debug/model/DebugUiContext';
+
 const DEFAULT_SUN_POSITION = [500, 150, -1000];
 const DEFAULT_TURBIDITY = 0.1;
-const IS_DEV = import.meta.env.DEV;
 
 export default function GameDebugOverlay({ children }) {
-  if (!IS_DEV) {
+  const { isDebugBuild, isDebugUiVisible } = useDebugUi();
+
+  if (!isDebugBuild || !isDebugUiVisible) {
     return children({
       perfNode: null,
       sunPosition: DEFAULT_SUN_POSITION,

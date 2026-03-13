@@ -3,6 +3,7 @@ import ReactThreeTestRenderer, { act, waitFor } from '@react-three/test-renderer
 import { useEffect, useRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DebugUiProvider } from '../../features/debug/model/DebugUiContext';
 import { GameStateProvider, useGameState } from '../../features/game/model/GameStateContext';
 import PlayerSailShip from '../../features/ships/ui/PlayerSailShip';
 import * as messageType from '../../shared/constants/messageType';
@@ -41,9 +42,11 @@ function GameStateDriver({ player, spawn, shipRef }) {
 
 function Scene({ player, spawn = null, shipRef }) {
   return (
-    <GameStateProvider>
-      <GameStateDriver player={player} spawn={spawn} shipRef={shipRef} />
-    </GameStateProvider>
+    <DebugUiProvider>
+      <GameStateProvider>
+        <GameStateDriver player={player} spawn={spawn} shipRef={shipRef} />
+      </GameStateProvider>
+    </DebugUiProvider>
   );
 }
 

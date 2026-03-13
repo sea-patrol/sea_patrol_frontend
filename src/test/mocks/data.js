@@ -131,6 +131,22 @@ export const mockRoomJoinResponses = {
   },
 };
 
+export const mockRoomLeaveResponses = {
+  success: {
+    roomId: 'sandbox-1',
+    status: 'LEFT',
+    nextState: 'LOBBY',
+  },
+  roomSessionRequired: {
+    errors: [
+      {
+        code: 'ROOM_SESSION_REQUIRED',
+        message: 'Active room WebSocket session is required',
+      },
+    ],
+  },
+};
+
 export const mockGameStates = {
   initial: {
     playerStates: {

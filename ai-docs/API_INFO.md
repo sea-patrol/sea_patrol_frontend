@@ -180,6 +180,36 @@ Response `200 OK`:
 - между REST join, `ROOM_JOINED`, `SPAWN_ASSIGNED` и финальным `INIT_GAME_STATE` frontend показывает room loading summary с room/map metadata и не прячет этот этап за голым спиннером;
 - metadata room entry хранится в `RoomSessionContext`, поэтому пользователь может безопасно вернуться на `/game` с домашней страницы, пока room session остаётся активной.
 
+### 3.7 POST `/api/v1/rooms/{roomId}/leave`
+Frontend теперь использует этот endpoint как канонический room-exit flow для игрового меню.
+
+Request JSON:
+```json
+{}
+```
+
+Response `200 OK`:
+```json
+{
+  "roomId": "sandbox-1",
+  "status": "LEFT",
+  "nextState": "LOBBY"
+}
+```
+
+Важно для frontend:
+- leave должен стартовать из menu modal в комнате, а не через полный logout;
+- после REST success frontend сразу очищает stale room gameplay state и возвращает пользователя на `/lobby`, не включая reconnect flow;
+- `ROOMS_SNAPSHOT` остаётся обычным lobby snapshot после возврата, но frontend не должен задерживать route transition в ожидании отдельного WS-подтверждения leave;
+- та же auth и WS session должны сохраняться, поэтому frontend не должен заставлять пользователя логиниться заново после обычного выхода из комнаты.
+- если backend вернул `401`, frontend должен считать auth-state невалидным, делать logout и открывать login flow с домашней страницы;
+- `409` ошибки (`ROOM_SESSION_REQUIRED`, `ROOM_SESSION_MISMATCH`) пока показываются прямо в menu modal и не должны тихо переводить пользователя в другой route без подтверждённого REST success.
+
+Ошибки:
+- `404` — `ROOM_NOT_FOUND`
+- `409` — `ROOM_SESSION_REQUIRED`
+- `409` — `ROOM_SESSION_MISMATCH`
+
 ## 4. WebSocket API
 
 Endpoint: `{{WS_BASE_URL}}/ws/game`
@@ -224,6 +254,11 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 ```json
 ["PLAYER_INPUT", { "up": true, "down": false, "left": false, "right": false }]
 ```
+
+Состояние после `TASK-033C`:
+- `left/right` остаются командами поворота;
+- `up/down` используются не как газ/тормоз, а как rising-edge команды подъёма/опускания парусов на `+1/-1`;
+- frontend не вводит отдельный локальный authoritative `sailLevel`, а только отправляет input и отображает backend state в HUD/runtime.
 
 ### 4.4 Входящие сообщения (backend -> frontend)
 
@@ -288,13 +323,30 @@ Endpoint: `{{WS_BASE_URL}}/ws/game`
 
 `INIT_GAME_STATE`
 ```json
-["INIT_GAME_STATE", { "room": "sandbox-1", "roomMeta": { "roomId": "sandbox-1", "mapId": "caribbean-01", "mapName": "Caribbean Sea" }, "players": [{ "name": "alice", "x": 0, "z": 0, "angle": 0 }] }]
+["INIT_GAME_STATE", { "room": "sandbox-1", "roomMeta": { "roomId": "sandbox-1", "mapId": "caribbean-01", "mapName": "Caribbean Sea" }, "wind": { "angle": 0.0, "speed": 10.0 }, "players": [{ "name": "alice", "x": 0, "z": 0, "angle": 0 }] }]
 ```
 
 `UPDATE_GAME_STATE`
 ```json
-["UPDATE_GAME_STATE", { "players": [{ "name": "alice", "x": 10, "z": 5 }] }]
+["UPDATE_GAME_STATE", { "wind": { "angle": 0.1, "speed": 10.0 }, "players": [{ "name": "alice", "x": 10, "z": 5 }] }]
 ```
+
+Состояние после `TASK-033C`:
+- backend уже присылает `sailLevel` (`0..3`) в player state;
+- `INIT_GAME_STATE.players[*].sailLevel` задаёт начальный уровень парусов;
+- `UPDATE_GAME_STATE.players[*].sailLevel` тоже уже приходит из backend runtime;
+- frontend уже поднимает это поле в `GameStateContext` и показывает его в основном HUD через `ProfileBlock`;
+- клиент по-прежнему не должен рассчитывать `sailLevel` локально как отдельное authoritative состояние.
+
+Особенности `wind` для frontend:
+- `wind` имеет один и тот же transport shape в `INIT_GAME_STATE` и `UPDATE_GAME_STATE`: `{ angle, speed }`;
+- `angle` приходит в радианах в плоскости `XZ`: `0 -> +X`, `PI / 2 -> +Z`;
+- клиент не должен держать собственный authoritative источник ветра или выводить ветер из движения корабля;
+- после `TASK-032` frontend поднимает `wind` в `GameStateContext` и обновляет это поле только из backend `INIT_GAME_STATE` / `UPDATE_GAME_STATE`;
+- `UPDATE_GAME_STATE.wind` должен применяться даже если конкретный frame не содержит player patches;
+- после `TASK-035` backend меняет `angle` предсказуемо по часовой стрелке на room-wide фиксированной скорости, но frontend всё равно должен просто применять последний authoritative snapshot, а не крутить ветер локально по таймеру;
+- после `TASK-034` frontend использует тот же state для HUD feedback внутри `ProfileBlock`: показывает wind speed, compass-like direction, относительное положение ветра к курсу корабля и короткую подсказку по sail drive, не меняя transport contract;
+- координаты и угол поворота больше не считаются частью основного HUD и показываются только в dev-only debug секции.
 
 `PLAYER_JOIN`
 ```json

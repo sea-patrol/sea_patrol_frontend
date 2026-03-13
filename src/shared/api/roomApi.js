@@ -129,4 +129,13 @@ export const roomApi = {
       body: {},
     });
   },
+
+  leaveRoom: async (token, roomId, options = {}) => {
+    return executeAuthorizedJsonRequest(`${ROOMS_API_BASE_URL}/${encodeURIComponent(roomId)}/leave`, {
+      method: 'POST',
+      token,
+      signal: options.signal,
+      body: {},
+    });
+  },
 };

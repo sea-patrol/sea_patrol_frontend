@@ -1,8 +1,9 @@
 .profile {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
-    min-width: 220px;
+    min-width: 300px;
+    max-width: 360px;
     padding: 12px 14px;
     border-radius: 18px;
     border: 1px solid rgba(245, 230, 189, 0.24);
@@ -28,7 +29,8 @@
 .profile .meta {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
+    min-width: 0;
 }
 
 .profile .eyebrow {
@@ -42,4 +44,85 @@
     font-size: 20px;
     font-weight: 700;
     color: #f4f0e8;
+}
+
+.profile .stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.profile .stats__row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgba(18, 72, 104, 0.28);
+    border: 1px solid rgba(118, 199, 231, 0.16);
+    color: rgba(244, 240, 232, 0.82);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.profile .stats__row strong {
+    color: #f4f0e8;
+    font-size: 17px;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+.profile .wind-panel {
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(18, 72, 104, 0.42);
+    border: 1px solid rgba(118, 199, 231, 0.2);
+}
+
+.profile .wind-panel__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.profile .wind-panel__strength {
+    color: #9fd8f5;
+    font-weight: 700;
+}
+
+.profile .wind-panel__meta {
+    color: rgba(244, 240, 232, 0.9);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.profile .wind-panel__copy {
+    margin-top: 6px;
+    color: rgba(244, 240, 232, 0.82);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.profile .debug-panel {
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgba(244, 196, 48, 0.08);
+    border: 1px dashed rgba(244, 196, 48, 0.3);
+    color: rgba(244, 240, 232, 0.78);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.profile .debug-panel__title {
+    margin-bottom: 4px;
+    color: rgba(244, 196, 48, 0.92);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }

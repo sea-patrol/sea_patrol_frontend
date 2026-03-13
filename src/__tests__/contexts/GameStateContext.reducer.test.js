@@ -6,6 +6,7 @@ import {
   selectCurrentPlayerState,
   selectPlayerNames,
   selectPlayerState,
+  selectWindState,
   wsMessageToGameAction,
 } from '../../features/game/model/GameStateContext';
 import * as messageType from '../../shared/constants/messageType';
@@ -26,9 +27,10 @@ describe('gameStateReducer', () => {
     const action = {
       type: messageType.INIT_GAME_STATE,
       payload: {
+        wind: { angle: 0.5, speed: 10 },
         players: [
-          { name: 'alice', x: 1, z: 2 },
-          { name: 'bob', x: 3, z: 4 },
+          { name: 'alice', x: 1, z: 2, sailLevel: 3 },
+          { name: 'bob', x: 3, z: 4, sailLevel: 1 },
         ],
       },
     };
@@ -37,23 +39,26 @@ describe('gameStateReducer', () => {
 
     expect(nextState).toEqual({
       playerStates: {
-        alice: { name: 'alice', x: 1, z: 2 },
-        bob: { name: 'bob', x: 3, z: 4 },
+        alice: { name: 'alice', x: 1, z: 2, sailLevel: 3 },
+        bob: { name: 'bob', x: 3, z: 4, sailLevel: 1 },
       },
+      wind: { angle: 0.5, speed: 10 },
     });
   });
 
   it('UPDATE_GAME_STATE: обновляет только определённые поля иммутабельно', () => {
     const prevState = deepFreeze({
+      wind: { angle: 0.2, speed: 8 },
       playerStates: {
-        alice: { name: 'alice', x: 0, z: 0, angle: 10, health: 100 },
+        alice: { name: 'alice', x: 0, z: 0, angle: 10, health: 100, sailLevel: 3 },
       },
     });
 
     const action = {
       type: messageType.UPDATE_GAME_STATE,
       payload: {
-        players: [{ name: 'alice', x: 5, z: undefined }],
+        wind: { angle: 0.4, speed: 8 },
+        players: [{ name: 'alice', x: 5, z: undefined, sailLevel: 2 }],
       },
     };
 
@@ -70,7 +75,31 @@ describe('gameStateReducer', () => {
       z: 0,
       angle: 10,
       health: 100,
+      sailLevel: 2,
     });
+    expect(nextState.wind).toEqual({ angle: 0.4, speed: 8 });
+  });
+
+  it('UPDATE_GAME_STATE: применяет wind даже без player patches', () => {
+    const prevState = deepFreeze({
+      wind: { angle: 0.1, speed: 6 },
+      playerStates: {
+        alice: { name: 'alice', x: 0, z: 0 },
+      },
+    });
+
+    const action = {
+      type: messageType.UPDATE_GAME_STATE,
+      payload: {
+        wind: { angle: 1.2, speed: 7.5 },
+        players: [],
+      },
+    };
+
+    const nextState = gameStateReducer(prevState, action);
+
+    expect(nextState.playerStates).toEqual(prevState.playerStates);
+    expect(nextState.wind).toEqual({ angle: 1.2, speed: 7.5 });
   });
 
   it('SPAWN_ASSIGNED: обновляет текущего игрока authoritative spawn coordinates и revision', () => {
@@ -151,6 +180,7 @@ describe('gameStateReducer', () => {
 
   it('selectors: возвращают список игроков и игрока по имени', () => {
     const state = deepFreeze({
+      wind: { angle: 0.3, speed: 9 },
       playerStates: {
         alice: { name: 'alice', x: 1 },
         bob: { name: 'bob', x: 2 },
@@ -160,6 +190,7 @@ describe('gameStateReducer', () => {
     expect(selectPlayerNames(state).sort()).toEqual(['alice', 'bob']);
     expect(selectPlayerState(state, 'alice')).toEqual({ name: 'alice', x: 1 });
     expect(selectCurrentPlayerState(state, 'bob')).toEqual({ name: 'bob', x: 2 });
+    expect(selectWindState(state)).toEqual({ angle: 0.3, speed: 9 });
   });
 
   it('wsMessageToGameAction: маппит WS-сообщения в reducer actions', () => {

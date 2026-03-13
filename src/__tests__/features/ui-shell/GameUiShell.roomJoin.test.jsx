@@ -1,5 +1,8 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { DebugUiProvider } from '@/features/debug/model/DebugUiContext';
 
 let mockAuthState = {
   user: { username: 'alice' },
@@ -79,10 +82,6 @@ vi.mock('@/widgets/ChatPanel/ChatBlock', () => ({
   ),
 }));
 
-vi.mock('@/widgets/GameHud/GameStateInfo', () => ({
-  default: () => <div data-testid="game-state-info" />,
-}));
-
 vi.mock('@/widgets/GameHud/ProfileBlock', () => ({
   default: () => <div data-testid="profile-block" />,
 }));
@@ -136,9 +135,11 @@ describe('GameUiShell room init flow', () => {
     };
 
     const { rerender } = render(
-      <GameUiProvider>
-        <GameUiShell initialRoomEntry={initialRoomEntry} />
-      </GameUiProvider>,
+      <DebugUiProvider>
+        <GameUiProvider>
+          <GameUiShell initialRoomEntry={initialRoomEntry} />
+        </GameUiProvider>
+      </DebugUiProvider>,
     );
 
     expect(screen.getByText('Assigning spawn')).toBeInTheDocument();
@@ -171,9 +172,11 @@ describe('GameUiShell room init flow', () => {
     };
 
     rerender(
-      <GameUiProvider>
-        <GameUiShell initialRoomEntry={initialRoomEntry} />
-      </GameUiProvider>,
+      <DebugUiProvider>
+        <GameUiProvider>
+          <GameUiShell initialRoomEntry={initialRoomEntry} />
+        </GameUiProvider>
+      </DebugUiProvider>,
     );
 
     await waitFor(() => {
@@ -198,9 +201,11 @@ describe('GameUiShell room init flow', () => {
     };
 
     render(
-      <GameUiProvider>
-        <GameUiShell initialRoomEntry={initialRoomEntry} />
-      </GameUiProvider>,
+      <DebugUiProvider>
+        <GameUiProvider>
+          <GameUiShell initialRoomEntry={initialRoomEntry} />
+        </GameUiProvider>
+      </DebugUiProvider>,
     );
 
     await act(async () => {
@@ -245,9 +250,11 @@ describe('GameUiShell room init flow', () => {
     };
 
     render(
-      <GameUiProvider>
-        <GameUiShell />
-      </GameUiProvider>,
+      <DebugUiProvider>
+        <GameUiProvider>
+          <GameUiShell />
+        </GameUiProvider>
+      </DebugUiProvider>,
     );
 
     await waitFor(() => {
@@ -267,24 +274,26 @@ describe('GameUiShell room init flow', () => {
     };
 
     render(
-      <GameUiProvider>
-        <GameUiShell
-          initialRoomEntry={{
-            room: { id: 'sandbox-4', name: 'Sandbox 4' },
-          }}
-          reconnectUiState={{
-            active: true,
-            status: 'waiting-room',
-            roomId: 'sandbox-4',
-            roomName: 'Sandbox 4',
-            graceRemainingMs: 9000,
-            wsPhase: 'open',
-            attempt: 2,
-            retryDelayMs: 4000,
-            lastClose: { code: 1006, reason: 'abnormal' },
-          }}
-        />
-      </GameUiProvider>,
+      <DebugUiProvider>
+        <GameUiProvider>
+          <GameUiShell
+            initialRoomEntry={{
+              room: { id: 'sandbox-4', name: 'Sandbox 4' },
+            }}
+            reconnectUiState={{
+              active: true,
+              status: 'waiting-room',
+              roomId: 'sandbox-4',
+              roomName: 'Sandbox 4',
+              graceRemainingMs: 9000,
+              wsPhase: 'open',
+              attempt: 2,
+              retryDelayMs: 4000,
+              lastClose: { code: 1006, reason: 'abnormal' },
+            }}
+          />
+        </GameUiProvider>
+      </DebugUiProvider>,
     );
 
     await waitFor(() => {
@@ -293,5 +302,89 @@ describe('GameUiShell room init flow', () => {
       expect(screen.getByText(/9s remaining/)).toBeInTheDocument();
       expect(screen.getByTestId('chat-block')).toHaveTextContent('Room | Sandbox 4 (sandbox-4) | group:room:sandbox-4');
     });
+  });
+
+  it('opens menu modal and delegates room exit through the leave button', async () => {
+    const user = userEvent.setup();
+    const onLeaveRoom = vi.fn();
+    mockGameState = {
+      state: {
+        playerStates: {
+          alice: { name: 'alice', x: 3, z: 4, angle: 0 },
+        },
+      },
+    };
+    mockRoomSessionState = {
+      phase: 'active',
+      room: { id: 'sandbox-3', name: 'Sandbox 3' },
+      joinResponse: {
+        roomId: 'sandbox-3',
+        mapId: 'caribbean-01',
+        mapName: 'Caribbean Sea',
+        currentPlayers: 1,
+        maxPlayers: 100,
+        status: 'JOINED',
+      },
+      spawn: null,
+    };
+
+    render(
+      <DebugUiProvider>
+        <GameUiProvider>
+          <GameUiShell
+            onLeaveRoom={onLeaveRoom}
+            leaveRoomState={{ status: 'idle', error: null }}
+          />
+        </GameUiProvider>
+      </DebugUiProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Menu' }));
+    expect(screen.getByRole('button', { name: 'Выйти' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Дебаг: выкл' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Выйти' }));
+    expect(onLeaveRoom).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggles debug UI from the room menu in dev mode', async () => {
+    const user = userEvent.setup();
+    mockGameState = {
+      state: {
+        playerStates: {
+          alice: { name: 'alice', x: 1, z: 2, angle: 0 },
+        },
+      },
+    };
+    mockRoomSessionState = {
+      phase: 'active',
+      room: { id: 'sandbox-5', name: 'Sandbox 5' },
+      joinResponse: {
+        roomId: 'sandbox-5',
+        mapId: 'caribbean-01',
+        mapName: 'Caribbean Sea',
+        currentPlayers: 1,
+        maxPlayers: 100,
+        status: 'JOINED',
+      },
+      spawn: null,
+    };
+
+    render(
+      <DebugUiProvider>
+        <GameUiProvider>
+          <GameUiShell
+            onLeaveRoom={vi.fn()}
+            leaveRoomState={{ status: 'idle', error: null }}
+          />
+        </GameUiProvider>
+      </DebugUiProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Menu' }));
+    const toggleButton = screen.getByRole('button', { name: 'Дебаг: выкл' });
+    await user.click(toggleButton);
+
+    expect(screen.getByRole('button', { name: 'Дебаг: вкл' })).toBeInTheDocument();
   });
 });

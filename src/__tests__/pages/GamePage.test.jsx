@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,6 +7,7 @@ const navigateMock = vi.fn();
 const dispatchMock = vi.fn();
 const hydrateRoomEntryMock = vi.fn();
 const clearRoomSessionMock = vi.fn();
+const resetRoomSessionMock = vi.fn();
 const wsSubscribers = new Map();
 const subscribeMock = vi.fn((type, callback) => {
   if (!wsSubscribers.has(type)) {
@@ -26,6 +28,7 @@ let mockAuthState = {
   user: { username: 'alice' },
   token: 'test-token',
   loading: false,
+  logout: vi.fn(),
 };
 let mockGameState = {
   state: {
@@ -61,6 +64,12 @@ let mockWsState = {
   subscribe: subscribeMock,
 };
 
+vi.mock('@/shared/api/roomApi', () => ({
+  roomApi: {
+    leaveRoom: vi.fn(),
+  },
+}));
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
@@ -84,6 +93,7 @@ vi.mock('@/features/game/model/RoomSessionContext', () => ({
     roomSession: mockRoomSessionState,
     hydrateRoomEntry: hydrateRoomEntryMock,
     clearRoomSession: clearRoomSessionMock,
+    resetRoomSession: resetRoomSessionMock,
   }),
 }));
 
@@ -92,9 +102,12 @@ vi.mock('@/features/realtime/model/WebSocketContext', () => ({
 }));
 
 vi.mock('@/features/ui-shell/ui/GameUiShell', () => ({
-  default: ({ reconnectUiState }) => (
+  default: ({ reconnectUiState, onLeaveRoom, leaveRoomState }) => (
     <div data-testid="game-ui-shell">
       {reconnectUiState ? `${reconnectUiState.status}:${reconnectUiState.roomId}:${Math.ceil(reconnectUiState.graceRemainingMs / 1000)}` : 'idle'}
+      <button type="button" onClick={onLeaveRoom}>Leave room</button>
+      <span data-testid="leave-room-status">{leaveRoomState?.status ?? 'idle'}</span>
+      {leaveRoomState?.error && <span data-testid="leave-room-error">{leaveRoomState.error}</span>}
     </div>
   ),
 }));
@@ -104,6 +117,7 @@ vi.mock('@/scene/GameMainScene', () => ({
 }));
 
 import GamePage from '../../pages/GamePage';
+import { roomApi } from '../../shared/api/roomApi';
 import * as messageType from '../../shared/constants/messageType';
 
 function emitWsMessage(type, payload) {
@@ -121,6 +135,7 @@ describe('GamePage reconnect flow', () => {
     dispatchMock.mockReset();
     hydrateRoomEntryMock.mockReset();
     clearRoomSessionMock.mockReset();
+    resetRoomSessionMock.mockReset();
     subscribeMock.mockClear();
     wsSubscribers.clear();
     mockLocation = { state: null };
@@ -128,6 +143,7 @@ describe('GamePage reconnect flow', () => {
       user: { username: 'alice' },
       token: 'test-token',
       loading: false,
+      logout: vi.fn(),
     };
     mockGameState = {
       state: {
@@ -162,6 +178,7 @@ describe('GamePage reconnect flow', () => {
       reconnectState: { phase: 'open', attempt: 0, delayMs: null },
       subscribe: subscribeMock,
     };
+    roomApi.leaveRoom.mockReset();
   });
 
   it('shows reconnect state after the live room connection drops', async () => {
@@ -230,7 +247,8 @@ describe('GamePage reconnect flow', () => {
     );
 
     await waitFor(() => {
-      expect(clearRoomSessionMock).toHaveBeenCalled();
+      expect(resetRoomSessionMock).toHaveBeenCalled();
+      expect(clearRoomSessionMock).not.toHaveBeenCalled();
       expect(dispatchMock).toHaveBeenCalledWith({ type: 'RESET_STATE' });
       expect(navigateMock).toHaveBeenCalledWith('/', {
         replace: true,
@@ -241,6 +259,66 @@ describe('GamePage reconnect flow', () => {
           },
         },
       });
+    });
+  });
+
+  it('leaves the active room and navigates back to lobby without logout', async () => {
+    const user = userEvent.setup();
+    roomApi.leaveRoom.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        roomId: 'sandbox-1',
+        status: 'LEFT',
+        nextState: 'LOBBY',
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <GamePage />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Leave room' }));
+
+    await waitFor(() => {
+      expect(roomApi.leaveRoom).toHaveBeenCalledWith('test-token', 'sandbox-1');
+      expect(clearRoomSessionMock).toHaveBeenCalled();
+      expect(dispatchMock).toHaveBeenCalledWith({ type: 'RESET_STATE' });
+      expect(navigateMock).toHaveBeenCalledWith('/lobby', {
+        replace: true,
+        state: {
+          roomExited: true,
+        },
+      });
+    });
+  });
+
+  it('keeps the player in room and surfaces leave error when backend rejects exit', async () => {
+    const user = userEvent.setup();
+    roomApi.leaveRoom.mockResolvedValueOnce({
+      ok: false,
+      error: {
+        type: 'http',
+        status: 409,
+        code: 'ROOM_SESSION_MISMATCH',
+        message: 'Player is not bound to this room',
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <GamePage />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Leave room' }));
+
+    await waitFor(() => {
+      expect(roomApi.leaveRoom).toHaveBeenCalledWith('test-token', 'sandbox-1');
+      expect(screen.getByTestId('leave-room-status')).toHaveTextContent('error');
+      expect(screen.getByTestId('leave-room-error')).toHaveTextContent('Player is not bound to this room');
+      expect(clearRoomSessionMock).not.toHaveBeenCalled();
     });
   });
 

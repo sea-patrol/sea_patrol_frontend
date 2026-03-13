@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 
+import { useDebugUi } from '../../debug/model/DebugUiContext';
 import { selectPlayerState, useGameState } from '../../game/model/GameStateContext';
 import { useShipInterpolation } from '../model/useShipInterpolation';
 
@@ -16,6 +17,7 @@ const WireframeBox = ({ width, height, depth }) => {
 
 export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
   const localShipRef = useRef(null);
+  const { isDebugBuild, isDebugUiVisible } = useDebugUi();
 
   const shipRefToUse = isCurrentPlayer && shipRef ? shipRef : localShipRef;
 
@@ -38,7 +40,7 @@ export default function PlayerSailShip({ name, isCurrentPlayer, shipRef }) {
 
   return (
     <group ref={shipRefToUse} position={[currentRef.current.x, 0, currentRef.current.z]}>
-      {state && (
+      {isDebugBuild && isDebugUiVisible && state && (
         <WireframeBox
           width={state.width}
           height={state.height}

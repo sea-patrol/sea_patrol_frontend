@@ -114,14 +114,17 @@ export default function LobbyPage() {
   const navigate = useNavigate();
   const { user, token, loading, logout } = useAuth();
   const { state } = useGameState();
-  const { roomSession, startRoomJoin, applyRoomJoined, applySpawnAssigned, clearRoomSession } = useRoomSession();
+  const { roomSession, startRoomJoin, applyRoomJoined, applySpawnAssigned, clearRoomSession, resetRoomSession } = useRoomSession();
   const { lastClose, subscribe } = useWebSocket();
   const [joinState, setJoinState] = useState(createInitialJoinState);
+  const joinStateRef = useRef(joinState);
   const duplicateSessionHandledRef = useRef(false);
+  const roomExitedHandledRef = useRef(false);
 
   const currentPlayerState = selectCurrentPlayerState(state, user?.username);
   const hasActiveRoom = Boolean(currentPlayerState && roomSession.room);
   const reconnectNotice = location.state?.reconnectNotice ?? null;
+  const roomExited = location.state?.roomExited === true;
 
   useEffect(() => {
     if (!token) {
@@ -130,65 +133,81 @@ export default function LobbyPage() {
   }, [token]);
 
   useEffect(() => {
+    joinStateRef.current = joinState;
+  }, [joinState]);
+
+  useEffect(() => {
+    if (!roomExited) {
+      roomExitedHandledRef.current = false;
+      return;
+    }
+
+    if (roomExitedHandledRef.current) {
+      return;
+    }
+
+    roomExitedHandledRef.current = true;
+    clearRoomSession();
+    setJoinState(createInitialJoinState());
+    navigate('/lobby', {
+      replace: true,
+    });
+  }, [clearRoomSession, navigate, roomExited]);
+
+  useEffect(() => {
     if (!token) {
       return undefined;
     }
 
     const unsubscribeRoomJoined = subscribe(messageType.ROOM_JOINED, (payload) => {
-      setJoinState((prevState) => {
-        if (!isJoinPending(prevState.status) || !matchesPendingRoom(payload, prevState.room)) {
-          return prevState;
-        }
+      const currentJoinState = joinStateRef.current;
+      if (!isJoinPending(currentJoinState.status) || !matchesPendingRoom(payload, currentJoinState.room)) {
+        return;
+      }
 
-        const room = resolveRoomMeta(payload, prevState.room);
-        applyRoomJoined(payload, room);
-
-        return {
-          ...prevState,
-          status: ROOM_JOIN_STATUS.AWAITING_SPAWN,
-          room,
-          joinResponse: payload,
-          error: null,
-        };
-      });
+      const room = resolveRoomMeta(payload, currentJoinState.room);
+      applyRoomJoined(payload, room);
+      setJoinState((prevState) => ({
+        ...prevState,
+        status: ROOM_JOIN_STATUS.AWAITING_SPAWN,
+        room,
+        joinResponse: payload,
+        error: null,
+      }));
     });
 
     const unsubscribeSpawnAssigned = subscribe(messageType.SPAWN_ASSIGNED, (payload) => {
-      setJoinState((prevState) => {
-        if (!isJoinPending(prevState.status) || !matchesPendingRoom(payload, prevState.room)) {
-          return prevState;
-        }
+      const currentJoinState = joinStateRef.current;
+      if (!isJoinPending(currentJoinState.status) || !matchesPendingRoom(payload, currentJoinState.room)) {
+        return;
+      }
 
-        const room = resolveRoomMeta(payload, prevState.room);
-        applySpawnAssigned(payload, room);
-
-        return {
-          ...prevState,
-          status: ROOM_JOIN_STATUS.AWAITING_INIT,
-          room,
-          spawn: payload,
-          error: null,
-        };
-      });
+      const room = resolveRoomMeta(payload, currentJoinState.room);
+      applySpawnAssigned(payload, room);
+      setJoinState((prevState) => ({
+        ...prevState,
+        status: ROOM_JOIN_STATUS.AWAITING_INIT,
+        room,
+        spawn: payload,
+        error: null,
+      }));
     });
 
     const unsubscribeJoinRejected = subscribe(messageType.ROOM_JOIN_REJECTED, (payload) => {
-      setJoinState((prevState) => {
-        if (!isJoinPending(prevState.status) || !matchesPendingRoom(payload, prevState.room)) {
-          return prevState;
-        }
+      const currentJoinState = joinStateRef.current;
+      if (!isJoinPending(currentJoinState.status) || !matchesPendingRoom(payload, currentJoinState.room)) {
+        return;
+      }
 
-        const roomId = payload?.roomId || prevState.room?.id;
-        const reason = payload?.reason || 'UNKNOWN';
-        clearRoomSession();
-
-        return {
-          status: ROOM_JOIN_STATUS.ERROR,
-          room: prevState.room,
-          joinResponse: prevState.joinResponse,
-          spawn: null,
-          error: roomId ? `Room join rejected for ${roomId}: ${reason}` : `Room join rejected: ${reason}`,
-        };
+      const roomId = payload?.roomId || currentJoinState.room?.id;
+      const reason = payload?.reason || 'UNKNOWN';
+      clearRoomSession();
+      setJoinState({
+        status: ROOM_JOIN_STATUS.ERROR,
+        room: currentJoinState.room,
+        joinResponse: currentJoinState.joinResponse,
+        spawn: null,
+        error: roomId ? `Room join rejected for ${roomId}: ${reason}` : `Room join rejected: ${reason}`,
       });
     });
 
@@ -212,7 +231,7 @@ export default function LobbyPage() {
   }, [clearRoomSession, logout, navigate]);
 
   const handleDuplicateSession = useCallback(() => {
-    clearRoomSession();
+    resetRoomSession();
     setJoinState(createInitialJoinState());
     navigate('/', {
       replace: true,
@@ -220,7 +239,7 @@ export default function LobbyPage() {
         accessDenied: getAccessDeniedNotice(user?.username),
       },
     });
-  }, [clearRoomSession, navigate, user?.username]);
+  }, [navigate, resetRoomSession, user?.username]);
 
   useEffect(() => {
     if (isDuplicateSessionClose(lastClose)) {
@@ -232,6 +251,10 @@ export default function LobbyPage() {
     }
 
     duplicateSessionHandledRef.current = false;
+
+    if (roomExited) {
+      return;
+    }
 
     if (hasActiveRoom) {
       navigate('/game', {
@@ -245,7 +268,7 @@ export default function LobbyPage() {
         },
       });
     }
-  }, [handleDuplicateSession, hasActiveRoom, lastClose, navigate, roomSession]);
+  }, [handleDuplicateSession, hasActiveRoom, lastClose, navigate, roomExited, roomSession]);
 
   const handleJoinRoom = async (room) => {
     if (!token) {
