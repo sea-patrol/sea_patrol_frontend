@@ -79,6 +79,9 @@ const applySpawnAssignedMock = vi.fn((payload, fallbackRoom = null) => {
 const clearRoomSessionMock = vi.fn(() => {
   mockRoomSessionState = createInitialRoomSessionState();
 });
+const resetRoomSessionMock = vi.fn(() => {
+  mockRoomSessionState = createInitialRoomSessionState();
+});
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -105,6 +108,7 @@ vi.mock('@/features/game/model/RoomSessionContext', () => ({
     applyRoomJoined: applyRoomJoinedMock,
     applySpawnAssigned: applySpawnAssignedMock,
     clearRoomSession: clearRoomSessionMock,
+    resetRoomSession: resetRoomSessionMock,
   }),
 }));
 
@@ -168,6 +172,7 @@ describe('LobbyPage', () => {
     applyRoomJoinedMock.mockClear();
     applySpawnAssignedMock.mockClear();
     clearRoomSessionMock.mockClear();
+    resetRoomSessionMock.mockClear();
     authState = {
       user: { username: 'alice' },
       token: 'test-token',
@@ -302,7 +307,8 @@ describe('LobbyPage', () => {
     );
 
     await waitFor(() => {
-      expect(clearRoomSessionMock).toHaveBeenCalled();
+      expect(resetRoomSessionMock).toHaveBeenCalled();
+      expect(clearRoomSessionMock).not.toHaveBeenCalled();
       expect(navigateMock).toHaveBeenCalledWith('/', {
         replace: true,
         state: {

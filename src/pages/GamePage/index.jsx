@@ -103,7 +103,7 @@ function GamePage() {
   const navigate = useNavigate();
   const { user, token, loading, logout } = useAuth();
   const { state, dispatch } = useGameState();
-  const { roomSession, hydrateRoomEntry, clearRoomSession } = useRoomSession();
+  const { roomSession, hydrateRoomEntry, clearRoomSession, resetRoomSession } = useRoomSession();
   const { isConnected, lastClose, reconnectState, subscribe } = useWebSocket();
   const [reconnectSession, setReconnectSession] = useState(createInitialReconnectSession);
   const [leaveRoomState, setLeaveRoomState] = useState(createInitialLeaveRoomState);
@@ -150,7 +150,7 @@ function GamePage() {
 
   const handleAccessDenied = useCallback(() => {
     resetReconnectSession();
-    clearRoomSession();
+    resetRoomSession();
     dispatch({ type: 'RESET_STATE' });
     navigate('/', {
       replace: true,
@@ -158,7 +158,7 @@ function GamePage() {
         accessDenied: getAccessDeniedNotice(user?.username),
       },
     });
-  }, [clearRoomSession, dispatch, navigate, resetReconnectSession, user?.username]);
+  }, [dispatch, navigate, resetReconnectSession, resetRoomSession, user?.username]);
 
   const handleUnauthorized = useCallback(() => {
     resetReconnectSession();

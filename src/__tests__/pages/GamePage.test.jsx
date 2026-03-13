@@ -7,6 +7,7 @@ const navigateMock = vi.fn();
 const dispatchMock = vi.fn();
 const hydrateRoomEntryMock = vi.fn();
 const clearRoomSessionMock = vi.fn();
+const resetRoomSessionMock = vi.fn();
 const wsSubscribers = new Map();
 const subscribeMock = vi.fn((type, callback) => {
   if (!wsSubscribers.has(type)) {
@@ -92,6 +93,7 @@ vi.mock('@/features/game/model/RoomSessionContext', () => ({
     roomSession: mockRoomSessionState,
     hydrateRoomEntry: hydrateRoomEntryMock,
     clearRoomSession: clearRoomSessionMock,
+    resetRoomSession: resetRoomSessionMock,
   }),
 }));
 
@@ -133,6 +135,7 @@ describe('GamePage reconnect flow', () => {
     dispatchMock.mockReset();
     hydrateRoomEntryMock.mockReset();
     clearRoomSessionMock.mockReset();
+    resetRoomSessionMock.mockReset();
     subscribeMock.mockClear();
     wsSubscribers.clear();
     mockLocation = { state: null };
@@ -244,7 +247,8 @@ describe('GamePage reconnect flow', () => {
     );
 
     await waitFor(() => {
-      expect(clearRoomSessionMock).toHaveBeenCalled();
+      expect(resetRoomSessionMock).toHaveBeenCalled();
+      expect(clearRoomSessionMock).not.toHaveBeenCalled();
       expect(dispatchMock).toHaveBeenCalledWith({ type: 'RESET_STATE' });
       expect(navigateMock).toHaveBeenCalledWith('/', {
         replace: true,
