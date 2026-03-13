@@ -2,7 +2,6 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DebugUiProvider } from '@/features/debug/model/DebugUiContext';
 
 let mockAuthState = {
   user: { username: 'alice' },
@@ -89,6 +88,8 @@ vi.mock('@/widgets/GameHud/ProfileBlock', () => ({
 import { GameUiProvider } from '../../../features/ui-shell/model/GameUiContext';
 import GameUiShell from '../../../features/ui-shell/ui/GameUiShell';
 import * as messageType from '../../../shared/constants/messageType';
+
+import { DebugUiProvider } from '@/features/debug/model/DebugUiContext';
 
 function emitWsMessage(type, payload) {
   const subscribers = wsSubscribers.get(type);
@@ -261,6 +262,48 @@ describe('GameUiShell room init flow', () => {
       expect(screen.getByTestId('profile-block')).toBeInTheDocument();
       expect(screen.getByTestId('chat-block')).toHaveTextContent('Room | Sandbox 2 (sandbox-2) | group:room:sandbox-2');
       expect(markRoomActiveMock).toHaveBeenCalled();
+    });
+  });
+
+  it('renders the base in-game HUD while sailing', async () => {
+    mockGameState = {
+      state: {
+        playerStates: {
+          alice: { name: 'alice', x: 6, z: -3, angle: 0.25 },
+        },
+      },
+    };
+    mockRoomSessionState = {
+      phase: 'active',
+      room: { id: 'sandbox-6', name: 'Sandbox 6' },
+      joinResponse: {
+        roomId: 'sandbox-6',
+        mapId: 'caribbean-01',
+        mapName: 'Caribbean Sea',
+        currentPlayers: 1,
+        maxPlayers: 100,
+        status: 'JOINED',
+      },
+      spawn: null,
+    };
+
+    render(
+      <DebugUiProvider>
+        <GameUiProvider>
+          <GameUiShell />
+        </GameUiProvider>
+      </DebugUiProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-block')).toBeInTheDocument();
+      expect(screen.getByTestId('chat-block')).toHaveTextContent('Room | Sandbox 6 (sandbox-6) | group:room:sandbox-6');
+      expect(screen.getByRole('button', { name: 'Chat' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Inventory' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Journal' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Map' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Menu' })).toBeInTheDocument();
+      expect(screen.queryByText('Loading')).not.toBeInTheDocument();
     });
   });
 
