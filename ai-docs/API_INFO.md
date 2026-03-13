@@ -180,6 +180,34 @@ Response `200 OK`:
 - между REST join, `ROOM_JOINED`, `SPAWN_ASSIGNED` и финальным `INIT_GAME_STATE` frontend показывает room loading summary с room/map metadata и не прячет этот этап за голым спиннером;
 - metadata room entry хранится в `RoomSessionContext`, поэтому пользователь может безопасно вернуться на `/game` с домашней страницы, пока room session остаётся активной.
 
+### 3.7 POST `/api/v1/rooms/{roomId}/leave` (agreed next contract, not implemented yet)
+`TASK-035A` фиксирует этот endpoint как канонический room-exit flow для игрового меню. На момент фиксации frontend runtime его ещё не использует, а backend ещё не реализует.
+
+Request JSON:
+```json
+{}
+```
+
+Планируемый response `200 OK`:
+```json
+{
+  "roomId": "sandbox-1",
+  "status": "LEFT",
+  "nextState": "LOBBY"
+}
+```
+
+Важно для frontend:
+- leave должен стартовать из menu modal в комнате, а не через полный logout;
+- после REST success frontend очищает stale room gameplay state и возвращает пользователя на `/lobby`;
+- authoritative подтверждение восстановленного lobby WS-состояния приходит через `ROOMS_SNAPSHOT`, а не через отдельный `ROOM_LEFT`;
+- та же auth и WS session должны сохраняться, поэтому frontend не должен заставлять пользователя логиниться заново после обычного выхода из комнаты.
+
+Планируемые ошибки:
+- `404` — `ROOM_NOT_FOUND`
+- `409` — `ROOM_SESSION_REQUIRED`
+- `409` — `ROOM_SESSION_MISMATCH`
+
 ## 4. WebSocket API
 
 Endpoint: `{{WS_BASE_URL}}/ws/game`
