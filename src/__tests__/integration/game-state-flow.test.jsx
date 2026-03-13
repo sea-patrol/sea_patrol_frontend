@@ -51,7 +51,13 @@ function GameFlowHarness({ subscribe, currentPlayerName = 'alice' }) {
     [dispatch],
   );
 
-  useGameWsGameState({ subscribe, dispatch: dispatchWithRender, setPlayerNames, currentPlayerName });
+  useGameWsGameState({
+    subscribe,
+    dispatch: dispatchWithRender,
+    setPlayerNames,
+    currentPlayerName,
+    acceptGameMessages: true,
+  });
 
   const names = selectPlayerNames(stateRef.current).sort();
   const alice = selectPlayerState(stateRef.current, 'alice');
@@ -186,5 +192,61 @@ describe('game state flow integration', () => {
     expect(mock.unsubscribeSpies).toHaveLength(5);
     mock.unsubscribeSpies.forEach((spy) => expect(spy).toHaveBeenCalledTimes(1));
     expect(mock.subscriptions.size).toBe(0);
+  });
+
+  it('ignores room game messages when there is no active room session', async () => {
+    const mock = createSubscribeMock();
+
+    function GuardedHarness() {
+      const { dispatch, stateRef } = useGameState();
+      const [playerNames, setPlayerNames] = useState([]);
+      const [, bump] = useState(0);
+
+      const dispatchWithRender = useCallback(
+        (action) => {
+          dispatch(action);
+          bump((v) => v + 1);
+        },
+        [dispatch],
+      );
+
+      useGameWsGameState({
+        subscribe: mock.subscribe,
+        dispatch: dispatchWithRender,
+        setPlayerNames,
+        currentPlayerName: 'alice',
+        acceptGameMessages: false,
+      });
+
+      return <pre data-testid="guarded-snapshot">{JSON.stringify({
+        playerNames,
+        stateNames: selectPlayerNames(stateRef.current).sort(),
+        wind: selectWindState(stateRef.current),
+      })}</pre>;
+    }
+
+    render(
+      <GameStateProvider>
+        <GuardedHarness />
+      </GameStateProvider>,
+    );
+
+    await act(() => {
+      mock.emit(messageType.INIT_GAME_STATE, {
+        wind: { angle: 0.5, speed: 10 },
+        players: [{ name: 'alice', x: 1, z: 2, angle: 0.1, sailLevel: 3 }],
+      });
+      mock.emit(messageType.UPDATE_GAME_STATE, {
+        wind: { angle: 0.8, speed: 9.5 },
+        players: [{ name: 'alice', x: 5, sailLevel: 2 }],
+      });
+    });
+
+    await waitFor(() => {
+      const snapshot = JSON.parse(screen.getByTestId('guarded-snapshot').textContent);
+      expect(snapshot.playerNames).toEqual([]);
+      expect(snapshot.stateNames).toEqual([]);
+      expect(snapshot.wind).toBeNull();
+    });
   });
 });

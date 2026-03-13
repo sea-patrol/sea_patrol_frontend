@@ -107,10 +107,11 @@ function GamePage() {
   const { isConnected, lastClose, reconnectState, subscribe } = useWebSocket();
   const [reconnectSession, setReconnectSession] = useState(createInitialReconnectSession);
   const [leaveRoomState, setLeaveRoomState] = useState(createInitialLeaveRoomState);
+  const [exitToLobbyRequested, setExitToLobbyRequested] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   const locationRoomEntry = normalizeRoomEntry(location.state?.roomEntry);
-  const effectiveRoomEntry = locationRoomEntry ?? (roomSession.room ? {
+  const effectiveRoomEntry = exitToLobbyRequested ? null : locationRoomEntry ?? (roomSession.room ? {
     room: roomSession.room,
     joinResponse: roomSession.joinResponse,
     spawn: roomSession.spawn,
@@ -124,13 +125,18 @@ function GamePage() {
   const previousConnectionRef = useRef(isConnected);
   const reconnectSessionRef = useRef(reconnectSession);
   const duplicateSessionHandledRef = useRef(false);
+  const exitToLobbyRequestedRef = useRef(exitToLobbyRequested);
   reconnectSessionRef.current = reconnectSession;
+  exitToLobbyRequestedRef.current = exitToLobbyRequested;
 
   const resetReconnectSession = useCallback(() => {
     setReconnectSession(createInitialReconnectSession());
   }, []);
 
   const failReconnect = useCallback((reason) => {
+    if (exitToLobbyRequestedRef.current) {
+      return;
+    }
     resetReconnectSession();
     clearRoomSession();
     dispatch({ type: 'RESET_STATE' });
@@ -167,6 +173,20 @@ function GamePage() {
     });
   }, [clearRoomSession, dispatch, logout, navigate, resetReconnectSession]);
 
+  const finalizeLeaveToLobby = useCallback(() => {
+    setExitToLobbyRequested(true);
+    resetReconnectSession();
+    clearRoomSession();
+    dispatch({ type: 'RESET_STATE' });
+    setLeaveRoomState(createInitialLeaveRoomState());
+    navigate('/lobby', {
+      replace: true,
+      state: {
+        roomExited: true,
+      },
+    });
+  }, [clearRoomSession, dispatch, navigate, resetReconnectSession]);
+
   useEffect(() => {
     if (locationRoomEntry) {
       hydrateRoomEntry(locationRoomEntry);
@@ -190,6 +210,12 @@ function GamePage() {
   }, [handleAccessDenied, lastClose]);
 
   useEffect(() => {
+    if (leaveRoomState.status === LEAVE_ROOM_STATUS.SUBMITTING || exitToLobbyRequested) {
+      resetReconnectSession();
+      previousConnectionRef.current = isConnected;
+      return;
+    }
+
     if (!roomId) {
       resetReconnectSession();
       previousConnectionRef.current = isConnected;
@@ -238,10 +264,10 @@ function GamePage() {
     });
 
     previousConnectionRef.current = isConnected;
-  }, [currentPlayerState, isConnected, roomId, resetReconnectSession]);
+  }, [currentPlayerState, exitToLobbyRequested, isConnected, leaveRoomState.status, roomId, resetReconnectSession]);
 
   useEffect(() => {
-    if (!isReconnectPending(reconnectSession.status)) {
+    if (exitToLobbyRequested || !isReconnectPending(reconnectSession.status)) {
       return undefined;
     }
 
@@ -253,10 +279,10 @@ function GamePage() {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [reconnectSession.status]);
+  }, [exitToLobbyRequested, reconnectSession.status]);
 
   useEffect(() => {
-    if (!isReconnectPending(reconnectSession.status) || !reconnectSession.deadlineAt) {
+    if (exitToLobbyRequested || !isReconnectPending(reconnectSession.status) || !reconnectSession.deadlineAt) {
       return undefined;
     }
 
@@ -268,10 +294,13 @@ function GamePage() {
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [failReconnect, reconnectSession.deadlineAt, reconnectSession.status]);
+  }, [exitToLobbyRequested, failReconnect, reconnectSession.deadlineAt, reconnectSession.status]);
 
   useEffect(() => {
     const unsubscribeRoomJoined = subscribe(messageType.ROOM_JOINED, (payload) => {
+      if (exitToLobbyRequestedRef.current) {
+        return;
+      }
       const activeReconnect = reconnectSessionRef.current;
       if (!isReconnectPending(activeReconnect.status)) {
         return;
@@ -294,6 +323,9 @@ function GamePage() {
     });
 
     const unsubscribeInitGameState = subscribe(messageType.INIT_GAME_STATE, () => {
+      if (exitToLobbyRequestedRef.current) {
+        return;
+      }
       const activeReconnect = reconnectSessionRef.current;
       if (!isReconnectPending(activeReconnect.status)) {
         return;
@@ -303,6 +335,9 @@ function GamePage() {
     });
 
     const handleLobbyFallback = () => {
+      if (exitToLobbyRequestedRef.current) {
+        return;
+      }
       const activeReconnect = reconnectSessionRef.current;
       if (!isReconnectPending(activeReconnect.status)) {
         return;
@@ -364,15 +399,23 @@ function GamePage() {
       return;
     }
 
-    resetReconnectSession();
-    clearRoomSession();
-    dispatch({ type: 'RESET_STATE' });
-    setLeaveRoomState(createInitialLeaveRoomState());
-    navigate('/lobby', { replace: true });
-  }, [clearRoomSession, dispatch, handleUnauthorized, leaveRoomState.status, navigate, resetReconnectSession, roomId, token]);
+    finalizeLeaveToLobby();
+  }, [finalizeLeaveToLobby, handleUnauthorized, leaveRoomState.status, roomId, token]);
 
   if (!loading && !token) {
     return <Navigate to="/" replace />;
+  }
+
+  if (exitToLobbyRequested) {
+    return (
+      <Navigate
+        to="/lobby"
+        replace
+        state={{
+          roomExited: true,
+        }}
+      />
+    );
   }
 
   if (loading) {

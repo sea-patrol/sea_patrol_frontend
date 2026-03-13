@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '@/features/auth/model/AuthContext';
 
@@ -142,55 +142,75 @@ export function RoomSessionProvider({ children }) {
     };
   }, [token]);
 
+  const startRoomJoin = useCallback((room) => {
+    setRoomSession({
+      phase: 'joining',
+      room: room ? { id: room.id, name: room.name ?? room.id } : null,
+      joinResponse: null,
+      spawn: null,
+    });
+  }, []);
+
+  const applyRoomJoined = useCallback((payload, fallbackRoom = null) => {
+    setRoomSession((prevSession) => ({
+      phase: 'joined',
+      room: resolveRoomMeta(payload, fallbackRoom ?? prevSession.room),
+      joinResponse: payload,
+      spawn: prevSession.spawn,
+    }));
+  }, []);
+
+  const applySpawnAssigned = useCallback((payload, fallbackRoom = null) => {
+    setRoomSession((prevSession) => ({
+      phase: 'spawned',
+      room: resolveRoomMeta(payload, fallbackRoom ?? prevSession.room),
+      joinResponse: prevSession.joinResponse,
+      spawn: payload,
+    }));
+  }, []);
+
+  const hydrateRoomEntry = useCallback((roomEntry) => {
+    if (!roomEntry) {
+      return;
+    }
+
+    setRoomSession(normalizeStoredRoomSession({
+      phase: roomEntry.phase,
+      room: roomEntry.room,
+      joinResponse: roomEntry.joinResponse,
+      spawn: roomEntry.spawn,
+    }));
+  }, []);
+
+  const markRoomActive = useCallback(() => {
+    setRoomSession((prevSession) => ({
+      ...prevSession,
+      phase: prevSession.room ? 'active' : prevSession.phase,
+    }));
+  }, []);
+
+  const clearRoomSession = useCallback(() => {
+    clearStoredRoomSession();
+    setRoomSession(createInitialRoomSessionState());
+  }, []);
+
   const value = useMemo(() => ({
     roomSession,
-    startRoomJoin: (room) => {
-      setRoomSession({
-        phase: 'joining',
-        room: room ? { id: room.id, name: room.name ?? room.id } : null,
-        joinResponse: null,
-        spawn: null,
-      });
-    },
-    applyRoomJoined: (payload, fallbackRoom = null) => {
-      setRoomSession((prevSession) => ({
-        phase: 'joined',
-        room: resolveRoomMeta(payload, fallbackRoom ?? prevSession.room),
-        joinResponse: payload,
-        spawn: prevSession.spawn,
-      }));
-    },
-    applySpawnAssigned: (payload, fallbackRoom = null) => {
-      setRoomSession((prevSession) => ({
-        phase: 'spawned',
-        room: resolveRoomMeta(payload, fallbackRoom ?? prevSession.room),
-        joinResponse: prevSession.joinResponse,
-        spawn: payload,
-      }));
-    },
-    hydrateRoomEntry: (roomEntry) => {
-      if (!roomEntry) {
-        return;
-      }
-
-      setRoomSession(normalizeStoredRoomSession({
-        phase: roomEntry.phase,
-        room: roomEntry.room,
-        joinResponse: roomEntry.joinResponse,
-        spawn: roomEntry.spawn,
-      }));
-    },
-    markRoomActive: () => {
-      setRoomSession((prevSession) => ({
-        ...prevSession,
-        phase: prevSession.room ? 'active' : prevSession.phase,
-      }));
-    },
-    clearRoomSession: () => {
-      clearStoredRoomSession();
-      setRoomSession(createInitialRoomSessionState());
-    },
-  }), [roomSession]);
+    startRoomJoin,
+    applyRoomJoined,
+    applySpawnAssigned,
+    hydrateRoomEntry,
+    markRoomActive,
+    clearRoomSession,
+  }), [
+    applyRoomJoined,
+    applySpawnAssigned,
+    clearRoomSession,
+    hydrateRoomEntry,
+    markRoomActive,
+    roomSession,
+    startRoomJoin,
+  ]);
 
   return <RoomSessionContext.Provider value={value}>{children}</RoomSessionContext.Provider>;
 }

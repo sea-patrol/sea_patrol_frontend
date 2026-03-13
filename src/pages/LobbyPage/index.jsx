@@ -118,16 +118,36 @@ export default function LobbyPage() {
   const { lastClose, subscribe } = useWebSocket();
   const [joinState, setJoinState] = useState(createInitialJoinState);
   const duplicateSessionHandledRef = useRef(false);
+  const roomExitedHandledRef = useRef(false);
 
   const currentPlayerState = selectCurrentPlayerState(state, user?.username);
   const hasActiveRoom = Boolean(currentPlayerState && roomSession.room);
   const reconnectNotice = location.state?.reconnectNotice ?? null;
+  const roomExited = location.state?.roomExited === true;
 
   useEffect(() => {
     if (!token) {
       setJoinState(createInitialJoinState());
     }
   }, [token]);
+
+  useEffect(() => {
+    if (!roomExited) {
+      roomExitedHandledRef.current = false;
+      return;
+    }
+
+    if (roomExitedHandledRef.current) {
+      return;
+    }
+
+    roomExitedHandledRef.current = true;
+    clearRoomSession();
+    setJoinState(createInitialJoinState());
+    navigate('/lobby', {
+      replace: true,
+    });
+  }, [clearRoomSession, navigate, roomExited]);
 
   useEffect(() => {
     if (!token) {
@@ -233,6 +253,10 @@ export default function LobbyPage() {
 
     duplicateSessionHandledRef.current = false;
 
+    if (roomExited) {
+      return;
+    }
+
     if (hasActiveRoom) {
       navigate('/game', {
         replace: true,
@@ -245,7 +269,7 @@ export default function LobbyPage() {
         },
       });
     }
-  }, [handleDuplicateSession, hasActiveRoom, lastClose, navigate, roomSession]);
+  }, [handleDuplicateSession, hasActiveRoom, lastClose, navigate, roomExited, roomSession]);
 
   const handleJoinRoom = async (room) => {
     if (!token) {

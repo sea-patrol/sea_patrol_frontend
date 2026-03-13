@@ -281,7 +281,12 @@ describe('GamePage reconnect flow', () => {
       expect(roomApi.leaveRoom).toHaveBeenCalledWith('test-token', 'sandbox-1');
       expect(clearRoomSessionMock).toHaveBeenCalled();
       expect(dispatchMock).toHaveBeenCalledWith({ type: 'RESET_STATE' });
-      expect(navigateMock).toHaveBeenCalledWith('/lobby', { replace: true });
+      expect(navigateMock).toHaveBeenCalledWith('/lobby', {
+        replace: true,
+        state: {
+          roomExited: true,
+        },
+      });
     });
   });
 

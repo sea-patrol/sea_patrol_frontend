@@ -20,6 +20,7 @@ const subscribeMock = vi.fn((type, callback) => {
 });
 
 const logoutMock = vi.fn();
+let mockLocation = { state: null };
 
 let mockWsState = {
   lastClose: null,
@@ -84,6 +85,7 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual,
     useNavigate: () => navigateMock,
+    useLocation: () => mockLocation,
   };
 });
 
@@ -172,6 +174,7 @@ describe('LobbyPage', () => {
       loading: false,
       logout: logoutMock,
     };
+    mockLocation = { state: null };
     mockWsState = {
       lastClose: null,
       subscribe: subscribeMock,
@@ -313,23 +316,69 @@ describe('LobbyPage', () => {
   });
 
   it('shows reconnect warning when the room session was dropped back to lobby', () => {
+    mockLocation = {
+      state: {
+        reconnectNotice: {
+          title: 'Reconnect window expired',
+          body: 'The room session was not restored within the reconnect grace window.',
+        },
+      },
+    };
+
     render(
-      <MemoryRouter
-        initialEntries={[{
-          pathname: '/lobby',
-          state: {
-            reconnectNotice: {
-              title: 'Reconnect window expired',
-              body: 'The room session was not restored within the reconnect grace window.',
-            },
-          },
-        }]}
-      >
+      <MemoryRouter>
         <LobbyPage />
       </MemoryRouter>,
     );
 
     expect(screen.getByText('Reconnect window expired')).toBeInTheDocument();
     expect(screen.getByText('The room session was not restored within the reconnect grace window.')).toBeInTheDocument();
+  });
+
+  it('does not auto-resume the room after explicit exit to lobby', async () => {
+    mockLocation = {
+      state: {
+        roomExited: true,
+      },
+    };
+    mockGameState = {
+      state: {
+        playerStates: {
+          alice: { name: 'alice', x: 0, z: 0, angle: 0 },
+        },
+      },
+    };
+    mockRoomSessionState = {
+      phase: 'active',
+      room: { id: 'sandbox-1', name: 'Sandbox 1' },
+      joinResponse: {
+        roomId: 'sandbox-1',
+        mapId: 'caribbean-01',
+        mapName: 'Caribbean Sea',
+        currentPlayers: 1,
+        maxPlayers: 100,
+        status: 'JOINED',
+      },
+      spawn: {
+        roomId: 'sandbox-1',
+        reason: 'INITIAL',
+        x: 0,
+        z: 0,
+        angle: 0,
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <LobbyPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(clearRoomSessionMock).toHaveBeenCalled();
+    });
+
+    expect(navigateMock).not.toHaveBeenCalledWith('/game', expect.anything());
+    expect(screen.getByText('Harbor Lobby')).toBeInTheDocument();
   });
 });

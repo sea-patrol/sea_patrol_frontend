@@ -322,6 +322,10 @@ export default function GameUiShell({
       return;
     }
 
+    if (isLeavePending) {
+      return;
+    }
+
     if (isReconnectMode) {
       setScreenMode(GAME_UI_MODE.RECONNECTING);
       return;
@@ -338,7 +342,7 @@ export default function GameUiShell({
     }
 
     setScreenMode(GAME_UI_MODE.LOADING);
-  }, [hasActiveRoomState, isConnected, isPendingRoomJoin, isReconnectMode, loading, roomJoinState.status, setScreenMode]);
+  }, [hasActiveRoomState, isConnected, isLeavePending, isPendingRoomJoin, isReconnectMode, loading, roomJoinState.status, setScreenMode]);
 
   const windowCopy = activeWindow ? WINDOW_COPY[activeWindow] : null;
   const roomLoadingCopy = useMemo(() => getRoomLoadingCopy(roomJoinState), [roomJoinState]);

@@ -39,7 +39,7 @@
 ## Acceptance Criteria
 - [x] В room menu есть кнопка `Выйти`.
 - [x] Нажатие на `Выйти` вызывает `POST /api/v1/rooms/{roomId}/leave`.
-- [x] После confirmed REST success frontend очищает `GameState` и `RoomSession` и переводит игрока на `/lobby` без logout.
+- [x] После confirmed REST success frontend сразу очищает `GameState` и `RoomSession` и переводит игрока на `/lobby` без logout.
 - [x] Ошибки leave-room показываются в menu modal и не маскируются под локальный success.
 - [x] Есть tests на API client, menu action и navigation/cleanup flow.
 
@@ -58,7 +58,7 @@
 
 ## Технический подход
 - `GameUiShell` остаётся UI-слоем: открывает menu modal, показывает кнопку `Выйти`, pending-state и inline error.
-- `GamePage` выступает coordinator-слоем: делает `roomApi.leaveRoom(token, roomId)`, на `200 OK` очищает `GameState` + `RoomSession` и выполняет `navigate('/lobby')`, а на `401` переводит пользователя в login flow.
+- `GamePage` выступает coordinator-слоем: делает `roomApi.leaveRoom(token, roomId)`, на `200 OK` сразу очищает `GameState` + `RoomSession` и выполняет `navigate('/lobby', { state: { roomExited: true } })`, а на `401` переводит пользователя в login flow.
 - Cleanup намеренно выполняется только после подтверждённого REST success, чтобы фронт не «угадывал» leave-room локально.
 
 ## Контракты и данные
@@ -68,6 +68,7 @@
 ### UI / state
 - menu modal показывает кнопку `Выйти`;
 - pending label: `Выходим...`;
+- после REST success используется немедленный route transition в `/lobby` без reconnect/countdown UX;
 - `409` ошибки room leave остаются в меню как inline error;
 - success path сохраняет текущую auth/WS session и переводит пользователя на `/lobby`.
 

@@ -199,8 +199,8 @@ Response `200 OK`:
 
 Важно для frontend:
 - leave должен стартовать из menu modal в комнате, а не через полный logout;
-- после REST success frontend очищает stale room gameplay state и возвращает пользователя на `/lobby`;
-- authoritative подтверждение восстановленного lobby WS-состояния приходит через `ROOMS_SNAPSHOT`, а не через отдельный `ROOM_LEFT`;
+- после REST success frontend сразу очищает stale room gameplay state и возвращает пользователя на `/lobby`, не включая reconnect flow;
+- `ROOMS_SNAPSHOT` остаётся обычным lobby snapshot после возврата, но frontend не должен задерживать route transition в ожидании отдельного WS-подтверждения leave;
 - та же auth и WS session должны сохраняться, поэтому frontend не должен заставлять пользователя логиниться заново после обычного выхода из комнаты.
 - если backend вернул `401`, frontend должен считать auth-state невалидным, делать logout и открывать login flow с домашней страницы;
 - `409` ошибки (`ROOM_SESSION_REQUIRED`, `ROOM_SESSION_MISMATCH`) пока показываются прямо в menu modal и не должны тихо переводить пользователя в другой route без подтверждённого REST success.
