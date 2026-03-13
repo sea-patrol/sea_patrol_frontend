@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DebugUiProvider } from '@/features/debug/model/DebugUiContext';
+
 const mockAuthState = {
   user: { username: 'alice' },
 };
@@ -38,7 +40,11 @@ import ProfileBlock from '@/widgets/GameHud/ProfileBlock';
 
 describe('ProfileBlock', () => {
   it('shows core player, sail and wind information in the main HUD', () => {
-    render(<ProfileBlock />);
+    render(
+      <DebugUiProvider>
+        <ProfileBlock />
+      </DebugUiProvider>,
+    );
 
     expect(screen.getByText('alice')).toBeInTheDocument();
     expect(screen.getByText('Скорость')).toBeInTheDocument();
@@ -49,5 +55,6 @@ describe('ProfileBlock', () => {
     expect(screen.getByText('Ветер: 90° / С')).toBeInTheDocument();
     expect(screen.getByText('Курс и ветер: Левый галс бейдевинд')).toBeInTheDocument();
     expect(screen.getByText(/тяга будет умеренной/)).toBeInTheDocument();
+    expect(screen.getByText('Debug')).toBeInTheDocument();
   });
 });

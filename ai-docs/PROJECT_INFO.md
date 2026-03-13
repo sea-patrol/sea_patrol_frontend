@@ -78,6 +78,7 @@ src/
 │   └── RoomLoadingSummary/
 ├── features/             # Фичи (ui + model)
 │   ├── auth/             # AuthContext + формы
+│   ├── debug/            # DebugUiContext для runtime toggle debug-layer
 │   ├── realtime/         # WebSocketContext
 │   ├── game/             # GameStateContext + RoomSessionContext + global realtime bridge
 │   ├── player-controls/  # KeyPress c проверкой UI mode
@@ -111,6 +112,7 @@ src/
 - **Явный navigation flow `Home -> Lobby -> Game` с room resume-first входом**: домашняя страница снова использует CTA `Play`; если у пользователя уже есть сохранённая room session, `Play` ведёт сразу на `/game`, где стартует reconnect/resume flow, а если room session нет или backend её уже не восстановил, пользователь попадает в обычный `/lobby`; `Join room` по-прежнему стартует на lobby route, проходит через REST `POST /api/v1/rooms/{roomId}/join`, WS `ROOM_JOINED`, `SPAWN_ASSIGNED` и финальный `INIT_GAME_STATE/current player`, и только после полного init flow переводит пользователя в `/game`
 - **Room exit contract уже подключён в UI**: backend поддерживает `POST /api/v1/rooms/{roomId}/leave` с возвратом той же WS-сессии в `lobby`, а frontend использует этот REST-authoritative flow без logout и без повторного login flow
 - **Room menu уже умеет штатный `Exit to lobby`**: `GamePage` теперь запускает `POST /api/v1/rooms/{roomId}/leave`, после confirmed REST success сразу очищает stale `GameState` + `RoomSession` и переводит пользователя обратно на `/lobby` без logout, сохраняя ту же auth и WS session; `LobbyPage` дополнительно игнорирует stale room resume при route state `roomExited`, а сам `GameUiShell` показывает кнопку `Выйти` и inline error state для room-leave ошибок
+- **Debug UI теперь управляется из room menu**: dev-only `DebugUiContext` хранит runtime toggle для `Leva`, `r3f-perf` и HUD debug-секции; в `MENU_OPEN` появляется кнопка `Дебаг: вкл/выкл`, а production UI её не рендерит, поэтому debug layer можно включать и выключать без пересборки frontend
 - **Глобальный realtime bridge и room session поверх роутов**: `WebSocketProvider`, `GameStateProvider`, `RoomSessionProvider` и `GameRealtimeBridge` живут выше страниц, поэтому переходы `Home -> Lobby -> Game` не рвут WS-сессию, не теряют ранние room init сообщения и позволяют безопасно открыть `/game` повторно после возврата на домашний экран; `RoomSessionProvider` дополнительно сохраняет room metadata в `localStorage` и синхронизирует её через `storage` events между вкладками, чтобы full page reload или повторный вход с домашней страницы не лишали пользователя room resume target в пределах backend reconnect grace
 - **Scoped chat UI**: `LobbyPage` использует `ChatBlock` как standalone lobby chat widget для `group:lobby`, а `GameUiShell` держит room-scoped chat для `group:room:<roomId>`; истории lobby/room сообщений по-прежнему разделены по `payload.to`, без смешивания между комнатами
 - **Централизованные UI hotkeys**: `Enter`, `Esc`, `I`, `J`, `M` обрабатываются в одном слое (`GameUiHotkeys`), а gameplay input учитывает текущий UI mode
@@ -177,8 +179,8 @@ src/
 
 **Текущее покрытие**:
 - 25 тестовых файлов
-- 137 тестов (все проходят ✅)
-- Протестированы: AuthContext, RoomSessionContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init/reconnect flow и menu leave action, room loading summary и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, room entry summary и explicit exit-to-lobby guard, отдельный GamePage reconnect flow и room-leave flow, ChatBlock scoped chat UI, ProfileBlock HUD widget, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + map metadata previews + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils, wind feedback helpers
+- 139 тестов (все проходят ✅)
+- Протестированы: AuthContext, RoomSessionContext, WebSocketContext, GameStateContext (reducer), GameUi reducer/hotkeys, GameUiShell room init/reconnect flow, menu leave action и dev-only debug toggle, room loading summary и reopen-from-session flow, HomePage navigation flow, LobbyPage route join/navigation, room entry summary и explicit exit-to-lobby guard, отдельный GamePage reconnect flow и room-leave flow, ChatBlock scoped chat UI, ProfileBlock HUD widget, Login, Signup, PlayerSailShip, LobbyPanel (REST bootstrap + map metadata previews + create room + live WS updates + join UI), auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils, wind feedback helpers
 
 ## 4. Working Commands
 
@@ -197,7 +199,7 @@ src/
 - `npm run test:run` — однократный запуск (CI/CD).
 - `npm run test:coverage` — запуск с отчётом о покрытии.
 
-**Текущее покрытие**: 25 файлов, 137 тестов (AuthContext, RoomSessionContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init/reconnect flow и menu leave action, HomePage navigation flow, LobbyPage route join/navigation и explicit exit-to-lobby guard, отдельный GamePage reconnect flow и room-leave flow, ChatBlock scoped chat UI, ProfileBlock HUD widget, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils, wind feedback helpers).
+**Текущее покрытие**: 25 файлов, 139 тестов (AuthContext, RoomSessionContext, WebSocketContext, GameStateContext reducer, GameUi reducer/hotkeys, GameUiShell room init/reconnect flow, menu leave action и dev-only debug toggle, HomePage navigation flow, LobbyPage route join/navigation и explicit exit-to-lobby guard, отдельный GamePage reconnect flow и room-leave flow, ChatBlock scoped chat UI, ProfileBlock HUD widget, Login, Signup, PlayerSailShip, LobbyPanel с REST bootstrap, create room, live WS updates и join UI, auth-flow, game-state-flow, authApi, roomApi, wsClient, messageAdapter, ws-send-regression, shipInterpolation utils, wind feedback helpers).
 
 ### 4.4 Environment Variables
 Фронтенд читает переменные окружения только с префиксом `VITE_` (стандарт Vite). Пример конфигурации — `.env.example`.

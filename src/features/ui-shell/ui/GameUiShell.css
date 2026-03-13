@@ -170,6 +170,22 @@
   opacity: 0.7;
 }
 
+.game-ui-shell__menu-toggle {
+  border: 1px solid rgba(92, 168, 255, 0.45);
+  background: rgba(18, 49, 92, 0.56);
+  color: #eef7ff;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.game-ui-shell__menu-toggle:hover {
+  background: rgba(36, 88, 156, 0.75);
+  transform: translateY(-1px);
+}
+
 .game-ui-shell__menu-error {
   margin-top: 12px !important;
   color: #ffb7ad !important;

@@ -6,6 +6,7 @@ import './GameUiShell.css';
 import GameUiHotkeys from './GameUiHotkeys';
 
 import { useAuth } from '@/features/auth/model/AuthContext';
+import { useDebugUi } from '@/features/debug/model/DebugUiContext';
 import { selectCurrentPlayerState, useGameState } from '@/features/game/model/GameStateContext';
 import { useRoomSession } from '@/features/game/model/RoomSessionContext';
 import { useWebSocket } from '@/features/realtime/model/WebSocketContext';
@@ -200,6 +201,7 @@ export default function GameUiShell({
 }) {
   const chatInputRef = useRef(null);
   const { user, token, loading } = useAuth();
+  const { isDebugBuild, isDebugUiVisible, toggleDebugUi } = useDebugUi();
   const { state } = useGameState();
   const { roomSession, markRoomActive } = useRoomSession();
   const { hasToken, isConnected, lastClose, subscribe } = useWebSocket();
@@ -419,6 +421,11 @@ export default function GameUiShell({
               <button type="button" className="game-ui-shell__menu-danger" onClick={onLeaveRoom} disabled={!onLeaveRoom || isLeavePending}>
                 {isLeavePending ? 'Выходим...' : 'Выйти'}
               </button>
+              {isDebugBuild && (
+                <button type="button" className="game-ui-shell__menu-toggle" onClick={toggleDebugUi}>
+                  {isDebugUiVisible ? 'Дебаг: выкл' : 'Дебаг: вкл'}
+                </button>
+              )}
             </div>
             {leaveRoomState?.error && <p className="game-ui-shell__menu-error">{leaveRoomState.error}</p>}
           </section>

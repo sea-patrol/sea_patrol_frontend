@@ -1,16 +1,16 @@
 import { describeRelativeWind, describeSailDrive, getWindCompassLabel, getWindStrengthLabel, toDegrees } from './windFeedback';
 
 import { useAuth } from '@/features/auth/model/AuthContext';
+import { useDebugUi } from '@/features/debug/model/DebugUiContext';
 import { selectCurrentPlayerState, selectWindState, useGameState } from '@/features/game/model/GameStateContext';
 import pirateAvatar from '@/shared/assets/Pirate.jpg';
 
 
 import './ProfileBlock.css';
 
-const IS_DEV = import.meta.env.DEV;
-
 const ProfileBlock = () => {
   const { user } = useAuth();
+  const { isDebugBuild, isDebugUiVisible } = useDebugUi();
   const { state } = useGameState();
   const currentPlayerState = selectCurrentPlayerState(state, user?.username);
   const windState = selectWindState(state);
@@ -60,7 +60,7 @@ const ProfileBlock = () => {
           </div>
           <div className="wind-panel__copy">{sailDriveCopy}</div>
         </div>
-        {IS_DEV && currentPlayerState && (
+        {isDebugBuild && isDebugUiVisible && currentPlayerState && (
           <div className="debug-panel">
             <div className="debug-panel__title">Debug</div>
             <div>X: {(currentPlayerState.x ?? 0).toFixed(2)}, Z: {(currentPlayerState.z ?? 0).toFixed(2)}</div>
