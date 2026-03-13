@@ -2,12 +2,25 @@ import { useEffect } from 'react';
 
 import { GAME_UI_MODE, UI_WINDOW, useGameUi } from '../model/GameUiContext';
 
+function isEditableTarget(target) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  const tagName = target.tagName.toLowerCase();
+  return target.isContentEditable || ['input', 'textarea', 'select'].includes(tagName);
+}
+
 export default function GameUiHotkeys({ chatInputRef }) {
   const { mode, openChat, returnToSailing, toggleMenu, toggleWindow } = useGameUi();
 
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.defaultPrevented || event.repeat) return;
+
+      if (isEditableTarget(event.target)) {
+        return;
+      }
 
       if ([GAME_UI_MODE.LOADING, GAME_UI_MODE.RECONNECTING, GAME_UI_MODE.RESPAWN].includes(mode)) {
         return;

@@ -219,6 +219,17 @@ export default function GameUiShell({
   }, [token]);
 
   useEffect(() => {
+    if (mode === GAME_UI_MODE.CHAT_FOCUS) {
+      return;
+    }
+
+    const chatInput = chatInputRef.current;
+    if (chatInput && document.activeElement === chatInput) {
+      chatInput.blur();
+    }
+  }, [mode]);
+
+  useEffect(() => {
     const sessionRoomMeta = resolveRoomMeta(roomSession.room, roomSession.room ?? null);
     const initialRoomMeta = resolveRoomMeta(initialRoomEntry?.room ?? initialRoomEntry?.joinResponse, initialRoomEntry?.room ?? null);
     const nextRoomMeta = sessionRoomMeta ?? initialRoomMeta;

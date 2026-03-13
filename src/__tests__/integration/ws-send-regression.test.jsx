@@ -73,13 +73,20 @@ class MockWebSocket {
 }
 
 function SailingUiHarness({ children }) {
-  const { setScreenMode } = useGameUi();
+  const { setScreenMode, toggleWindow } = useGameUi();
 
   useEffect(() => {
     setScreenMode(GAME_UI_MODE.SAILING);
   }, [setScreenMode]);
 
-  return children;
+  return (
+    <>
+      <button type="button" onClick={() => toggleWindow('INVENTORY')}>
+        open-window
+      </button>
+      {children}
+    </>
+  );
 }
 
 const renderWithProviders = (route, ui) => {
@@ -155,6 +162,32 @@ describe('WebSocket send regressions (chat + keyboard)', () => {
     expect(ws.sent).toContain(JSON.stringify(['PLAYER_INPUT', { up: true, down: false, right: false, left: false }]));
     expect(warnSpy.mock.calls.some((call) => String(call[0]).includes('WebSocket send failed'))).toBe(false);
 
+    warnSpy.mockRestore();
+  });
+
+  it('KeyPress: clears active ship input when a large UI window takes focus', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    renderWithProviders('/game', <KeyPress />);
+
+    const ws = MockWebSocket.instances[0];
+    await act(() => {
+      ws.open();
+    });
+
+    await waitFor(() => expect(typeof keyboardSubscriber).toBe('function'));
+
+    await act(() => {
+      keyboardSubscriber({ up: true, down: false, left: false, right: false });
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'open-window' }));
+
+    await waitFor(() => {
+      expect(ws.sent).toContain(JSON.stringify(['PLAYER_INPUT', { up: false, down: false, right: false, left: false }]));
+    });
+
+    expect(warnSpy.mock.calls.some((call) => String(call[0]).includes('WebSocket send failed'))).toBe(false);
     warnSpy.mockRestore();
   });
 });

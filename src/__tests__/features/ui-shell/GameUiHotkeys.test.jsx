@@ -60,4 +60,26 @@ describe('GameUiHotkeys', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.getByTestId('mode')).toHaveTextContent(GAME_UI_MODE.SAILING);
   });
+
+  it('ignores global hotkeys while an editable element owns the keyboard focus', async () => {
+    render(
+      <GameUiProvider>
+        <HotkeysHarness />
+      </GameUiProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('mode')).toHaveTextContent(GAME_UI_MODE.SAILING);
+    });
+
+    const input = screen.getByLabelText('chat-input');
+    input.focus();
+
+    fireEvent.keyDown(input, { key: 'i' });
+    expect(screen.getByTestId('mode')).toHaveTextContent(GAME_UI_MODE.SAILING);
+    expect(screen.getByTestId('window')).toHaveTextContent('none');
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.getByTestId('mode')).toHaveTextContent(GAME_UI_MODE.SAILING);
+  });
 });
